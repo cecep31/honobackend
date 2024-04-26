@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model post_comments {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at         DateTime? @db.Timestamptz(6)
+  updated_at         DateTime? @db.Timestamptz(6)
+  deleted_at         DateTime? @db.Timestamptz(6)
+  text               String?
+  post_id            String?   @db.Uuid
+  parrent_comment_id BigInt?
+  created_by         String?   @db.Uuid
+  users              users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_post_comments_creator")
+  posts              posts?    @relation(fields: [post_id], references: [id], map: "fk_posts_post_comments")
+}
+
+model posts {
+  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at    DateTime?       @db.Timestamptz(6)
+  updated_at    DateTime?       @db.Timestamptz(6)
+  deleted_at    DateTime?       @db.Timestamptz(6)
+  title         String?
+  created_by    String?         @db.Uuid
+  body          String?
+  slug          String?         @unique(map: "idx_posts_slug")
+  createbyid    String?         @db.VarChar(50)
+  photo_url     String?
+  post_comments post_comments[]
+  users         users?          @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_posts_creator")
+}
+
+model taskgorups {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at DateTime? @db.Timestamptz(6)
+  updated_at DateTime? @db.Timestamptz(6)
+  deleted_at DateTime? @db.Timestamptz(6)
+  name       String?
+  created_by String?   @db.Uuid
+  order      BigInt?
+  users      users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_taskgorups_created_by")
+  tasks      tasks[]
+}
+
+model tasks {
+  id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at DateTime?   @db.Timestamptz(6)
+  updated_at DateTime?   @db.Timestamptz(6)
+  deleted_at DateTime?   @db.Timestamptz(6)
+  title      String?
+  desc       String?
+  group_id   String?     @db.Uuid
+  created_by String?     @db.Uuid
+  order      BigInt?
+  body       String?
+  taskgorups taskgorups? @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_taskgorups_task")
+  users      users?      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tasks_created_by")
+}
+
+model users {
+  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at    DateTime?       @db.Timestamptz(6)
+  updated_at    DateTime?       @db.Timestamptz(6)
+  deleted_at    DateTime?       @db.Timestamptz(6)
+  first_name    String?         @default("pilput")
+  last_name     String?         @default("admin")
+  email         String          @unique(map: "idx_users_email")
+  password      String?
+  image         String?
+  issuperadmin  Boolean?        @default(false)
+  post_comments post_comments[]
+  posts         posts[]
+  taskgorups    taskgorups[]
+  tasks         tasks[]
+}

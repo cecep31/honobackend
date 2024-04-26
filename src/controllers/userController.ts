@@ -1,21 +1,25 @@
 import { Hono } from "hono"
+import { Database } from "../config/database";
+import UserService from "../pkg/services/userServices";
 
 export class UserController {
     private user: Hono;
 
-    constructor() {
+    constructor(private userservice: UserService) {
+        // this.database.client.users.findMany().then((users) => {
+        //     console.log(users);
+        // })
         this.user = new Hono()
-        this.user.get("/", this.getUser)
     }
-
+    
     newRouter() {
+        this.user.get("/", this.getUsers)
         return this.user
     }
 
-    getUser(c: any) {
-        return c.json([
-            { name: "John Doe" },
-            { name: "Jane Doe 2" },
-        ])
+
+    async getUsers(context: any) {
+        
+        return context.json(this.userservice.getUsers());
     }
 }
