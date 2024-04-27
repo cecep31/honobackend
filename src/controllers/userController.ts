@@ -1,25 +1,37 @@
 import { Hono } from "hono"
 import { Database } from "../config/database";
 import UserService from "../pkg/services/userServices";
+import { validate as validateUuid } from 'uuid';
 
-export class UserController {
-    private user: Hono;
+const user = new Hono();
 
-    constructor(private userservice: UserService) {
-        // this.database.client.users.findMany().then((users) => {
-        //     console.log(users);
-        // })
-        this.user = new Hono()
+user.get("/", async (c) => {
+    const database = new Database();
+    const userservice = new UserService(database);
+    return c.json(await userservice.getUsers());
+})
+
+user.get("/:id", async (c) => {
+    const id = c.req.param("id");
+    const database = new Database();
+    const userservice = new UserService(database);
+    //check id is uuid
+    if (!validateUuid(id)) {
+        return c.text("invalid id", 400);
     }
-    
-    newRouter() {
-        this.user.get("/", this.getUsers)
-        return this.user
+    const user = await userservice.gerUser(id);
+    if (!user) {
+        return c.text("user not found", 404);
     }
+    return c.json(user);
+})
 
-
-    async getUsers(context: any) {
-        
-        return context.json(this.userservice.getUsers());
-    }
+async function getUsers(context: any) {
+    const database = new Database();
+    const userservice = new UserService(database);
+    return context.json(await userservice.getUsers());
 }
+
+
+
+export default user
