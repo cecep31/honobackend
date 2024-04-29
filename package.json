@@ -4,6 +4,7 @@
     "start": "bun run src/main.ts"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.2.1",
     "@prisma/client": "^5.13.0",
     "hono": "^4.2.0",
     "prisma": "^5.13.0",
