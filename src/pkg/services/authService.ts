@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import {sign} from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
 
 class AuthService {
@@ -21,10 +22,13 @@ class AuthService {
         const payload = {
             id: user.id,
             email: user.email,
-            isSuperAdmin: user.issuperadmin
+            isSuperAdmin: user.issuperadmin,
+            exp: Math.floor(Date.now() / 1000) + 60 * 5
 
         }
-        return this.database.users.findMany({ select: { id: true, first_name: true, last_name: true, email: true, password: false, image: true } });
+        const secret = process.env.JWT_KEY
+        const token = await sign(payload, secret ?? "")
+        return token;
     }
 }
 
