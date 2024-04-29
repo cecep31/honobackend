@@ -1,11 +1,11 @@
-import { Database } from "../../config/database";
+import { PrismaClient } from "@prisma/client";
 import { HTTPException } from 'hono/http-exception'
 
 class AuthService {
-    constructor(private database: Database) { }
+    constructor(private database: PrismaClient) { }
 
     async signIn(email: string, password: string) {
-        const user = await this.database.client.users.findUnique({ where: { email: email } })
+        const user = await this.database.users.findUnique({ where: { email: email } })
         if (!user) {
             throw new HTTPException(401, { message: "email or password not match" })
         }
@@ -24,7 +24,7 @@ class AuthService {
             isSuperAdmin: user.issuperadmin
 
         }
-        return this.database.client.users.findMany({ select: { id: true, first_name: true, last_name: true, email: true, password: false, image: true } });
+        return this.database.users.findMany({ select: { id: true, first_name: true, last_name: true, email: true, password: false, image: true } });
     }
 }
 

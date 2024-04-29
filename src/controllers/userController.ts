@@ -1,11 +1,9 @@
 import { Hono } from "hono"
-import { Database } from "../config/database";
+import { database } from "../config/database";
 import UserService from "../pkg/services/userServices";
 import { validate as validateUuid } from 'uuid';
 
 const user = new Hono();
-
-const database = new Database();
 const userservice = new UserService(database);
 
 user.get("/", async (c) => {
