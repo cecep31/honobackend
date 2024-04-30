@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import {sign} from 'hono/jwt'
+import { sign } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
+import { compare } from 'bcryptjs'
 
 class AuthService {
     constructor(private database: PrismaClient) { }
@@ -10,23 +11,20 @@ class AuthService {
         if (!user) {
             throw new HTTPException(401, { message: "email or password not match" })
         }
-        const hash = await Bun.password.hash(password);
-        console.log(user.password);
-        
-        const compare = await Bun.password.verify(password, hash ?? "")
-        console.log(compare);
-        
-        if (!compare) {
+        const compared = await compare(password, user.password ?? "")
+
+        if (!compared) {
             throw new HTTPException(401, { message: "email or password not match" })
         }
         const payload = {
             id: user.id,
             email: user.email,
             isSuperAdmin: user.issuperadmin,
-            exp: Math.floor(Date.now() / 1000) + 60 * 5
-
+            exp: Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60
         }
         const secret = process.env.JWT_KEY
+        console.log(secret);
+
         const token = await sign(payload, secret ?? "")
         return token;
     }
