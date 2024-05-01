@@ -1,7 +1,9 @@
 {
   "scripts": {
     "dev": "bun run --hot src/main.ts",
-    "start": "bun run src/main.ts"
+    "build" : "bun build src/main.ts --outdir dist --minify",
+    "start": "bun run src/main.ts",
+    "start:prod": "bun run dist/main.js"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.2.1",
