@@ -6,8 +6,15 @@ const postcontroller = new Hono()
 const postservice = new PostService(database)
 
 postcontroller.get('/', async (c) => {
-    const posts = await postservice.getPosts()
+    const param = c.req.query()
+    const posts = await postservice.getPosts(param)
     return c.json(posts)
+})
+
+postcontroller.get('/:id', async (c) => {
+    const id = c.req.param('id')
+    const post = await postservice.getPost(id)
+    return c.json(post)
 })
 
 export default postcontroller;
