@@ -7,6 +7,6 @@ describe('authservice', () => {
         const database = new PrismaClient()
         const authService = new AuthService(database)
         const token = await authService.signIn('guest@pilput.dev', 'guestguest')
-        expect(token).toBeString();
+        expect(token).toEqual({ access_token: expect.any(String) });
     })
 })

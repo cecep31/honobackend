@@ -17,7 +17,7 @@ authController.post("/login", zValidator(
     const body = await c.req.json();
     const { email, password } = body;
     const token = await authService.signIn(email, password);
-    return c.json({access_toke: token});
+    return c.json(token);
 })
 
 export default authController;

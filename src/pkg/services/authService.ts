@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { sign } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import {compare} from 'bcryptjs'
+import { compare } from 'bcryptjs'
 
 
 class AuthService {
@@ -26,7 +26,7 @@ class AuthService {
         const secret = process.env.JWT_KEY
 
         const token = await sign(payload, secret ?? "")
-        return token;
+        return { access_token: token };
     }
 }
 
