@@ -8,10 +8,12 @@ const user = new Hono();
 const userservice = new UserService(database);
 
 user.get("/", auth, async (c) => {
+    console.log(c);
+    
     return c.json(await userservice.getUsers());
 })
 
-user.get("/:id", async (c) => {
+user.get("/:id", auth, async (c) => {
     const id = c.req.param("id");
     //check id is uuid
     if (!validateUuid(id)) {
@@ -23,10 +25,6 @@ user.get("/:id", async (c) => {
     }
     return c.json(user);
 })
-
-async function getUsers(context: any) {
-    return context.json(await userservice.getUsers());
-}
 
 
 

@@ -8,24 +8,30 @@ class AuthService {
     constructor(private database: PrismaClient) { }
 
     async signIn(email: string, password: string) {
-        const user = await this.database.users.findUnique({ where: { email: email } })
+        const user = await this.database.users.findUnique({
+            where: { email },
+        });
         if (!user) {
-            throw new HTTPException(401, { message: "email or password not match" })
+            throw new HTTPException(401, { message: "Invalid credentials" });
         }
-        const compared = await compare(password, user.password ?? "")
 
+        const compared = await compare(password, user.password ?? "");
+        // const compared = await Bun.password.verify(password,user.password ?? "", "bcrypt");
+        
         if (!compared) {
-            throw new HTTPException(401, { message: "email or password not match" })
+            throw new HTTPException(401, { message: "Invalid credentials" });
         }
+
         const payload = {
             id: user.id,
             email: user.email,
             isSuperAdmin: user.issuperadmin,
-            exp: Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60
-        }
-        const secret = process.env.JWT_KEY
+            exp: Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+        };
 
-        const token = await sign(payload, secret ?? "")
+        const token = await sign(payload, process.env.JWT_KEY!);
+
+
         return { access_token: token };
     }
 
