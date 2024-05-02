@@ -3,5 +3,6 @@
 FROM oven/bun:alpine
 WORKDIR /app
 COPY . .
-RUN npm install
+RUN bun install
+EXPOSE 3001
 CMD ["bun", "run", "start"]
