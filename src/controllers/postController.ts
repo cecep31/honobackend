@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { PostService } from '../pkg/services/postService'
 import { database } from "../config/database";
+import { zValidator } from "@hono/zod-validator";
+import { z } from 'zod'
 
 const postcontroller = new Hono()
 const postservice = new PostService(database)
@@ -15,6 +17,15 @@ postcontroller.get('/:id', async (c) => {
     const id = c.req.param('id')
     const post = await postservice.getPost(id)
     return c.json(post)
+})
+
+postcontroller.post("/", zValidator("json",
+    z.object({
+        title: z.string(),
+
+    })
+), (c) => {
+    return c.text("hello world")
 })
 
 export default postcontroller;

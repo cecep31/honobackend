@@ -1,7 +1,7 @@
 {
   "scripts": {
     "dev": "bun run --hot src/main.ts",
-    "build" : "bun build src/main.ts --outdir dist --minify",
+    "build": "bun build src/main.ts --outdir dist --minify",
     "start": "bun run src/main.ts",
     "start:prod": "bun run dist/main.js"
   },
