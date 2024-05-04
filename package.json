@@ -2,6 +2,7 @@
   "scripts": {
     "dev": "bun run --hot src/main.ts",
     "build": "bun build src/main.ts --outdir dist --minify",
+    "build:compile": "bun build src/main.ts --outfile bin/honobackend --minify --compile",
     "start": "bun run src/main.ts",
     "start:prod": "bun run dist/main.js"
   },
