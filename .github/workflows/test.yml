@@ -15,6 +15,12 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+          
+      - name: install depedency
+        run: bun install
+
+      - name: prisma generate
+        run: bunx prisma generate
 
       - name: test
         run: bun test
