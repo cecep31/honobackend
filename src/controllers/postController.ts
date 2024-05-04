@@ -28,4 +28,10 @@ postcontroller.post("/", zValidator("json",
     return c.text("hello world")
 })
 
+postcontroller.delete('/:id', async (c) => {
+    const id = c.req.param('id')
+    const post = await postservice.deletePost(id)
+    return c.json(post)
+})
+
 export default postcontroller;

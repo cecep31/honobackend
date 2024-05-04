@@ -34,4 +34,15 @@ export class PostService {
         }
         return post
     }
+    async deletePost(id_post: string) {
+        const post = await this.database.posts.delete({
+            where: {
+                id: id_post
+            }
+        })
+        if (!post) {
+            throw new HTTPException(404, { message: "post not found" })
+        }
+        return { id: post.id }
+    }
 }
