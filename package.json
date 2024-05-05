@@ -1,10 +1,11 @@
 {
   "scripts": {
     "dev": "bun run --hot src/main.ts",
+    "start" : "bun run src/main.ts",
     "build": "bun build src/main.ts --outdir dist --minify",
     "build:compile": "bun build src/main.ts --outfile bin/honobackend --minify --compile",
-    "start": "bun run src/main.ts",
-    "start:prod": "bun run dist/main.js"
+    "start:prod": "bun run src/main.ts",
+    "start:bin": "bun run dist/main.js"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.2.1",
