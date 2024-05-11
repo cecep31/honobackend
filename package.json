@@ -1,24 +1,26 @@
 {
   "scripts": {
     "dev": "bun run --hot src/main.ts",
-    "start" : "bun run src/main.ts",
-    "build": "bun build src/main.ts --outdir dist --minify",
+    "start": "bun run src/main.ts",
+    "build": "bun build src/main.ts --outdir dist --minify --target bun",
     "build:compile": "bun build src/main.ts --outfile bin/honobackend --minify --compile",
     "start:prod": "bun run src/main.ts",
-    "start:bin": "bun run dist/main.js"
+    "start:bin": "bun run dist/main.js",
+    "generate": "drizzle-kit generate:pg"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.2.1",
-    "@prisma/client": "^5.13.0",
     "bcryptjs": "^2.4.3",
+    "drizzle-orm": "^0.30.10",
     "hono": "^4.2.0",
-    "prisma": "^5.13.0",
+    "postgres": "^3.4.4",
     "uuid": "^9.0.1",
     "zod": "^3.23.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/bun": "latest",
-    "@types/uuid": "^9.0.8"
+    "@types/uuid": "^9.0.8",
+    "drizzle-kit": "^0.20.18"
   }
 }

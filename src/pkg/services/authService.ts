@@ -1,23 +1,23 @@
-import { PrismaClient } from "@prisma/client";
 import { sign, verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
 import { compare } from 'bcryptjs'
+import { db } from "../../database/drizzel";
+import { users } from '../../../drizzle/schema';
+import { eq } from 'drizzle-orm';
 
 
 class AuthService {
-    constructor(private database: PrismaClient) { }
 
     async signIn(email: string, password: string) {
-        const user = await this.database.users.findUnique({
-            where: { email },
-        });
+        const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+        
         if (!user) {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
-
+        
         const compared = await compare(password, user.password ?? "");
         // const compared = await Bun.password.verify(password,user.password ?? "", "bcrypt");
-        
+
         if (!compared) {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
@@ -38,7 +38,7 @@ class AuthService {
     async refreshToken(refreshToken: string) {
         try {
             const payload = await verify(refreshToken, process.env.JWT_KEY ?? "");
-            const user = await this.database.users.findUnique({ where: { id: payload.id } });
+            const user = await db.query.users.findFirst({ where: eq(users.id, payload.id) });
             if (!user) {
                 throw new HTTPException(401, { message: "User not found" });
             }

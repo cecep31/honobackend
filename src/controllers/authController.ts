@@ -1,11 +1,10 @@
 import { Hono } from "hono";
-import { database } from "../config/database";
 import AuthService from "../pkg/services/authService";
 import { z } from "zod";
 import { zValidator } from '@hono/zod-validator'
 
 const authController = new Hono();
-const authService = new AuthService(database);
+const authService = new AuthService();
 
 authController.post("/login", zValidator(
     'json',
