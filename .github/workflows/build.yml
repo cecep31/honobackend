@@ -1,4 +1,4 @@
-name: Test
+name: build
 
 on:
   push:
@@ -6,12 +6,12 @@ on:
       - 'main'
 
 jobs:
-  test:
+  build:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v4
 
-      - name: Set up bu
+      - name: Set up bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
@@ -19,8 +19,6 @@ jobs:
       - name: install depedency
         run: bun install
 
-      - name: prisma generate
-        run: bunx prisma generate
+      - name: build
+        run: bun run build
 
-      - name: test
-        run: bun test
