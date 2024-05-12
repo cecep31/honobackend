@@ -6,7 +6,7 @@ COPY . .
 RUN bun install
 RUN bun run build:compile
 
-FROM oven/bun:alpine as run
+FROM alpine as run
 WORKDIR /app
 COPY --from=build /app/bin/ ./bin
 EXPOSE 3001
