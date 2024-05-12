@@ -3,7 +3,12 @@
 FROM oven/bun:alpine as build
 WORKDIR /app
 COPY . .
-RUN bun upgrade
 RUN bun install
+RUN bun run build:compile
+
+FROM oven/bun:alpine as run
+WORKDIR /app
+COPY --from=build /app/bin/ ./bin
 EXPOSE 3001
-CMD [ "bun","run","start" ]
+CMD [ "./bin/honobackend" ]
+# CMD [ "bun","run","start" ]
