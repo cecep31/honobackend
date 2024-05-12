@@ -1,13 +1,18 @@
-import { PrismaClient } from "@prisma/client";
-
+import { eq } from 'drizzle-orm'
+import { db } from '../../database/drizzel'
+import { users } from '../../../drizzle/schema'
 class UserService {
-    constructor(private database: PrismaClient) { }
+    constructor() { }
 
     getUsers() {
-        return this.database.users.findMany({ select: {id: true, first_name: true, last_name: true, email: true,issuperadmin: true, password: false, image: true } });
+        return db.query.users.findMany({
+            columns: {
+                password: false
+            }
+        })
     }
     gerUser(id: string) {
-        return this.database.users.findUnique({ where: { id } })
+        return db.query.users.findFirst({ where: eq(users.id, id) })
     }
 }
 
