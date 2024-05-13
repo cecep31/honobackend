@@ -2,9 +2,6 @@ import { Hono } from "hono";
 import { PostService } from '../pkg/services/postService'
 import { zValidator } from "@hono/zod-validator";
 import { z } from 'zod'
-import { db } from "../database/drizzel";
-import { users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
 
 const postcontroller = new Hono()
 const postservice = new PostService()
