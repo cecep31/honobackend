@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import { PostService } from '../pkg/services/postService'
-import { database } from "../config/database";
 import { zValidator } from "@hono/zod-validator";
 import { z } from 'zod'
+import { db } from "../database/drizzel";
+import { users } from "../../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const postcontroller = new Hono()
 const postservice = new PostService()
@@ -21,16 +23,17 @@ postcontroller.get('/:id', async (c) => {
 postcontroller.post("/", zValidator("json",
     z.object({
         title: z.string(),
-
+        body: z.string(),
+        slug: z.string()
     })
 ), (c) => {
     return c.text("hello world")
 })
 
-// postcontroller.delete('/:id', async (c) => {
-//     const id = c.req.param('id')
-//     const post = await postservice.deletePost(id)
-//     return c.json(post)
-// })
+postcontroller.delete('/:id', async (c) => {
+    const id = c.req.param('id')
+    const post = db.delete(users).where(eq(users.id, id))
+    return c.json(post)
+})
 
 export default postcontroller;
