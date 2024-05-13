@@ -32,7 +32,7 @@ postcontroller.post("/", zValidator("json",
 
 postcontroller.delete('/:id', async (c) => {
     const id = c.req.param('id')
-    const post = db.delete(users).where(eq(users.id, id))
+    const post = postservice.deletePost(id)
     return c.json(post)
 })
 
