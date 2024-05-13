@@ -6,9 +6,10 @@ COPY . .
 RUN bun install
 RUN bun run build:compile
 
-FROM alpine as run
+# FROM alpine:latest as run
+FROM oven/bun:alpine as run
 WORKDIR /app
-COPY --from=build /app/bin/ ./bin
+COPY --from=build /app/bin/honobackend .
 EXPOSE 3001
-CMD [ "./bin/honobackend" ]
+CMD [ "./honobackend"]
 # CMD [ "bun","run","start" ]
