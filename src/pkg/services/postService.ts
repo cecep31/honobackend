@@ -1,14 +1,25 @@
 import { HTTPException } from "hono/http-exception";
 import { db } from '../../database/drizzel'
 import { posts, users } from "../../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 
 export class PostService {
-    constructor() { }
+    async AddPost(auth_id: string, title: string, body: string, slug: string) {
+        const post = await db
+            .insert(posts)
+            .values({ title: title, body: body, slug: slug, createdBy: auth_id })
+            .returning();
+        return post
+    }
 
     async getPosts() {
-        const postsdata = await db.select().from(posts);
+        const postsdata = await db.select().from(posts).orderBy(desc(posts.createdAt) );
         return postsdata;
+    }
+
+    async getPostsRandom() {
+        const postsData = await db.select().from(posts).orderBy(sql.raw("RANDOM()")).limit(6)
+        return postsData
     }
 
     async getPost(id_post: string) {
