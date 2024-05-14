@@ -14,6 +14,10 @@ class UserService {
     gerUser(id: string) {
         return db.query.users.findFirst({ where: eq(users.id, id) })
     }
+
+    deleteUser(user_id: string) {
+        return db.delete(users).where(eq(users.id, user_id))
+    }
 }
 
 export default UserService

@@ -2,13 +2,14 @@ import { Hono } from "hono"
 import UserService from "../pkg/services/userServices";
 import { validate as validateUuid } from 'uuid';
 import { auth } from '../middlewares/auth'
+import { superAdmin } from "../middlewares/superAdmin";
 
 const user = new Hono();
 const userservice = new UserService();
 
 user.get("/", auth, async (c) => {
     console.log(c);
-    
+
     return c.json(await userservice.getUsers());
 })
 
@@ -23,6 +24,12 @@ user.get("/:id", auth, async (c) => {
         return c.text("user not found", 404);
     }
     return c.json(user);
+})
+
+user.delete("/:id", auth, superAdmin, async (c) => {
+    const id = c.req.param('id')
+    const user = userservice.deleteUser(id)
+    return c.json(user)
 })
 
 
