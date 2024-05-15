@@ -3,9 +3,10 @@ import UserService from "../pkg/services/userServices";
 import { validate as validateUuid } from 'uuid';
 import { auth } from '../middlewares/auth'
 import { superAdmin } from "../middlewares/superAdmin";
+import { db } from '../database/drizzel'
 
 const user = new Hono();
-const userservice = new UserService();
+const userservice = new UserService(db);
 
 user.get("/", auth, async (c) => {
     console.log(c);
