@@ -14,7 +14,7 @@ class UserService {
         })
     }
     gerUser(id: string) {
-        return this.db.query.users.findFirst({ where: eq(users.id, id) })
+        return this.db.query.users.findFirst({ columns: { password: false },where: eq(users.id, id) })
     }
 
     deleteUser(user_id: string) {
