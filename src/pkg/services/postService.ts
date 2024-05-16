@@ -1,36 +1,37 @@
 import { HTTPException } from "hono/http-exception";
-import { db } from '../../database/drizzel'
-import { posts, users } from "../../../drizzle/schema";
+import * as Schema from '../../../drizzle/schema'
 import { desc, eq, sql } from "drizzle-orm";
+import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export class PostService {
+    constructor(private db: PostgresJsDatabase<typeof Schema>) {}
     async AddPost(auth_id: string, title: string, body: string, slug: string) {
-        const post = await db
-            .insert(posts)
+        const post = await this.db
+            .insert(Schema.posts)
             .values({ title: title, body: body, slug: slug, createdBy: auth_id })
             .returning();
         return post
     }
 
     async getPosts() {
-        const postsdata = await db.select().from(posts).orderBy(desc(posts.createdAt) );
+        const postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.createdAt) );
         return postsdata;
     }
 
     async getPostsRandom() {
-        const postsData = await db.select().from(posts).orderBy(sql.raw("RANDOM()")).limit(6)
+        const postsData = await this.db.select().from(Schema.posts).orderBy(sql.raw("RANDOM()")).limit(6)
         return postsData
     }
 
     async getPost(id_post: string) {
-        const post = await db.query.posts.findFirst({ where: eq(posts.id, id_post) })
+        const post = await this.db.query.posts.findFirst({ where: eq(Schema.posts.id, id_post) })
         if (!post) {
             throw new HTTPException(404, { message: "Post not Found" })
         }
         return post
     }
     async deletePost(postId: string) {
-        const deletedPost = await db.delete(posts).where(eq(posts.id, postId)).returning();
+        const deletedPost = await this.db.delete(Schema.posts).where(eq(Schema.posts.id, postId)).returning();
         if (!deletedPost) {
             throw new HTTPException(404, { message: "Post not found" });
         }

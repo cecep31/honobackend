@@ -1,20 +1,21 @@
 import { sign, verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
 import { compare } from 'bcryptjs'
-import { db } from "../../database/drizzel";
-import { users } from '../../../drizzle/schema';
+import * as Schema from '../../../drizzle/schema';
 import { eq } from 'drizzle-orm';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 
 class AuthService {
 
+    constructor(private db: PostgresJsDatabase<typeof Schema>) { }
     async signIn(email: string, password: string) {
-        const user = await db.query.users.findFirst({ where: eq(users.email, email) })
-        
+        const user = await this.db.query.users.findFirst({ where: eq(Schema.users.email, email) })
+
         if (!user) {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
-        
+
         const compared = await compare(password, user.password ?? "");
         // const compared = await Bun.password.verify(password,user.password ?? "", "bcrypt");
 
@@ -38,7 +39,7 @@ class AuthService {
     async refreshToken(refreshToken: string) {
         try {
             const payload = await verify(refreshToken, process.env.JWT_KEY ?? "");
-            const user = await db.query.users.findFirst({ where: eq(users.id, payload.id) });
+            const user = await this.db.query.users.findFirst({ where: eq(Schema.users.id, payload.id) });
             if (!user) {
                 throw new HTTPException(401, { message: "User not found" });
             }

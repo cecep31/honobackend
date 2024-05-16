@@ -3,9 +3,10 @@ import { PostService } from '../pkg/services/postService'
 import { zValidator } from "@hono/zod-validator";
 import { z } from 'zod'
 import { auth } from "../middlewares/auth";
+import { db } from '../database/drizzel'
 
 const postcontroller = new Hono()
-const postservice = new PostService()
+const postservice = new PostService(db)
 
 postcontroller.get('/', async (c) => {
     if (c.req.query('random')) {

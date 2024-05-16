@@ -10,6 +10,9 @@ app.use(logger())
 app.get('/', async (c) => {
   return c.json({"message": "hello world"})
 })
+
+
+
 app.route('/users', UserController)
 app.route('/auth', AuthController)
 app.route('/posts', PostController)
