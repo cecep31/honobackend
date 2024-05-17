@@ -6,15 +6,14 @@ import { superAdmin } from "../middlewares/superAdmin";
 import { db } from '../database/drizzel'
 
 const user = new Hono();
-const userservice = new UserService(db);
 
 user.get("/", auth, async (c) => {
-    console.log(c);
-
+    const userservice = new UserService(db);
     return c.json(await userservice.getUsers());
 })
 
 user.get("/:id", auth, async (c) => {
+    const userservice = new UserService(db);
     const id = c.req.param("id");
     //check id is uuid
     if (!validateUuid(id)) {
@@ -28,11 +27,11 @@ user.get("/:id", auth, async (c) => {
 })
 
 user.delete("/:id", auth, superAdmin, async (c) => {
+    const userservice = new UserService(db);
     const id = c.req.param('id')
     const user = userservice.deleteUser(id)
     return c.json(user)
 })
-
 
 
 export default user

@@ -5,7 +5,6 @@ import { zValidator } from '@hono/zod-validator'
 import {db} from '../database/drizzel'
 
 const authController = new Hono();
-const authService = new AuthService(db);
 
 authController.post("/login", zValidator(
     'json',
@@ -14,6 +13,7 @@ authController.post("/login", zValidator(
         password: z.string()
     })
 ), async (c) => {
+    const authService = new AuthService(db);
     const body = await c.req.json();
     const { email, password } = body;
     const token = await authService.signIn(email, password);
