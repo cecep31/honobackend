@@ -1,8 +1,6 @@
 import { Hono } from 'hono'
 import { logger } from "hono/logger"
-import UserController from './controllers/userController'
-import AuthController from './controllers/authController'
-import PostController from './controllers/postController'
+import setupRouter from './router'
 
 const app = new Hono()
 
@@ -11,11 +9,7 @@ app.get('/', async (c) => {
   return c.json({"message": "hello world"})
 })
 
-
-
-app.route('/users', UserController)
-app.route('/auth', AuthController)
-app.route('/posts', PostController)
+setupRouter(app)
 
 export default {
   port: process.env.PORT || 3001,

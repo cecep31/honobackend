@@ -21,6 +21,6 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/bun": "latest",
     "@types/uuid": "^9.0.8",
-    "drizzle-kit": "^0.20.18"
+    "drizzle-kit": "^0.21.2"
   }
 }

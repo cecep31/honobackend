@@ -1,5 +1,5 @@
 import { HTTPException } from "hono/http-exception";
-import * as Schema from '../../../drizzle/schema'
+import * as Schema from '../../schema/schema'
 import { desc, eq, sql } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 

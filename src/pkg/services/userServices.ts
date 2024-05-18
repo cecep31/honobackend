@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
-import { users } from '../../../drizzle/schema'
-import * as Schema from '../../../drizzle/schema'
+import { users } from '../../schema/schema'
+import * as Schema from '../../schema/schema'
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 
 class UserService {

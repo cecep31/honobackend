@@ -1,91 +1,9 @@
 {
-  "id": "00000000-0000-0000-0000-000000000000",
-  "prevId": "",
+  "id": "97e51f47-0813-4cd4-935e-639285935e52",
+  "prevId": "f926069d-3259-4e56-92b4-a05177112d86",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
-    "public.users": {
-      "name": "users",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuid_generate_v4()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "first_name": {
-          "name": "first_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pilput'"
-        },
-        "last_name": {
-          "name": "last_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'admin'"
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password": {
-          "name": "password",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "issuperadmin": {
-          "name": "issuperadmin",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        }
-      },
-      "indexes": {
-        "idx_users_email": {
-          "name": "idx_users_email",
-          "columns": [
-            "email"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
     "public.post_comments": {
       "name": "post_comments",
       "schema": "",
@@ -142,25 +60,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "fk_post_comments_creator": {
-          "name": "fk_post_comments_creator",
-          "tableFrom": "post_comments",
-          "tableTo": "users",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fk_posts_post_comments": {
-          "name": "fk_posts_post_comments",
+        "post_comments_post_id_posts_id_fk": {
+          "name": "post_comments_post_id_posts_id_fk",
           "tableFrom": "post_comments",
           "tableTo": "posts",
-          "schemaTo": "public",
           "columnsFrom": [
             "post_id"
           ],
@@ -169,6 +72,19 @@
           ],
           "onDelete": "set null",
           "onUpdate": "cascade"
+        },
+        "post_comments_created_by_users_id_fk": {
+          "name": "post_comments_created_by_users_id_fk",
+          "tableFrom": "post_comments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -242,25 +158,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "fk_posts_creator": {
-          "name": "fk_posts_creator",
+        "posts_created_by_users_id_fk": {
+          "name": "posts_created_by_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fk_posts_user": {
-          "name": "fk_posts_user",
-          "tableFrom": "posts",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
@@ -274,11 +175,11 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "idx_posts_slug": {
+          "name": "idx_posts_slug",
+          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ],
-          "nullsNotDistinct": false,
-          "name": "idx_posts_slug"
+          ]
         }
       }
     },
@@ -332,11 +233,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "fk_taskgorups_created_by": {
-          "name": "fk_taskgorups_created_by",
+        "taskgorups_created_by_users_id_fk": {
+          "name": "taskgorups_created_by_users_id_fk",
           "tableFrom": "taskgorups",
           "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
@@ -418,11 +318,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "fk_taskgorups_task": {
-          "name": "fk_taskgorups_task",
+        "tasks_group_id_taskgorups_id_fk": {
+          "name": "tasks_group_id_taskgorups_id_fk",
           "tableFrom": "tasks",
           "tableTo": "taskgorups",
-          "schemaTo": "public",
           "columnsFrom": [
             "group_id"
           ],
@@ -432,25 +331,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "fk_tasks_created_by": {
-          "name": "fk_tasks_created_by",
+        "tasks_created_by_users_id_fk": {
+          "name": "tasks_created_by_users_id_fk",
           "tableFrom": "tasks",
           "tableTo": "users",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "fk_tasks_creator": {
-          "name": "fk_tasks_creator",
-          "tableFrom": "tasks",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
@@ -463,16 +347,95 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pilput'"
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'admin'"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "issuperadmin": {
+          "name": "issuperadmin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "idx_users_email": {
+          "name": "idx_users_email",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {},
   "schemas": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
     "tables": {}
   }
 }

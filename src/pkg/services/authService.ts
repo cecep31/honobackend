@@ -1,7 +1,7 @@
 import { sign, verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
 import { compare } from 'bcryptjs'
-import * as Schema from '../../../drizzle/schema';
+import * as Schema from '../../schema/schema';
 import { eq } from 'drizzle-orm';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
