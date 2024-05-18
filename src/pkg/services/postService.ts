@@ -8,13 +8,13 @@ export class PostService {
     async AddPost(auth_id: string, title: string, body: string, slug: string) {
         const post = await this.db
             .insert(Schema.posts)
-            .values({ title: title, body: body, slug: slug, createdBy: auth_id })
+            .values({ title: title, body: body, slug: slug, created_by: auth_id })
             .returning();
         return post
     }
 
     async getPosts() {
-        const postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.createdAt) );
+        const postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at) );
         return postsdata;
     }
 
