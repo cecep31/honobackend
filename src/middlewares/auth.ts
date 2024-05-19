@@ -5,8 +5,8 @@ import { verify } from 'hono/jwt'
 export const auth = createMiddleware(async (c, next) => {
     const authorization = c.req.header('Authorization')
     const token = authorization?.replace('Bearer ', '')
-    const secretKey = process.env.JWT_KEY ?? ''
-
+    const secretKey = process.env.JWT_KEY!
+    
     try {
         const decodedPayload = await verify(token ?? '', secretKey)
         c.set('jwtPayload', decodedPayload)

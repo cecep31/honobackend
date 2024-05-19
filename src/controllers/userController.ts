@@ -4,6 +4,8 @@ import { validate as validateUuid } from 'uuid';
 import { auth } from '../middlewares/auth'
 import { superAdmin } from "../middlewares/superAdmin";
 import { db } from '../database/drizzel'
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 
 const user = new Hono();
 
@@ -25,6 +27,17 @@ user.get("/:id", auth, async (c) => {
     }
     return c.json(user);
 })
+user.post("/", auth, superAdmin, zValidator('json',
+    z.object({
+        first_name: z.string(),
+        last_name: z.string(),
+        email: z.string(),
+        password: z.string(),
+    })), async (c) => {
+        const userservice = new UserService(db);
+        const body = await c.req.json() as PostUser;
+        return c.json(await userservice.addUser(body))
+    })
 
 user.delete("/:id", auth, superAdmin, async (c) => {
     const userservice = new UserService(db);
