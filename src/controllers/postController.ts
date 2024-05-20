@@ -8,12 +8,15 @@ import { db } from '../database/drizzel'
 const postcontroller = new Hono()
 
 postcontroller.get('/', async (c) => {
+
     const postservice = new PostService(db)
     if (c.req.query('random')) {
         const posts = await postservice.getPostsRandom()
         return c.json(posts)
     }
-    const posts = await postservice.getPosts()
+    const page = c.req.query('page') ? parseInt(c.req.query('page') ?? "1") : 1
+    const perPage = c.req.query('per_page') ? parseInt(c.req.query('per_page') ?? "5") : 5
+    const posts = await postservice.getPosts(perPage,page)
     return c.json(posts)
 })
 

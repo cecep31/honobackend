@@ -4,7 +4,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export class PostService {
-    constructor(private db: PostgresJsDatabase<typeof Schema>) {}
+    constructor(private db: PostgresJsDatabase<typeof Schema>) { }
     async AddPost(auth_id: string, title: string, body: string, slug: string) {
         const post = await this.db
             .insert(Schema.posts)
@@ -13,8 +13,13 @@ export class PostService {
         return post
     }
 
-    async getPosts() {
-        const postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at) );
+    async getPosts(perPgae = 0, page = 1) {
+        let postsdata: any
+        if (perPgae === 0) {
+            postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at));
+        } else {
+            postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at)).limit(perPgae).offset((page - 1) * perPgae);
+        }
         return postsdata;
     }
 
