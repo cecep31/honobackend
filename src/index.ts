@@ -1,14 +1,14 @@
 import { Hono } from 'hono'
-import { logger } from "hono/logger"
 import setupRouter from './router'
+import setupMiddlewares from './middlewares'
 
 const app = new Hono()
 
-app.use(logger())
 app.get('/', async (c) => {
-  return c.json({"message": "hello world"})
+  return c.json({ "message": "hello world" })
 })
 
+setupMiddlewares(app)
 setupRouter(app)
 
 export default {

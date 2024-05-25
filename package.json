@@ -1,12 +1,10 @@
 {
   "scripts": {
-    "dev": "bun run --hot src/main.ts",
-    "start": "bun run src/main.ts",
-    "build": "bun build src/main.ts --outdir dist --minify --target bun",
-    "build:compile": "bun build src/main.ts --outfile bin/honobackend --minify --compile",
-    "start:prod": "bun run src/main.ts",
-    "start:bin": "bun run dist/main.js",
-    "generate": "drizzle-kit generate:pg"
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --minify --target bun",
+    "build:compile": "bun build src/index.ts --outfile bin/honobackend --minify --compile",
+    "start:prod": "bun run src/index.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.2.1",
