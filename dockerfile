@@ -8,7 +8,7 @@ RUN bun run build
 # FROM alpine:latest as run
 FROM oven/bun:alpine as run
 WORKDIR /app
-COPY --from=build /app/dist/main.js .
+COPY --from=build /app/dist/index.js .
 EXPOSE 3001
-CMD [ "bun","main.js" ]
+CMD [ "bun","index.js" ]
 # CMD [ "bun","run","start" ]
