@@ -28,7 +28,6 @@ class UserService {
     }
     addUser(body: PostUser) {
         const hash_password = Bcrypt.hashSync(body.password)
-        console.log(body);
 
         return this.db.insert(Schema.users).values({
             first_name: body.first_name,

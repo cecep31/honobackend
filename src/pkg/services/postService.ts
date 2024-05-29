@@ -13,26 +13,19 @@ export class PostService {
         return post
     }
 
-    async getPosts(perPgae = 0, page = 1) {
-        let postsdata: any
-        if (perPgae === 0) {
-            postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at));
-            return postsdata;
+    async getPosts(limit = 100, offset = 0) {
 
-        } else {
-            postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at)).limit(perPgae).offset((page - 1) * perPgae);
-            postsdata = await this.db.query.posts.findMany({
-                orderBy: desc(Schema.posts.created_at),
-                limit: perPgae,
-                with: {
-                    creator: true
-                },
-                offset: (page - 1) * perPgae,
-            })
-            const total = await this.db.select({ count: count() }).from(Schema.posts)
-            console.log(total);
-            return { data: postsdata, total: total[0].count }
-        }
+        // postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at)).limit(limit).offset(offset);
+        const postsdata = await this.db.query.posts.findMany({
+            orderBy: desc(Schema.posts.created_at),
+            limit: limit,
+            with: {
+                creator: true
+            },
+            offset: offset,
+        })
+        const total = await this.db.select({ count: count() }).from(Schema.posts)
+        return { data: postsdata, total: total[0].count }
     }
 
     async getPostsRandom() {

@@ -14,9 +14,10 @@ postcontroller.get('/', async (c) => {
         const posts = await postservice.getPostsRandom()
         return c.json(posts)
     }
-    const page = c.req.query('page') ? parseInt(c.req.query('page') ?? "1") : 1
-    const perPage = c.req.query('per_page') ? parseInt(c.req.query('per_page') ?? "5") : 5
-    const posts = await postservice.getPosts(perPage,page)
+    const limit = c.req.query('limit') ? parseInt(c.req.query('page') ?? "100") : 100
+    const offset = c.req.query('offset') ? parseInt(c.req.query('per_page') ?? "0") : 0
+
+    const posts = await postservice.getPosts(limit, offset)
     return c.json(posts)
 })
 
