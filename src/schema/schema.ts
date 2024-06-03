@@ -1,8 +1,6 @@
-import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, foreignKey, bigint, unique, varchar } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, foreignKey, bigint, unique, varchar, serial, primaryKey, integer } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
-
 import { sql } from "drizzle-orm"
-
 
 
 export const users = pgTable("users", {
@@ -53,32 +51,36 @@ export const posts = pgTable("posts", {
 		}
 	});
 
-export const taskgorups = pgTable("taskgorups", {
-	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
-	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
-	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
-	name: text("name"),
-	created_by: uuid("created_by").references(() => users.id),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	order: bigint("order", { mode: "number" }),
+export const tags = pgTable('tags', {
+	id: serial('id').primaryKey(),
+	name: text('name'),
 });
 
-export const tasks = pgTable("tasks", {
-	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
-	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
-	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
-	title: text("title"),
-	desc: text("desc"),
-	group_id: uuid("group_id").references(() => taskgorups.id),
-	created_by: uuid("created_by").references(() => users.id).references(() => users.id),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	order: bigint("order", { mode: "number" }),
-	body: text("body"),
-});
+export const postsToTags = pgTable(
+	'posts_to_tags',
+	{
+		posts_id: uuid('posts_id')
+			.notNull()
+			.references(() => posts.id),
+		tags_id: integer('tags_id')
+			.notNull()
+			.references(() => tags.id),
+	},
+	(t) => ({
+		pk: primaryKey({ columns: [t.posts_id, t.tags_id] }),
+	}),
+);
 
-// import { users, post_comments, posts, taskgorups, tasks } from "./schema";
+export const usersToGroupsRelations = relations(postsToTags, ({ one }) => ({
+	posts: one(posts, {
+		fields: [postsToTags.posts_id],
+		references: [posts.id],
+	}),
+	tags: one(tags, {
+		fields: [postsToTags.tags_id],
+		references: [tags.id],
+	}),
+}));
 
 export const post_commentsRelations = relations(post_comments, ({ one }) => ({
 	user: one(users, {
@@ -96,16 +98,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 	posts_created_by: many(posts, {
 		relationName: "posts_created_by_users_id"
 	}),
-	posts_created_by: many(posts, {
-		relationName: "posts_created_by_users_id"
-	}),
-	taskgorups: many(taskgorups),
-	tasks_created_by: many(tasks, {
-		relationName: "tasks_created_by_users_id"
-	}),
-	tasks_created_by: many(tasks, {
-		relationName: "tasks_created_by_users_id"
-	}),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -120,29 +112,9 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
 		references: [users.id],
 		relationName: "posts_created_by_users_id"
 	}),
+	tags: many(postsToTags)
 }));
 
-export const taskgorupsRelations = relations(taskgorups, ({ one, many }) => ({
-	user: one(users, {
-		fields: [taskgorups.created_by],
-		references: [users.id]
-	}),
-	tasks: many(tasks),
-}));
-
-export const tasksRelations = relations(tasks, ({ one }) => ({
-	taskgorup: one(taskgorups, {
-		fields: [tasks.group_id],
-		references: [taskgorups.id]
-	}),
-	user_created_by: one(users, {
-		fields: [tasks.created_by],
-		references: [users.id],
-		relationName: "tasks_created_by_users_id"
-	}),
-	user_created_by: one(users, {
-		fields: [tasks.created_by],
-		references: [users.id],
-		relationName: "tasks_created_by_users_id"
-	}),
-}));
+export const tagsRelations = relations(tags, ({ many }) => ({
+	usersToGroups: many(postsToTags),
+  }));

@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import * as Schema from '../../schema/schema'
-import { count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, ne, sql } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export class PostService {
@@ -48,4 +48,15 @@ export class PostService {
         }
         return { id: postId };
     }
+    // async uploadFile(file: File) {
+
+    //     console.log(file.toString());
+    //     const readableStream = new Readable();
+    //     const pipelineAsync = promisify(pipeline);
+    //     await pipelineAsync(file.stream(), readableStream);
+    //     const result = await minioClient.putObject(process.env.S3_BUCKET!, file.name, readableStream, file.size)
+    //     console.log(result);
+
+    //     return result.versionId
+    // }
 }

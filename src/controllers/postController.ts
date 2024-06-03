@@ -49,4 +49,14 @@ postcontroller.delete('/:id', async (c) => {
     return c.json(post)
 })
 
+// postcontroller.post("/image", async (c) => {
+//     const postservice = new PostService(db)
+//     const request = await c.req.parseBody()
+//     const file = request['file'] as File
+//     postservice.uploadFile(file)
+//     console.log(file);
+    
+//     return c.json({})
+// })
+
 export default postcontroller;
