@@ -6,7 +6,7 @@ import { timeout } from 'hono/timeout'
 function setupMiddlewares(app: Hono) {
     app.use(logger())
     app.use(cors({ origin: ["http://localhost:3000", "http://localhost:5173", "https://pilput.dev", "https://app.pilput.dev", "https://dash.pilput.dev"], }))
-    app.use(timeout(10000))
+    app.use(timeout(30000))
 }
 
 export default setupMiddlewares
