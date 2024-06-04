@@ -1,7 +1,7 @@
-import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, foreignKey, bigint, unique, varchar, serial, primaryKey, integer } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, foreignKey, bigint, unique, varchar, serial, integer, primaryKey } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
-import { sql } from "drizzle-orm"
 
+import { sql } from "drizzle-orm"
 
 export const users = pgTable("users", {
 	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
@@ -39,21 +39,24 @@ export const posts = pgTable("posts", {
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	title: text("title"),
-	created_by: uuid("created_by").references(() => users.id).references(() => users.id),
+	created_by: uuid("created_by").references(() => users.id),
 	body: text("body"),
 	slug: text("slug"),
 	createbyid: varchar("createbyid", { length: 50 }),
 	photo_url: text("photo_url"),
-},
-	(table) => {
-		return {
-			idx_posts_slug: unique("idx_posts_slug").on(table.slug),
-		}
-	});
+}, (table) => {
+	return {
+		idx_posts_slug: unique("idx_posts_slug").on(table.slug),
+	}
+});
 
 export const tags = pgTable('tags', {
 	id: serial('id').primaryKey(),
 	name: text('name'),
+}, (t) => {
+	return {
+		idx_tags_name: uniqueIndex('idx_tags_name').on(t.name),
+	}
 });
 
 export const postsToTags = pgTable(
@@ -70,17 +73,6 @@ export const postsToTags = pgTable(
 		pk: primaryKey({ columns: [t.posts_id, t.tags_id] }),
 	}),
 );
-
-export const usersToGroupsRelations = relations(postsToTags, ({ one }) => ({
-	posts: one(posts, {
-		fields: [postsToTags.posts_id],
-		references: [posts.id],
-	}),
-	tags: one(tags, {
-		fields: [postsToTags.tags_id],
-		references: [tags.id],
-	}),
-}));
 
 export const post_commentsRelations = relations(post_comments, ({ one }) => ({
 	user: one(users, {
@@ -102,19 +94,13 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
 	post_comments: many(post_comments),
-	user_created_by: one(users, {
-		fields: [posts.created_by],
-		references: [users.id],
-		relationName: "posts_created_by_users_id"
-	}),
 	creator: one(users, {
 		fields: [posts.created_by],
 		references: [users.id],
 		relationName: "posts_created_by_users_id"
 	}),
-	tags: many(postsToTags)
+	usersToGroups: many(postsToTags),
 }));
-
-export const tagsRelations = relations(tags, ({ many }) => ({
+export const groupsRelations = relations(tags, ({ many }) => ({
 	usersToGroups: many(postsToTags),
   }));
