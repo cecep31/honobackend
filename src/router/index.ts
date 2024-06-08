@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
-import UserController from '../controllers/userController'
-import AuthController from '../controllers/authController'
-import PostController from '../controllers/postController'
+import { userController } from '../controllers/userController'
+import { authController } from '../controllers/authController'
+import { postController } from '../controllers/postController'
 
 const setupRouter = (app: Hono) => {
-    app.route('/users', UserController)
-    app.route('/auth', AuthController)
-    app.route('/posts', PostController)
+    app.route('/users', userController)
+    app.route('/auth', authController)
+    app.route('/posts', postController)
 }
 
 export default setupRouter

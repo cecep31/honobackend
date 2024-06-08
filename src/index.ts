@@ -1,12 +1,6 @@
-import { Hono } from 'hono'
+import { app } from './server/app'
 import setupRouter from './router'
 import setupMiddlewares from './middlewares'
-
-const app = new Hono()
-
-app.get('/', async (c) => {
-  return c.json({ "message": "hello world" })
-})
 
 setupMiddlewares(app)
 setupRouter(app)
