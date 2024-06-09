@@ -1,6 +1,7 @@
 import { app } from './server/app'
 import setupRouter from './router'
 
+
 setupRouter(app)
 
 export default {
