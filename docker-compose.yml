@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  web:
+    image: cecep31/honobackend
+    container_name: honobackend-app
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://username:password@postgres:5432/pilput_db
+      - JWT_KEY=
+      - PORT=3001
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
+      POSTGRES_DB: pilput_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
