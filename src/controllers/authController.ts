@@ -1,8 +1,7 @@
 import { Hono } from "hono";
-import AuthService from "../pkg/services/authService";
+import {AuthService} from "../pkg/services/authService";
 import { z } from "zod";
 import { zValidator } from '@hono/zod-validator'
-import { db } from '../database/drizzel'
 
 export const authController = new Hono()
     .post("/login", zValidator(
@@ -12,10 +11,9 @@ export const authController = new Hono()
             password: z.string()
         })
     ), async (c) => {
-        const authService = new AuthService(db);
         const body = await c.req.json();
         const { email, password } = body;
-        const token = await authService.signIn(email, password);
+        const token = await AuthService.signIn(email, password);
         return c.json(token);
     })
 

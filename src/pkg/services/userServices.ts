@@ -1,35 +1,34 @@
 import { desc, eq } from 'drizzle-orm'
 import * as Schema from '../../schema/schema';
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import Bcrypt from 'bcryptjs'
 import { HTTPException } from 'hono/http-exception';
+import { db } from '../../database/drizzel';
 
-class UserService {
-    constructor(private db: PostgresJsDatabase<typeof Schema>) { }
+export class UserService {
 
-    getUsers() {
-        return this.db.query.users.findMany({
+    static getUsers() {
+        return db.query.users.findMany({
             columns: {
                 password: false
             },
             orderBy: [desc(Schema.users.created_at)]
         })
     }
-    gerUser(id: string) {
-        return this.db.query.users.findFirst({ columns: { password: false }, where: eq(Schema.users.id, id) })
+    static gerUser(id: string) {
+        return db.query.users.findFirst({ columns: { password: false }, where: eq(Schema.users.id, id) })
     }
 
-    async deleteUser(user_id: string) {
+    static async deleteUser(user_id: string) {
         const look = await this.gerUser(user_id)
         if (!look) {
             throw new HTTPException(404, { message: "User not found" })
         }
-        return this.db.delete(Schema.users).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id })
+        return db.delete(Schema.users).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id })
     }
-    addUser(body: PostUser) {
+    static addUser(body: PostUser) {
         const hash_password = Bcrypt.hashSync(body.password)
 
-        return this.db.insert(Schema.users).values({
+        return db.insert(Schema.users).values({
             first_name: body.first_name,
             last_name: body.last_name,
             email: body.email,
@@ -41,5 +40,3 @@ class UserService {
             .returning({ id: Schema.users.id })
     }
 }
-
-export default UserService
