@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import * as Schema from '../../schema/schema'
-import { count, desc, eq, sql } from "drizzle-orm";
+import { asc, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 
 export class PostService {
@@ -19,9 +19,11 @@ export class PostService {
             orderBy: desc(Schema.posts.created_at),
             limit: limit,
             with: {
-                creator: true,
+                creator: {
+                    columns: { password: false }
+                },
                 tags: {
-                    columns:{},
+                    columns: {},
                     with: {
                         tag: true
                     }
