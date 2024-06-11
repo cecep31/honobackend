@@ -13,8 +13,6 @@ export class PostService {
     }
 
     static async getPosts(limit = 100, offset = 0) {
-
-        // postsdata = await this.db.select().from(Schema.posts).orderBy(desc(Schema.posts.created_at)).limit(limit).offset(offset);
         const postsdata = await db.query.posts.findMany({
             orderBy: desc(Schema.posts.created_at),
             limit: limit,
