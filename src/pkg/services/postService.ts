@@ -19,7 +19,13 @@ export class PostService {
             orderBy: desc(Schema.posts.created_at),
             limit: limit,
             with: {
-                creator: true
+                creator: true,
+                tags: {
+                    columns:{},
+                    with: {
+                        tag: true
+                    }
+                }
             },
             offset: offset,
         })

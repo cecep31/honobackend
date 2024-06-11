@@ -99,8 +99,20 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
 		references: [users.id],
 		relationName: "posts_created_by_users_id"
 	}),
-	usersToGroups: many(postsToTags),
+	tags: many(postsToTags),
 }));
+
+export const postToTagsRelations = relations(postsToTags, ({ one }) => ({
+	post: one(posts, {
+		fields: [postsToTags.posts_id],
+		references: [posts.id],
+	}),
+	tag: one(tags, {
+		fields: [postsToTags.tags_id],
+		references: [tags.id],
+	}),
+}));
+
 export const groupsRelations = relations(tags, ({ many }) => ({
 	usersToGroups: many(postsToTags),
-  }));
+}));
