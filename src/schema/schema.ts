@@ -38,10 +38,10 @@ export const posts = pgTable("posts", {
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
-	title: text("title"),
+	title: varchar("title", { length: 255 }),
 	created_by: uuid("created_by").references(() => users.id),
 	body: text("body"),
-	slug: text("slug"),
+	slug: varchar("slug", { length: 255 }),
 	createbyid: varchar("createbyid", { length: 50 }),
 	photo_url: text("photo_url"),
 }, (table) => {
@@ -52,7 +52,7 @@ export const posts = pgTable("posts", {
 
 export const tags = pgTable('tags', {
 	id: serial('id').primaryKey(),
-	name: text('name'),
+	name: varchar('name', { length: 30 }),
 }, (t) => {
 	return {
 		idx_tags_name: uniqueIndex('idx_tags_name').on(t.name),

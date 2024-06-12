@@ -1,10 +1,10 @@
 import { HTTPException } from "hono/http-exception";
 import * as Schema from '../../schema/schema'
-import { asc, count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 
 export class PostService {
-    static async AddPost(auth_id: string, title: string, body: string, slug: string) {
+    static async addPost(auth_id: string, title: string, body: string, slug: string) {
         const post = await db
             .insert(Schema.posts)
             .values({ title: title, body: body, slug: slug, created_by: auth_id })
@@ -18,7 +18,7 @@ export class PostService {
             limit: limit,
             with: {
                 creator: {
-                    columns: { password: false }
+                    columns: { first_name: true, last_name: true, image: true },
                 },
                 tags: {
                     columns: {},
