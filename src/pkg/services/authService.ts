@@ -25,7 +25,8 @@ export class AuthService {
             id: user.id,
             email: user.email,
             isSuperAdmin: user.issuperadmin,
-            exp: Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60,
+            exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
+
         };
 
         const token = await sign(payload, process.env.JWT_KEY!);
