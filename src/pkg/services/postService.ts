@@ -32,6 +32,29 @@ export class PostService {
         const total = await db.select({ count: count() }).from(Schema.posts)
         return { data: postsdata, total: total[0].count }
     }
+    static async getPostsByTag(limit = 100, offset = 0, $tag: string) {
+        const tag = await db.query.tags.findFirst({ where: eq(Schema.tags.name, $tag) })
+        if (!tag) {
+            throw new HTTPException(404, { message: "Tag not Found" })
+        }
+        const postsdata = await db.query.posts.findMany({
+            orderBy: desc(Schema.posts.created_at),
+            limit: limit,
+            with: {
+                creator: {
+                    columns: { first_name: true, last_name: true, image: true },
+                },
+                tags: {
+                    columns:{tags_id: true},
+                    where: eq(Schema.postsToTags.tags_id, tag.id),
+                    
+                }
+            },
+            offset: offset,
+        })
+        const total = await db.select({ count: count() }).from(Schema.posts)
+        return { data: postsdata, total: total[0].count }
+    }
 
     static async getPostsRandom() {
         const postsData = await db.select().from(Schema.posts).orderBy(sql.raw("RANDOM()")).limit(6)

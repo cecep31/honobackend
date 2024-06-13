@@ -16,6 +16,12 @@ export const postController = new Hono()
         const posts = await PostService.getPosts(limit, offset)
         return c.json(posts)
     })
+    .get("/tag/:tag", async (c) => {
+        const limit = parseInt(c.req.query('limit')!) || 100
+        const offset = parseInt(c.req.query('offset')!) || 0
+        const posts = await PostService.getPostsByTag(limit, offset, c.req.param('tag'));
+        return c.json(posts)
+    })
 
     .get('/:id', async (c) => {
         const id = c.req.param('id')
