@@ -1,6 +1,5 @@
 import { desc, eq } from 'drizzle-orm'
 import * as Schema from '../../schema/schema';
-import Bcrypt from 'bcryptjs'
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../../database/drizzel';
 
@@ -26,8 +25,7 @@ export class UserService {
         return db.delete(Schema.users).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id })
     }
     static addUser(body: PostUser) {
-        const hash_password = Bcrypt.hashSync(body.password)
-
+        const hash_password = Bun.password.hashSync(body.password, { algorithm: 'bcrypt' })
         return db.insert(Schema.users).values({
             first_name: body.first_name,
             last_name: body.last_name,
