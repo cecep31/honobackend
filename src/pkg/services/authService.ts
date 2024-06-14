@@ -1,6 +1,5 @@
 import { sign, verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import Bcrypt from 'bcryptjs'
 import * as Schema from '../../schema/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '../../database/drizzel'
@@ -14,7 +13,7 @@ export class AuthService {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
 
-        const compared = Bcrypt.compareSync(password, user.password ?? "");
+        const compared = Bun.password.verify(password, user.password ?? "", 'bcrypt');
         // const compared = await Bun.password.verify(password,user.password ?? "", "bcrypt");
 
         if (!compared) {
