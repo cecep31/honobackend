@@ -25,7 +25,7 @@ export class UserService {
         return db.delete(Schema.users).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id })
     }
     static addUser(body: PostUser) {
-        const hash_password = Bun.password.hashSync(body.password, { algorithm: 'bcrypt' })
+        const hash_password = Bun.password.hashSync(body.password, { algorithm: 'bcrypt', cost: 12 })
         return db.insert(Schema.users).values({
             first_name: body.first_name,
             last_name: body.last_name,
