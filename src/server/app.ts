@@ -13,5 +13,5 @@ export const app = new Hono()
             return c.json({ "message": err.message }, err.status)
         }
         console.log(err);
-        return c.text('internal server error')
+        return c.json({ "message": "internal server error" }, 500)
     })

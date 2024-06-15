@@ -1,6 +1,6 @@
 import { sign, verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import * as Schema from '../../schema/schema';
+import * as Schema from '../../database/schema/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '../../database/drizzel'
 
@@ -13,7 +13,7 @@ export class AuthService {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
 
-        const compared = Bun.password.verify(password, user.password ?? "", 'bcrypt');
+        const compared = await Bun.password.verify(password, user.password ?? "", 'bcrypt');
         // const compared = await Bun.password.verify(password,user.password ?? "", "bcrypt");
 
         if (!compared) {
@@ -51,5 +51,15 @@ export class AuthService {
         } catch (error) {
             throw new HTTPException(401, { message: "Invalid token" });
         }
+    }
+
+    static async updatePassword(old_password: string, new_password: string, user_id: string) {
+        const userresult = await db.query.users.findFirst({ where: eq(Schema.users.id, user_id) })
+        const comparepass = await Bun.password.verify(old_password, userresult?.password ?? "", 'bcrypt');
+        if (!comparepass) {
+            throw new HTTPException(401, { message: "Invalid credentials" });
+        }
+        const hash = Bun.password.hashSync(new_password, { algorithm: 'bcrypt' })
+        return db.update(Schema.users).set({ password: hash }).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id })
     }
 }

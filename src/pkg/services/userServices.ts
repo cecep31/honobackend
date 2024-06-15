@@ -1,5 +1,5 @@
 import { desc, eq } from 'drizzle-orm'
-import * as Schema from '../../schema/schema';
+import * as Schema from '../../database/schema/schema';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../../database/drizzel';
 
