@@ -7,7 +7,7 @@ export class PostService {
     static async addPost(auth_id: string, title: string, body: string, slug: string) {
         const post = await db
             .insert(Schema.posts)
-            .values({ title: title, body: body, slug: slug, created_by: auth_id })
+            .values({ title: title, body: body, slug: slug, created_by: auth_id, created_at: new Date().toISOString() })
             .returning();
         return post
     }
@@ -45,9 +45,9 @@ export class PostService {
                     columns: { first_name: true, last_name: true, image: true },
                 },
                 tags: {
-                    columns:{tags_id: true},
+                    columns: { tags_id: true },
                     where: eq(Schema.postsToTags.tags_id, tag.id),
-                    
+
                 }
             },
             offset: offset,
