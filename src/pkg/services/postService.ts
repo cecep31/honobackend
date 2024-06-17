@@ -32,28 +32,15 @@ export class PostService {
         const total = await db.select({ count: count() }).from(Schema.posts)
         return { data: postsdata, total: total[0].count }
     }
-    static async getPostsByTag(limit = 100, offset = 0, $tag: string) {
+    static async getPostsByTag($tag: string) {
         const tag = await db.query.tags.findFirst({ where: eq(Schema.tags.name, $tag) })
         if (!tag) {
             throw new HTTPException(404, { message: "Tag not Found" })
         }
-        const postsdata = await db.query.posts.findMany({
-            orderBy: desc(Schema.posts.created_at),
-            limit: limit,
-            with: {
-                creator: {
-                    columns: { first_name: true, last_name: true, image: true },
-                },
-                tags: {
-                    columns: { tags_id: true },
-                    where: eq(Schema.postsToTags.tags_id, tag.id),
+        const postsdata = await db.select({ id: Schema.posts.id, title: Schema.posts.title, slug: Schema.posts.slug, body: Schema.posts.body, created_at: Schema.posts.created_at })
+            .from(Schema.posts).rightJoin(Schema.postsToTags, eq(Schema.posts.id, Schema.postsToTags.posts_id)).where(eq(Schema.postsToTags.tags_id, tag.id)).orderBy(desc(Schema.posts.created_at))
 
-                }
-            },
-            offset: offset,
-        })
-        const total = await db.select({ count: count() }).from(Schema.posts)
-        return { data: postsdata, total: total[0].count }
+        return { data: postsdata, message: "success" }
     }
 
     static async getPostsRandom() {
