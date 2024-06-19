@@ -36,6 +36,13 @@
       "when": 1718202405736,
       "tag": "0004_cool_rictor",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1718803513210,
+      "tag": "0005_military_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

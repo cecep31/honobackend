@@ -74,6 +74,18 @@ export const postsToTags = pgTable(
 	}),
 );
 
+export const files = pgTable("files", {
+	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
+	name: text("name"),
+	path: text("path"),
+	size: integer("size"),
+	type: text("type"),
+	created_by: uuid("created_by").references(() => users.id),
+});
+
 export const post_commentsRelations = relations(post_comments, ({ one }) => ({
 	user: one(users, {
 		fields: [post_comments.created_by],
@@ -90,6 +102,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	posts_created_by: many(posts, {
 		relationName: "posts_created_by_users_id"
 	}),
+	files: many(files),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
