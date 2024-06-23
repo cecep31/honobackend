@@ -1,0 +1,1 @@
+ALTER TABLE "tags" ALTER COLUMN "created_at" SET DEFAULT now();

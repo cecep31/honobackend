@@ -45,15 +45,16 @@ export const postController = new Hono()
 
     .post("/", auth, zValidator("json",
         z.object({
-            title: z.string().min(1).max(255),
+            title: z.string().min(5).max(255),
             body: z.string().min(20).max(10000),
-            slug: z.string().min(5).max(255)
+            slug: z.string().min(5).max(255),
+            tags: z.array(z.string()).optional()
         })
     ), async (c) => {
         const auth = c.get("jwtPayload") as jwtPayload;
         const body = c.req.valid("json");
-        const post = PostService.addPost(auth.id, body.title, body.body, body.slug)
-        return c.json(post)
+        
+        return c.json(await PostService.addPost(auth.id, body.title, body.body, body.slug, body.tags))
     })
 
     .delete('/:id', async (c) => {

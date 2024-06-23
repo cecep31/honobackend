@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, foreignKey, bigint, unique, varchar, serial, integer, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, bigint, unique, varchar, serial, integer, primaryKey } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
 
 import { sql } from "drizzle-orm"
@@ -15,13 +15,23 @@ export const users = pgTable("users", {
 	password: varchar("password", { length: 255 }),
 	image: text("image"),
 	issuperadmin: boolean("issuperadmin").default(false),
-},
-	(table) => {
-		return {
-			idx_users_email: uniqueIndex("idx_users_email").on(table.email),
-			idx_users_username: uniqueIndex("idx_users_username").on(table.username),
-		}
-	});
+}, (table) => {
+	return {
+		idx_users_email: uniqueIndex("idx_users_email").on(table.email),
+		idx_users_username: uniqueIndex("idx_users_username").on(table.username),
+	}
+});
+
+export const likes = pgTable("likes", {
+	id: serial("id").primaryKey().notNull(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
+	post_id: uuid("post_id").references(() => posts.id, { onDelete: "cascade" }),
+	created_by: uuid("created_by").references(() => users.id),
+}, (table) => {
+	return {
+		idx_like_post_id_created_by: uniqueIndex("idx_like_post_id_created_by").on(table.post_id, table.created_by),
+	}
+});
 
 export const post_comments = pgTable("post_comments", {
 	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
@@ -55,6 +65,7 @@ export const posts = pgTable("posts", {
 export const tags = pgTable('tags', {
 	id: serial('id').primaryKey(),
 	name: varchar('name', { length: 30 }),
+	created_at: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow(),
 }, (t) => {
 	return {
 		idx_tags_name: uniqueIndex('idx_tags_name').on(t.name),

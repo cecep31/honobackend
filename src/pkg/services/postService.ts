@@ -1,15 +1,47 @@
 import { HTTPException } from "hono/http-exception";
 import * as Schema from '../../database/schema/schema'
-import { count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
+import Postgres from "postgres";
 
 export class PostService {
-    static async addPost(auth_id: string, title: string, body: string, slug: string) {
-        const post = await db
-            .insert(Schema.posts)
-            .values({ title: title, body: body, slug: slug, created_by: auth_id, created_at: new Date().toISOString() })
-            .returning();
-        return post
+    static async addPost(auth_id: string, title: string, body: string, slug: string, tags: string[] = []) {
+        try {
+
+            const post = await db
+                .insert(Schema.posts)
+                .values({ title: title, body: body, slug: slug, created_by: auth_id, created_at: new Date().toISOString() })
+                .returning({
+                    id: Schema.posts.id,
+                });
+
+            if (tags.length > 0) {
+                for (const tag of tags) {
+                    await db.insert(Schema.tags).values({ name: tag }).onConflictDoNothing();
+                }
+            }
+
+            const getTags = await db.query.tags.findMany({ where: inArray(Schema.tags.name, tags) });
+            
+            for (const tag of getTags) {
+                await db
+                    .insert(Schema.postsToTags)
+                    .values({ posts_id: post[0].id, tags_id: tag.id })
+                    .onConflictDoNothing();
+            }
+
+            return post[0];
+        } catch (error) {
+            if (error instanceof Postgres.PostgresError) {
+                if (error.code == "23505") {
+                    throw new HTTPException(400, { message: "slug already exist" });
+                }
+            } else {
+                console.log(error);
+                throw new HTTPException(500, { message: "internal server error" });
+            }
+
+        }
     }
 
     static async getPosts(limit = 100, offset = 0) {
@@ -18,7 +50,7 @@ export class PostService {
             limit: limit,
             with: {
                 creator: {
-                    columns: { first_name: true, last_name: true, image: true },
+                    columns: { username: true, first_name: true, last_name: true, image: true },
                 },
                 tags: {
                     columns: {},
@@ -39,7 +71,7 @@ export class PostService {
             limit: limit,
             with: {
                 creator: {
-                    columns: { first_name: true, last_name: true, image: true },
+                    columns: { username: true, first_name: true, last_name: true, image: true },
                 },
                 tags: {
                     columns: {},
