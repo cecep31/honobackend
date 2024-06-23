@@ -8,16 +8,18 @@ export const users = pgTable("users", {
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
-	first_name: text("first_name").default('pilput'),
-	last_name: text("last_name").default('admin'),
-	email: text("email").notNull(),
-	password: text("password"),
+	first_name: varchar("first_name", { length: 255 }).default('pilput'),
+	last_name: varchar("last_name", { length: 255 }).default('admin'),
+	email: varchar("email", { length: 255 }).notNull(),
+	username: varchar("username", { length: 255 }),
+	password: varchar("password", { length: 255 }),
 	image: text("image"),
 	issuperadmin: boolean("issuperadmin").default(false),
 },
 	(table) => {
 		return {
 			idx_users_email: uniqueIndex("idx_users_email").on(table.email),
+			idx_users_username: uniqueIndex("idx_users_username").on(table.username),
 		}
 	});
 
@@ -82,7 +84,7 @@ export const files = pgTable("files", {
 	name: text("name"),
 	path: text("path"),
 	size: integer("size"),
-	type: text("type"),
+	type: varchar("type", { length: 255 }),
 	created_by: uuid("created_by").references(() => users.id),
 });
 

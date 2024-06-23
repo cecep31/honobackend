@@ -43,6 +43,20 @@
       "when": 1718803513210,
       "tag": "0005_military_fat_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1719127620817,
+      "tag": "0006_groovy_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1719128138851,
+      "tag": "0007_graceful_dark_beast",
+      "breakpoints": true
     }
   ]
 }

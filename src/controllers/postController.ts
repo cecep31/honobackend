@@ -3,15 +3,29 @@ import { PostService } from '../pkg/services/postService'
 import { zValidator } from "@hono/zod-validator";
 import { z } from 'zod'
 import { auth } from "../middlewares/auth";
+import { notAuth } from "../middlewares/notauth";
 
 export const postController = new Hono()
-    .get('/', async (c) => {
+    .get('/', notAuth, async (c) => {
         if (c.req.query('random')) {
             const posts = await PostService.getPostsRandom()
             return c.json(posts)
         }
+
         const limit = parseInt(c.req.query('limit')!) || 100
         const offset = parseInt(c.req.query('offset')!) || 0
+
+
+        if (c.req.query('yourPost')) {
+            const auth = c.get("jwtPayload") as jwtPayload
+            console.log(auth);
+
+            if (auth) {
+                return c.json(await PostService.getYourPosts(auth.id, limit, offset))
+            } else {
+                return c.json([])
+            }
+        }
 
         const posts = await PostService.getPosts(limit, offset)
         return c.json(posts)

@@ -32,6 +32,29 @@ export class PostService {
         const total = await db.select({ count: count() }).from(Schema.posts)
         return { data: postsdata, total: total[0].count }
     }
+
+    static async getYourPosts(user_id: string, limit = 100, offset = 0) {
+        const postsdata = await db.query.posts.findMany({
+            orderBy: desc(Schema.posts.created_at),
+            limit: limit,
+            with: {
+                creator: {
+                    columns: { first_name: true, last_name: true, image: true },
+                },
+                tags: {
+                    columns: {},
+                    with: {
+                        tag: true
+                    }
+                }
+            },
+            where: eq(Schema.posts.created_by, user_id),
+            offset: offset,
+        })
+        const total = await db.select({ count: count() }).from(Schema.posts)
+        return { data: postsdata, total: total[0].count }
+    }
+
     static async getPostsByTag($tag: string) {
         const tag = await db.query.tags.findFirst({ where: eq(Schema.tags.name, $tag) })
         if (!tag) {
