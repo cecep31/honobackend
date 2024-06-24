@@ -24,7 +24,7 @@ export const users = pgTable("users", {
 
 export const likes = pgTable("likes", {
 	id: serial("id").primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	post_id: uuid("post_id").references(() => posts.id, { onDelete: "cascade" }),
 	created_by: uuid("created_by").references(() => users.id),
 }, (table) => {
@@ -77,10 +77,10 @@ export const postsToTags = pgTable(
 	{
 		posts_id: uuid('posts_id')
 			.notNull()
-			.references(() => posts.id),
+			.references(() => posts.id, { onDelete: 'cascade' }),
 		tags_id: integer('tags_id')
 			.notNull()
-			.references(() => tags.id),
+			.references(() => tags.id, { onDelete: 'cascade' }),
 	},
 	(t) => ({
 		pk: primaryKey({ columns: [t.posts_id, t.tags_id] }),

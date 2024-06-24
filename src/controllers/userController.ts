@@ -34,7 +34,7 @@ export const userController = new Hono()
         })
     .delete("/:id", auth, superAdmin, async (c) => {
         const id = c.req.param('id')
-        const user = UserService.deleteUser(id)
+        const user = await UserService.deleteUser(id)
         return c.json(user)
     })
 

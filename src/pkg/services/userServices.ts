@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, isNull } from 'drizzle-orm'
 import * as Schema from '../../database/schema/schema';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../../database/drizzel';
@@ -10,7 +10,8 @@ export class UserService {
             columns: {
                 password: false
             },
-            orderBy: [desc(Schema.users.created_at)]
+            orderBy: [desc(Schema.users.created_at)],
+            where: isNull(Schema.users.deleted_at),
         })
     }
     static gerUser(id: string) {
@@ -22,7 +23,7 @@ export class UserService {
         if (!look) {
             throw new HTTPException(404, { message: "User not found" })
         }
-        return db.delete(Schema.users).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id })
+        return await db.update(Schema.users).set({ deleted_at: new Date().toISOString() }).where(eq(Schema.users.id, user_id)).returning({ id: Schema.users.id });
     }
     static addUser(body: PostUser) {
         const hash_password = Bun.password.hashSync(body.password, { algorithm: 'bcrypt', cost: 12 })

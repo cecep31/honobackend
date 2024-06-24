@@ -116,7 +116,7 @@ export class PostService {
         if (!deletedPost) {
             throw new HTTPException(404, { message: "Post not found" });
         }
-        return { id: postId };
+        return deletedPost;
     }
     // async uploadFile(file: File) {
 

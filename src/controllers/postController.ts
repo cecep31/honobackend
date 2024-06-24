@@ -59,7 +59,7 @@ export const postController = new Hono()
 
     .delete('/:id', async (c) => {
         const id = c.req.param('id')
-        const post = PostService.deletePost(id)
+        const post = await PostService.deletePost(id)
         return c.json(post)
     })
 
