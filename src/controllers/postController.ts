@@ -10,6 +10,8 @@ export const postController = new Hono()
         if (c.req.query('random')) {
             const posts = await PostService.getPostsRandom()
             return c.json(posts)
+        } else if (c.req.query('user_id')) {
+            return c.json(await PostService.getPostsByuser(c.req.query('user_id')!))
         }
 
         const limit = parseInt(c.req.query('limit')!) || 100
@@ -53,10 +55,9 @@ export const postController = new Hono()
     ), async (c) => {
         const auth = c.get("jwtPayload") as jwtPayload;
         const body = c.req.valid("json");
-        
+
         return c.json(await PostService.addPost(auth.id, body.title, body.body, body.slug, body.tags))
     })
-
     .delete('/:id', async (c) => {
         const id = c.req.param('id')
         const post = await PostService.deletePost(id)

@@ -22,7 +22,7 @@ export class PostService {
             }
 
             const getTags = await db.query.tags.findMany({ where: inArray(Schema.tags.name, tags) });
-            
+
             for (const tag of getTags) {
                 await db
                     .insert(Schema.postsToTags)
@@ -117,6 +117,23 @@ export class PostService {
             throw new HTTPException(404, { message: "Post not found" });
         }
         return deletedPost;
+    }
+
+    static async getPostsByuser(user_id: string) {
+        const postsdata = await db.select({
+            id: Schema.posts.id,
+            title: Schema.posts.title,
+            slug: Schema.posts.slug,
+            body: Schema.posts.body,
+            created_at: Schema.posts.created_at,
+            creator: { id: Schema.users.id, username: Schema.users.username },
+        })
+            .from(Schema.posts)
+            .leftJoin(Schema.users, eq(Schema.posts.created_by, Schema.users.id))
+            .where(eq(Schema.posts.created_by, user_id))
+            .orderBy(desc(Schema.posts.created_at))
+
+        return postsdata
     }
     // async uploadFile(file: File) {
 
