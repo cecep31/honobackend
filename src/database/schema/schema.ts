@@ -56,6 +56,7 @@ export const posts = pgTable("posts", {
 	slug: varchar("slug", { length: 255 }),
 	createbyid: varchar("createbyid", { length: 50 }),
 	photo_url: text("photo_url"),
+	published: boolean("published").default(true),
 }, (table) => {
 	return {
 		idx_posts_slug: unique("idx_posts_slug").on(table.slug),
@@ -92,7 +93,7 @@ export const files = pgTable("files", {
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
-	name: text("name"),
+	name: varchar("name", { length: 255 }),
 	path: text("path"),
 	size: integer("size"),
 	type: varchar("type", { length: 255 }),
