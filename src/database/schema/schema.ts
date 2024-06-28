@@ -1,6 +1,5 @@
 import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, bigint, unique, varchar, serial, integer, primaryKey } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
-
 import { sql } from "drizzle-orm"
 
 export const users = pgTable("users", {
@@ -55,8 +54,8 @@ export const posts = pgTable("posts", {
 	body: text("body"),
 	slug: varchar("slug", { length: 255 }),
 	createbyid: varchar("createbyid", { length: 50 }),
-	photo_url: text("photo_url"),
 	published: boolean("published").default(true),
+	photo_url: text("photo_url"),
 }, (table) => {
 	return {
 		idx_posts_slug: unique("idx_posts_slug").on(table.slug),

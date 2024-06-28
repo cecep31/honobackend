@@ -1,7 +1,5 @@
 {
-  "id": "00000000-0000-0000-0000-000000000000",
-  "prevId": "",
-  "version": "6",
+  "version": "7",
   "dialect": "postgresql",
   "tables": {
     "public.users": {
@@ -75,11 +73,19 @@
       },
       "indexes": {
         "idx_users_email": {
-          "name": "idx_users_email",
           "columns": [
-            "email"
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
           ],
-          "isUnique": true
+          "with": {},
+          "name": "idx_users_email",
+          "isUnique": true,
+          "method": "btree",
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -145,30 +151,30 @@
         "fk_post_comments_creator": {
           "name": "fk_post_comments_creator",
           "tableFrom": "post_comments",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fk_posts_post_comments": {
           "name": "fk_posts_post_comments",
           "tableFrom": "post_comments",
-          "tableTo": "posts",
-          "schemaTo": "public",
           "columnsFrom": [
             "post_id"
           ],
+          "tableTo": "posts",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "cascade"
+          "onUpdate": "cascade",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -245,40 +251,40 @@
         "fk_posts_creator": {
           "name": "fk_posts_creator",
           "tableFrom": "posts",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fk_posts_user": {
           "name": "fk_posts_user",
           "tableFrom": "posts",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "idx_posts_slug": {
+          "name": "idx_posts_slug",
           "columns": [
             "slug"
           ],
-          "nullsNotDistinct": false,
-          "name": "idx_posts_slug"
+          "nullsNotDistinct": false
         }
       }
     },
@@ -335,16 +341,16 @@
         "fk_taskgorups_created_by": {
           "name": "fk_taskgorups_created_by",
           "tableFrom": "taskgorups",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -421,44 +427,44 @@
         "fk_taskgorups_task": {
           "name": "fk_taskgorups_task",
           "tableFrom": "tasks",
-          "tableTo": "taskgorups",
-          "schemaTo": "public",
           "columnsFrom": [
             "group_id"
           ],
+          "tableTo": "taskgorups",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fk_tasks_created_by": {
           "name": "fk_tasks_created_by",
           "tableFrom": "tasks",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fk_tasks_creator": {
           "name": "fk_tasks_creator",
           "tableFrom": "tasks",
-          "tableTo": "users",
-          "schemaTo": "public",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "users",
+          "schemaTo": "public",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -474,5 +480,7 @@
   },
   "internal": {
     "tables": {}
-  }
+  },
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": ""
 }

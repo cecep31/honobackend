@@ -10,13 +10,14 @@ export class AuthService {
         const user = await db.query.users.findFirst({ where: eq(Schema.users.email, email) })
 
         if (!user) {
+            console.log("user not found" + email);
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
 
-        const compared = await Bun.password.verify(password, user.password ?? "", 'bcrypt');
-        // const compared = await Bun.password.verify(password,user.password ?? "", "bcrypt");
+        const compared = await Bun.password.verify(password, user.password || "", 'bcrypt');
 
         if (!compared) {
+            console.log("password not match");
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
 

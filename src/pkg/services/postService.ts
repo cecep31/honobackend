@@ -61,6 +61,7 @@ export class PostService {
             },
             offset: offset,
         })
+
         const total = await db.select({ count: count() }).from(Schema.posts)
         return { data: postsdata, total: total[0].count }
     }
@@ -83,7 +84,7 @@ export class PostService {
             where: eq(Schema.posts.created_by, user_id),
             offset: offset,
         })
-        const total = await db.select({ count: count() }).from(Schema.posts)
+        const total = await db.select({ count: count() }).from(Schema.posts).where(eq(Schema.posts.created_by, user_id));
         return { data: postsdata, total: total[0].count }
     }
 
@@ -92,8 +93,17 @@ export class PostService {
         if (!tag) {
             throw new HTTPException(404, { message: "Tag not Found" })
         }
-        const postsdata = await db.select({ id: Schema.posts.id, title: Schema.posts.title, slug: Schema.posts.slug, body: Schema.posts.body, created_at: Schema.posts.created_at })
-            .from(Schema.posts).rightJoin(Schema.postsToTags, eq(Schema.posts.id, Schema.postsToTags.posts_id)).where(eq(Schema.postsToTags.tags_id, tag.id)).orderBy(desc(Schema.posts.created_at))
+        const postsdata = await db.select({
+            id: Schema.posts.id,
+            title: Schema.posts.title,
+            slug: Schema.posts.slug,
+            body: Schema.posts.body,
+            created_at: Schema.posts.created_at
+        })
+            .from(Schema.posts)
+            .rightJoin(Schema.postsToTags, eq(Schema.posts.id, Schema.postsToTags.posts_id))
+            .where(eq(Schema.postsToTags.tags_id, tag.id))
+            .orderBy(desc(Schema.posts.created_at))
 
         return { data: postsdata, message: "success" }
     }
@@ -111,6 +121,7 @@ export class PostService {
         }
         return post
     }
+
     static async deletePost(postId: string) {
         const deletedPost = await db.delete(Schema.posts).where(eq(Schema.posts.id, postId)).returning();
         if (!deletedPost) {
@@ -135,6 +146,7 @@ export class PostService {
 
         return postsdata
     }
+
     // async uploadFile(file: File) {
 
     //     console.log(file.toString());

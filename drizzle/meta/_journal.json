@@ -85,6 +85,13 @@
       "when": 1719241603895,
       "tag": "0011_rainy_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1719548554481,
+      "tag": "0012_chemical_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }
