@@ -21,6 +21,20 @@ export const users = pgTable("users", {
 	}
 });
 
+export const profiles = pgTable("profiles", {
+	id: serial("id").primaryKey().notNull(),
+	user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+	bio: text("bio"),
+	website: text("website"),
+	phone: varchar("phone", { length: 50 }),
+}, (table) => {
+	return {
+		idx_profiles_user_id: uniqueIndex("idx_profiles_user_id").on(table.user_id),
+	}
+})
+
 export const likes = pgTable("likes", {
 	id: serial("id").primaryKey().notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
@@ -110,12 +124,13 @@ export const post_commentsRelations = relations(post_comments, ({ one }) => ({
 	}),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
 	post_comments: many(post_comments),
 	posts_created_by: many(posts, {
 		relationName: "posts_created_by_users_id"
 	}),
 	files: many(files),
+	profile: one(profiles),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
