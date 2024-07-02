@@ -12,7 +12,7 @@ const setupRouter = (app: Hono) => {
     app.route('/auth', authController)
     app.route('/posts', postController)
     app.route('/likes', likeController)
-    app.route('/writters', writerController)
+    app.route('/writers', writerController)
 }
 
 export default setupRouter
