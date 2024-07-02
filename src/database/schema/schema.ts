@@ -27,6 +27,7 @@ export const profiles = pgTable("profiles", {
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	bio: text("bio"),
+	location: varchar("location", { length: 255 }),
 	website: text("website"),
 	phone: varchar("phone", { length: 50 }),
 }, (table) => {
