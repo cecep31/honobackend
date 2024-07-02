@@ -7,7 +7,6 @@ import Postgres from "postgres";
 export class PostService {
     static async addPost(auth_id: string, title: string, body: string, slug: string, tags: string[] = []) {
         try {
-
             const post = await db
                 .insert(Schema.posts)
                 .values({ title: title, body: body, slug: slug, created_by: auth_id, created_at: new Date().toISOString() })
