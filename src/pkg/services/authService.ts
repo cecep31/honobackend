@@ -1,13 +1,13 @@
 import { sign, verify } from 'hono/jwt'
 import { HTTPException } from 'hono/http-exception'
-import { users } from '../../database/schema/schema';
+import { users as usersModel } from '../../database/schema/schema';
 import { eq } from 'drizzle-orm';
 import { db } from '../../database/drizzel'
 
 
 export class AuthService {
     static async signIn(email: string, password: string) {
-        const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+        const user = await db.query.users.findFirst({ where: eq(usersModel.email, email) })
 
         if (!user) {
             console.log("user not found" + email);
@@ -37,7 +37,7 @@ export class AuthService {
     static async refreshToken(refreshToken: string) {
         try {
             const payload = await verify(refreshToken, process.env.JWT_KEY ?? "");
-            const user = await db.query.users.findFirst({ where: eq(users.id, `${payload.id}`) });
+            const user = await db.query.users.findFirst({ where: eq(usersModel.id, `${payload.id}`) });
             if (!user) {
                 throw new HTTPException(401, { message: "User not found" });
             }
@@ -55,12 +55,12 @@ export class AuthService {
     }
 
     static async updatePassword(old_password: string, new_password: string, user_id: string) {
-        const userresult = await db.query.users.findFirst({ where: eq(users.id, user_id) })
+        const userresult = await db.query.users.findFirst({ where: eq(usersModel.id, user_id) })
         const comparepass = await Bun.password.verify(old_password, userresult?.password ?? "", 'bcrypt');
         if (!comparepass) {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
         const hash = Bun.password.hashSync(new_password, { algorithm: 'bcrypt' })
-        return db.update(users).set({ password: hash }).where(eq(users.id, user_id)).returning({ id: users.id })
+        return db.update(usersModel).set({ password: hash }).where(eq(usersModel.id, user_id)).returning({ id: usersModel.id })
     }
 }
