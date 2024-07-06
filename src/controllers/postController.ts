@@ -34,8 +34,6 @@ export const postController = new Hono()
     return c.json(posts);
   })
   .get("/tag/:tag", async (c) => {
-    // const limit = parseInt(c.req.query('limit')!) || 100
-    // const offset = parseInt(c.req.query('offset')!) || 0
     const posts = await PostService.getPostsByTag(c.req.param("tag"));
     return c.json(posts);
   })
