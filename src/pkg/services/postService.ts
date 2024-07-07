@@ -5,7 +5,7 @@ import {
   tags as tagsModel,
   users as usersModel,
 } from "../../database/schema/schema";
-import { count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import Postgres from "postgres";
 
@@ -66,8 +66,8 @@ export class PostService {
 
   static async getPosts(limit = 100, offset = 0) {
     const postsdata = await db.query.posts.findMany({
-      orderBy: desc(postsModel.created_at),
-      limit: limit,
+      columns:{updated_at: false,deleted_at: false},
+      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       with: {
         creator: {
           columns: {
@@ -86,7 +86,9 @@ export class PostService {
           },
         },
       },
+      limit: limit,
       offset: offset,
+      orderBy: desc(postsModel.created_at),
     });
 
     const total = await db.select({ count: count() }).from(postsModel);
