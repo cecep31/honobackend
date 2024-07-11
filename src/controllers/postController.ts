@@ -14,7 +14,7 @@ export const postController = new Hono()
       return c.json(await PostService.getPostsByuser(c.req.query("user_id")!));
     }
 
-    const limit = parseInt(c.req.query("limit")!) || 100;
+    const limit = parseInt(c.req.query("limit")!) || 10;
     const offset = parseInt(c.req.query("offset")!) || 0;
 
     if (c.req.query("yourPost")) {
