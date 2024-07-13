@@ -1,8 +1,8 @@
 {
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
     "start": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --minify --target bun",
@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.2.2",
-    "drizzle-orm": "^0.31.4",
+    "@neondatabase/serverless": "^0.9.4",
+    "drizzle-orm": "^0.32.0",
     "hono": "^4.4.13",
     "hono-rate-limiter": "^0.4.0",
     "postgres": "^3.4.4",

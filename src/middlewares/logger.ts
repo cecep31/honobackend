@@ -1,11 +1,11 @@
 import { createMiddleware } from "hono/factory";
 
 const colors = {
-    reset: "\x1b[0m",
-    blue: "\x1b[34m",
-    green: "\x1b[32m",
-    yellow: "\x1b[33m",
-    red: "\x1b[31m",
+  reset: "\x1b[0m",
+  blue: "\x1b[34m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
 };
 
 export const pilputLogger = createMiddleware(async (c, next) => {
@@ -19,13 +19,19 @@ export const pilputLogger = createMiddleware(async (c, next) => {
   let tatuscolor = "";
   if (status >= 200 && status < 300) {
     tatuscolor = colors.green;
-  }else if (status >= 300 && status < 400) {
+  } else if (status >= 300 && status < 400) {
     tatuscolor = colors.yellow;
-  }else if (status >= 400 && status < 500) {
+  } else if (status >= 400 && status < 500) {
     tatuscolor = colors.blue;
-  }else if (status >= 500 && status < 600) {
+  } else if (status >= 500 && status < 600) {
     tatuscolor = colors.red;
   }
 
-  console.log(`[${new Date().toISOString()}] ${colors.blue}${method}${colors.reset} ${colors.green}${url}${colors.reset} - ${colors.yellow}${duration}ms${colors.reset} - ${tatuscolor}${status}${colors.reset}`);
+  console.log(
+    `[${new Date().toISOString()}] ${colors.blue}${method}${colors.reset} ${
+      colors.green
+    }${url}${colors.reset} - ${colors.yellow}${duration}ms${
+      colors.reset
+    } - ${tatuscolor}${status}${colors.reset}`
+  );
 });
