@@ -27,7 +27,7 @@ export const postController = new Hono()
     }
 
     if (c.req.query("user_id")) {
-        return c.json(await PostService.getPostByUserId(c.req.query("user_id")!));
+      return c.json(await PostService.getPostByUserId(c.req.query("user_id")!));
     }
 
     const posts = await PostService.getPosts(limit, offset);
@@ -71,7 +71,7 @@ export const postController = new Hono()
       );
     }
   )
-  .delete("/:id", async (c) => {
+  .delete("/:id", auth, async (c) => {
     const id = c.req.param("id");
     const post = await PostService.deletePost(id);
     return c.json(post);
