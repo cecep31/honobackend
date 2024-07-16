@@ -2,8 +2,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { pilputLogger } from "../middlewares/logger";
+import { requestId } from "hono/request-id";
 
 export const app = new Hono()
+  .use(requestId())
   .use(pilputLogger)
   .use(
     cors({
