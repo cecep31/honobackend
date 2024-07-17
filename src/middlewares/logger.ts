@@ -28,7 +28,7 @@ export const pilputLogger = createMiddleware(async (c, next) => {
   }
 
   console.log(
-    `[${new Date().toISOString()}] - requestId: ${c.get("requestId")} - ${colors.blue}${method}${colors.reset} ${
+    `[${new Date().toISOString()}] | ${colors.blue}${c.get("requestId")}${colors.reset} | ${colors.blue}${method}${colors.reset} ${
       colors.green
     }${url}${colors.reset} - ${colors.yellow}${duration}ms${
       colors.reset
