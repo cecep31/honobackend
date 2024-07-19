@@ -19,7 +19,7 @@ const fakedata: faketype[] = []
 for (let index = 0; index < 1000; index++) {
     fakedata.push({
         id: index,
-        name: faker.name.fullName(),
+        name: faker.person.fullName(),
         age: faker.number.int({ min: 1, max: 100 }),
         posts: [
             {
