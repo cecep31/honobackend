@@ -20,6 +20,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@types/bun": "latest",
     "@types/uuid": "^9.0.8",
     "drizzle-kit": "^0.22.8",

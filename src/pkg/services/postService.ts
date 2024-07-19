@@ -170,10 +170,6 @@ export class PostService {
     const post = await db.query.posts.findFirst({
       where: eq(postsModel.id, id_post),
     });
-
-    if (!post) {
-      throw new HTTPException(404, { message: "Post not Found" });
-    }
     return post;
   }
 

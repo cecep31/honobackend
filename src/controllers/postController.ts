@@ -38,12 +38,14 @@ export const postController = new Hono()
     return c.json(posts);
   })
 
-  .get("/:id", async (c) => {
+  .get("/:id",zValidator("param", z.object({ id: z.string().uuid() })), async (c) => {
     const id = c.req.param("id");
     const post = await PostService.getPost(id);
+    if (!post) {
+      return c.json({ message: "Post not found" }, 404);
+    }
     return c.json(post);
   })
-
   .post(
     "/",
     auth,
@@ -59,7 +61,6 @@ export const postController = new Hono()
     async (c) => {
       const auth = c.get("jwtPayload") as jwtPayload;
       const body = c.req.valid("json");
-
       return c.json(
         await PostService.addPost(
           auth.id,

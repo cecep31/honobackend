@@ -1,134 +1,36 @@
 import { Hono } from "hono"
+import {faker} from '@faker-js/faker'
 
-const fakedata = [
-    { id: 1, name: "tag1",
+type faketype = {
+    id: number
+    name: string
+    age: number
+    posts: [
+        {
+            id: number
+            title: string
+            body?: string
+        }
+    ]
+}
+
+const fakedata: faketype[] = []
+
+for (let index = 0; index < 1000; index++) {
+    fakedata.push({
+        id: index,
+        name: faker.name.fullName(),
+        age: faker.number.int({ min: 1, max: 100 }),
         posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
+            {
+                id: index,
+                title: faker.lorem.sentence(),
+                body: faker.lorem.paragraphs()
+            }
         ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
-    { id: 1, name: "tag1",
-        posts: [
-            { id: 1, title: "post1", content: "content1" },
-            { id: 2, title: "post2", content: "content2" },
-            { id: 3, title: "post3", content: "content3" },
-        ]
-     },
+    })
     
-]
+}
 
 export const testController = new Hono()
     .get("/", async (c) => {
