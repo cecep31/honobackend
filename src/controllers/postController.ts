@@ -56,6 +56,8 @@ export const postController = new Hono()
         body: z.string().min(20).max(10000),
         slug: z.string().min(5).max(255),
         tags: z.array(z.string()).optional(),
+        photo_url: z.string().optional(),
+        pupblished: z.boolean().optional().default(true),
       })
     ),
     async (c) => {
@@ -67,7 +69,9 @@ export const postController = new Hono()
           body.title,
           body.body,
           body.slug,
-          body.tags
+          body.tags,
+          body.photo_url,
+          body.pupblished
         )
       );
     }

@@ -15,7 +15,9 @@ export class PostService {
     title: string,
     body: string,
     slug: string,
-    tags: string[] = []
+    tags: string[] = [],
+    photo_url: string | null = null,
+    published: boolean = true
   ) {
     try {
       const post = await db
@@ -24,6 +26,8 @@ export class PostService {
           title: title,
           body: body,
           slug: slug,
+          photo_url: photo_url,
+          published: published,
           created_by: auth_id,
           created_at: new Date().toISOString(),
         })
