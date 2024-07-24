@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm"
 
 export const users = pgTable("users", {
 	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	first_name: varchar("first_name", { length: 255 }).default('pilput'),
@@ -49,8 +49,8 @@ export const likes = pgTable("likes", {
 
 export const post_comments = pgTable("post_comments", {
 	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
-	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	text: text("text"),
 	post_id: uuid("post_id").references(() => posts.id, { onDelete: "set null", onUpdate: "cascade" }),
@@ -61,8 +61,8 @@ export const post_comments = pgTable("post_comments", {
 
 export const posts = pgTable("posts", {
 	id: uuid("id").default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
-	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	title: varchar("title", { length: 255 }),
 	created_by: uuid("created_by").references(() => users.id),

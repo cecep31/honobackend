@@ -12,7 +12,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.2.2",
     "@neondatabase/serverless": "^0.9.4",
-    "drizzle-orm": "^0.32.0",
+    "drizzle-orm": "^0.32.1",
     "hono": "^4.5.1",
     "hono-rate-limiter": "^0.4.0",
     "postgres": "^3.4.4",
