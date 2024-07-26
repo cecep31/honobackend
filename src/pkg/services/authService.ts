@@ -10,14 +10,12 @@ export class AuthService {
         const user = await db.query.users.findFirst({ where: eq(usersModel.email, email) })
 
         if (!user) {
-            console.log("user not found" + email);
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
 
-        const compared = await Bun.password.verify(password, user.password || "", 'bcrypt');
+        const isPasswordValid = await Bun.password.verify(password, user.password || "", 'bcrypt');
 
-        if (!compared) {
-            console.log("password not match");
+        if (!isPasswordValid) {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
 
@@ -26,7 +24,6 @@ export class AuthService {
             email: user.email,
             isSuperAdmin: user.issuperadmin,
             exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
-
         };
 
         const token = await sign(payload, process.env.JWT_KEY!);
@@ -54,13 +51,15 @@ export class AuthService {
         }
     }
 
-    static async updatePassword(old_password: string, new_password: string, user_id: string) {
-        const userresult = await db.query.users.findFirst({ where: eq(usersModel.id, user_id) })
-        const comparepass = await Bun.password.verify(old_password, userresult?.password ?? "", 'bcrypt');
-        if (!comparepass) {
+    static async updatePassword(currentPassword: string, newPassword: string, userId: string) {
+        const user = await db.query.users.findFirst({ where: eq(usersModel.id, userId) });
+
+        if (!await Bun.password.verify(currentPassword, user?.password ?? "", 'bcrypt')) {
             throw new HTTPException(401, { message: "Invalid credentials" });
         }
-        const hash = Bun.password.hashSync(new_password, { algorithm: 'bcrypt' })
-        return db.update(usersModel).set({ password: hash }).where(eq(usersModel.id, user_id)).returning({ id: usersModel.id })
+
+        const hashedPassword = await Bun.password.hashSync(newPassword, { algorithm: 'bcrypt' });
+
+        return db.update(usersModel).set({ password: hashedPassword }).where(eq(usersModel.id, userId)).returning({ id: usersModel.id });
     }
 }

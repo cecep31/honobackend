@@ -32,6 +32,6 @@ export const pilputLogger = createMiddleware(async (c, next) => {
       colors.reset
     } - ${colors.yellow}${duration}ms${colors.reset} | ${tatuscolor}${status}${
       colors.reset
-    } | ${colors.blue}${c.get("requestId")}${colors.reset}`
+    } | ${colors.blue}${c.get("requestId")}${colors.reset} | ${c.req.header("user-agent")}` 
   );
 });
