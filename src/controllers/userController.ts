@@ -12,7 +12,8 @@ export const userController = new Hono()
   })
   .get("/me", auth, async (c) => {
     const user = c.get("jwtPayload") as jwtPayload;
-    return await c.json(await UserService.gerUserMe(user.id));
+    const profile = c.req.query("profile") ? true : false;
+    return c.json(await UserService.gerUserMe(user.id, profile));
   })
   .get("/:id", auth, async (c) => {
     const id = c.req.param("id");

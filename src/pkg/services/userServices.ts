@@ -19,12 +19,20 @@ export class UserService {
       where: eq(users.id, id),
     });
   }
-  static gerUserMe(id: string) {
-    return db.query.users.findFirst({
-      columns: { password: false },
-      with: { profile: true },
-      where: eq(users.id, id),
-    });
+  static gerUserMe(id: string, profile=false) {
+    if (profile) {
+      return db.query.users.findFirst({
+        columns: { password: false },
+        with: { profile: true },
+        where: eq(users.id, id),
+      });
+    }else{
+      return db.query.users.findFirst({
+        columns: { password: false },
+        where: eq(users.id, id),
+      });
+
+    }
   }
 
   static async deleteUser(user_id: string) {
