@@ -4,6 +4,8 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
 
+const authservice = new AuthService();
+
 export const authController = new Hono()
   .post(
     "/login",
@@ -17,7 +19,7 @@ export const authController = new Hono()
     async (c) => {
       const body = c.req.valid("json");
       const { email, password } = body;
-      const token = await AuthService.signIn(email, password);
+      const token = await authservice.signIn(email, password);
       return c.json(token);
     }
   )
@@ -42,7 +44,7 @@ export const authController = new Hono()
       const { new_password, old_password } = body;
       const user = c.get("jwtPayload") as jwtPayload;
       return c.json(
-        await AuthService.updatePassword(old_password, new_password, user.id)
+        await authservice.updatePassword(old_password, new_password, user.id)
       );
     }
   );
