@@ -6,14 +6,16 @@ import { superAdmin } from "../middlewares/superAdmin";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 
+const userservice = new UserService()
+
 export const userController = new Hono()
   .get("/", auth, async (c) => {
-    return c.json(await UserService.getUsers());
+    return c.json(await userservice.getUsers());
   })
   .get("/me", auth, async (c) => {
     const user = c.get("jwtPayload") as jwtPayload;
     const profile = c.req.query("profile") ? true : false;
-    return c.json(await UserService.gerUserMe(user.id, profile));
+    return c.json(await userservice.gerUserMe(user.id, profile));
   })
   .get("/:id", auth, async (c) => {
     const id = c.req.param("id");
@@ -21,7 +23,7 @@ export const userController = new Hono()
     if (!validateUuid(id)) {
       return c.text("invalid id", 400);
     }
-    const user = await UserService.gerUser(id);
+    const user = await userservice.gerUser(id);
     if (!user) {
       return c.text("user not found", 404);
     }
@@ -47,6 +49,6 @@ export const userController = new Hono()
   )
   .delete("/:id", auth, superAdmin, async (c) => {
     const id = c.req.param("id");
-    const user = await UserService.deleteUser(id);
+    const user = await userservice.deleteUser(id);
     return c.json(user);
   });

@@ -2,41 +2,29 @@ import { desc, eq, isNull } from "drizzle-orm";
 import { profiles, users } from "../../database/schema/schema";
 import { HTTPException } from "hono/http-exception";
 import { db } from "../../database/drizzel";
+import { UserRepository } from "../repository/userRepository";
 
 export class UserService {
-  static getUsers() {
-    return db.query.users.findMany({
-      columns: {
-        password: false,
-      },
-      orderBy: [desc(users.created_at)],
-      where: isNull(users.deleted_at),
-    });
+  userrepository: UserRepository;
+  constructor() {
+    this.userrepository = new UserRepository()
   }
-  static gerUser(id: string) {
-    return db.query.users.findFirst({
-      columns: { password: false },
-      where: eq(users.id, id),
-    });
+  getUsers() {
+    return this.userrepository.getUsers();
   }
-  static gerUserMe(id: string, profile=false) {
+  gerUser(id: string) {
+    return this.userrepository.getUser(id);
+  }
+  async gerUserMe(id: string, profile=false) {
     if (profile) {
-      return db.query.users.findFirst({
-        columns: { password: false },
-        with: { profile: true },
-        where: eq(users.id, id),
-      });
+      return await this.userrepository.getUserProfile(id);
     }else{
-      return db.query.users.findFirst({
-        columns: { password: false },
-        where: eq(users.id, id),
-      });
-
+      return await this.userrepository.getUser(id);
     }
   }
 
-  static async deleteUser(user_id: string) {
-    const look = await this.gerUser(user_id);
+  async deleteUser(user_id: string) {
+    const look = await this.userrepository.getUser(user_id);
     if (!look) {
       throw new HTTPException(404, { message: "User not found" });
     }

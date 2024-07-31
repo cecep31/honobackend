@@ -3,7 +3,10 @@ import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 
 export class AuthService {
-  constructor(private userrepository = new UserRepository()) {}
+  userrepository: UserRepository;
+  constructor() {
+    this.userrepository = new UserRepository();
+  }
   async signIn(email: string, password: string) {
     const user = await this.userrepository.getUserByEmail(email);
 
@@ -46,7 +49,6 @@ export class AuthService {
       }
       const { payload } = decode(refreshToken);
       console.log(payload);
-      
 
       // const user = await this.userrepository.getUser(payload.id)
       // if (!user) {
@@ -65,12 +67,12 @@ export class AuthService {
     }
   }
 
-async updatePassword(
+  async updatePassword(
     currentPassword: string,
     newPassword: string,
     userId: string
   ) {
-    const user = await this.userrepository.getUser(userId);
+    const user = await this.userrepository.getUserWithPassword(userId);
 
     if (
       !(await Bun.password.verify(
