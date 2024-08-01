@@ -6,7 +6,7 @@ export class WritetService {
         this.userrepository = new UserRepository()
     } 
     async getWriterByUsername(username: string) {
-        const user = await this.userrepository.getUserByUsername(username);
+        const user = await this.userrepository.getUserByUsernameProfile(username);
         return user
     }
 }

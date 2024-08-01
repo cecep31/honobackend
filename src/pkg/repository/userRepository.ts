@@ -33,6 +33,13 @@ export class UserRepository {
       where: eq(usersModel.username, username),
     });
   }
+  async getUserByUsernameProfile(username: string) {
+    return await db.query.users.findFirst({
+      columns: { password: false },
+      with: { profile: true },
+      where: eq(usersModel.username, username),
+    });
+  }
   async updatePassword(id: string, password: string) {
     return db
       .update(usersModel)
