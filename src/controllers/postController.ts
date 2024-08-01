@@ -42,13 +42,19 @@ export const postController = new Hono()
     const posts = await PostService.getPostsByTag(c.req.param("tag"));
     return c.json(posts);
   })
-
+  .get("/slug/:slug", async (c) => {
+    const post = await postservice.getPostBySlug(c.req.param("slug"));
+    if (!post) {
+      return c.json({ message: "Post not found" }, 404);
+    }
+    return c.json(post);
+  })
   .get(
     "/:id",
     zValidator("param", z.object({ id: z.string().uuid() })),
     async (c) => {
       const id = c.req.param("id");
-      const post = await PostService.getPost(id);
+      const post = await postservice.getPost(id);
       if (!post) {
         return c.json({ message: "Post not found" }, 404);
       }

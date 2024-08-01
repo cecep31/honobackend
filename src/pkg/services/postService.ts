@@ -86,35 +86,7 @@ export class PostService {
     return { data: postsdata, total: total[0].count };
   }
 
-  static async getYourPosts(user_id: string, limit = 100, offset = 0) {
-    const postsdata = await db.query.posts.findMany({
-      orderBy: desc(postsModel.created_at),
-      limit: limit,
-      with: {
-        creator: {
-          columns: {
-            username: true,
-            first_name: true,
-            last_name: true,
-            image: true,
-          },
-        },
-        tags: {
-          columns: {},
-          with: {
-            tag: true,
-          },
-        },
-      },
-      where: eq(postsModel.created_by, user_id),
-      offset: offset,
-    });
-    const total = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .where(eq(postsModel.created_by, user_id));
-    return { data: postsdata, total: total[0].count };
-  }
+
 
   static async getPostsByTag($tag: string) {
     const tag = await db.query.tags.findFirst({
@@ -139,15 +111,16 @@ export class PostService {
     return { data: postsdata, message: "success" };
   }
 
-  async getPostsRandom() {
-    return await this.postrepository.getPostsRandom();
+  async getPostsRandom(limit = 6) {
+    return await this.postrepository.getPostsRandom(limit);
   }
 
-  static async getPost(id_post: string) {
-    const post = await db.query.posts.findFirst({
-      where: eq(postsModel.id, id_post),
-    });
-    return post;
+  async getPost(id_post: string) {
+    return await this.postrepository.getPostById(id_post);
+  }
+
+  async getPostBySlug(slug: string) {
+    return await this.postrepository.getPostBySlug(slug);
   }
 
   static async deletePost(postId: string) {

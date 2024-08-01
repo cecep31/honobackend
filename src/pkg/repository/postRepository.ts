@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import {
   users as usersModel,
@@ -54,7 +54,7 @@ export class PostRepository {
   }
 
   async getPostsByUser(user_id: string, limit = 10, offset = 0) {
-    return await db.query.posts.findMany({
+    const posts = await db.query.posts.findMany({
       where: eq(postsModel.created_by, user_id),
       with: {
         creator: { columns: { password: false } },
@@ -64,9 +64,14 @@ export class PostRepository {
       offset: offset,
       orderBy: desc(postsModel.created_at),
     });
+    const total = await db
+      .select({ count: count() })
+      .from(postsModel)
+      .where(eq(postsModel.created_by, user_id));
+    return { data: posts, total: total[0].count };
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
-    return await db
+    const posts = await db
       .select({
         id: postsModel.id,
         title: postsModel.title,
@@ -81,6 +86,15 @@ export class PostRepository {
       .orderBy(desc(postsModel.created_at))
       .limit(limit)
       .offset(offset);
+    const total = await db
+      .select({ count: count() })
+      .from(postsModel)
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .where(eq(usersModel.username, username))
+      .orderBy(desc(postsModel.created_at))
+      .limit(limit)
+      .offset(offset);
+    return { data: posts, total: total[0].count };
   }
 
   async getPostsRandom(limit = 6) {
