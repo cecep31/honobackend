@@ -3,56 +3,43 @@ import {
   posts as postsModel,
   postsToTags,
   tags as tagsModel,
-  users as usersModel,
 } from "../../database/schema/schema";
-import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import Postgres from "postgres";
+import { PostRepository } from "../repository/postRepository";
+import { tagRepository } from "../repository/tagRepository";
 
 export class PostService {
-  static async addPost(
-    auth_id: string,
-    title: string,
-    body: string,
-    slug: string,
-    tags: string[] = [],
-    photo_url: string | null = null,
-    published: boolean = true
-  ) {
+  postrepository: PostRepository;
+  tagrepository: tagRepository;
+  constructor() {
+    this.postrepository = new PostRepository();
+    this.tagrepository = new tagRepository();
+  }
+  async addPost(auth_id: string, body: PostCreateBody) {
     try {
-      const post = await db
-        .insert(postsModel)
-        .values({
-          title: title,
-          body: body,
-          slug: slug,
-          photo_url: photo_url,
-          published: published,
-          created_by: auth_id,
-          created_at: new Date().toISOString(),
-        })
-        .returning({
-          id: postsModel.id,
-        });
+      const post = await this.postrepository.addPost({
+        title: body.title,
+        body: body.body,
+        slug: body.slug,
+        photo_url: body.photo_url,
+        published: body.published,
+        created_by: auth_id,
+      });
 
-      if (tags.length > 0) {
-        for (const tag of tags) {
-          await db
-            .insert(tagsModel)
-            .values({ name: tag })
-            .onConflictDoNothing();
+      if (body.tags.length > 0) {
+        for (const tag of body.tags) {
+          await this.tagrepository.addTag(tag);
         }
       }
 
       const getTags = await db.query.tags.findMany({
-        where: inArray(tagsModel.name, tags),
+        where: inArray(tagsModel.name, body.tags),
       });
 
       for (const tag of getTags) {
-        await db
-          .insert(postsToTags)
-          .values({ posts_id: post[0].id, tags_id: tag.id })
-          .onConflictDoNothing();
+        await this.tagrepository.addTagToPost(post[0].id, tag.id);
       }
 
       return post[0];
@@ -70,7 +57,7 @@ export class PostService {
 
   static async getPosts(limit = 100, offset = 0) {
     const postsdata = await db.query.posts.findMany({
-      columns:{updated_at: false,deleted_at: false},
+      columns: { updated_at: false, deleted_at: false },
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       with: {
         creator: {
@@ -129,15 +116,6 @@ export class PostService {
     return { data: postsdata, total: total[0].count };
   }
 
-  static async getPostByUserId(user_id: string, limit = 100, offset = 0) {
-    const postsData = await db.query.posts.findMany({
-      where: eq(postsModel.created_by, user_id),
-      limit: limit,
-      offset: offset,
-    });
-    return postsData;
-  }
-
   static async getPostsByTag($tag: string) {
     const tag = await db.query.tags.findFirst({
       where: eq(tagsModel.name, $tag),
@@ -161,13 +139,8 @@ export class PostService {
     return { data: postsdata, message: "success" };
   }
 
-  static async getPostsRandom() {
-    const postsData = await db
-      .select()
-      .from(postsModel)
-      .orderBy(sql.raw("RANDOM()"))
-      .limit(6);
-    return postsData;
+  async getPostsRandom() {
+    return await this.postrepository.getPostsRandom();
   }
 
   static async getPost(id_post: string) {
@@ -188,22 +161,15 @@ export class PostService {
     return deletedPost;
   }
 
-  static async getPostsByuser(user_id: string) {
-    const postsdata = await db
-      .select({
-        id: postsModel.id,
-        title: postsModel.title,
-        slug: postsModel.slug,
-        body: postsModel.body,
-        created_at: postsModel.created_at,
-        creator: { id: usersModel.id, username: usersModel.username },
-      })
-      .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(eq(postsModel.created_by, user_id))
-      .orderBy(desc(postsModel.created_at));
-
-    return postsdata;
+  async getPostsByuser(user_id: string, limit = 10, offset = 0) {
+    return await this.postrepository.getPostsByUser(user_id, limit, offset);
+  }
+  async getPostsByUsername(username: string, limit = 10, offset = 0) {
+    return await this.postrepository.getPostsByUsername(
+      username,
+      limit,
+      offset
+    );
   }
 
   // async uploadFile(file: File) {
