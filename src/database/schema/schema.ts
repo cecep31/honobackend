@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, bigint, unique, varchar, serial, integer, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, uuid, timestamp, text, boolean, bigint, unique, varchar, serial, integer, primaryKey, pgSchema } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
 import { sql } from "drizzle-orm"
 
@@ -65,7 +65,7 @@ export const posts = pgTable("posts", {
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	title: varchar("title", { length: 255 }),
-	created_by: uuid("created_by").references(() => users.id),
+	created_by: uuid("created_by").references(() => users.id, { onDelete: "set null", onUpdate: "cascade" }),
 	body: text("body"),
 	slug: varchar("slug", { length: 255 }),
 	createbyid: varchar("createbyid", { length: 50 }),
