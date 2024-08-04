@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 
 export class AuthService {
-  userrepository: UserRepository;
+  private userrepository: UserRepository;
   constructor() {
     this.userrepository = new UserRepository();
   }

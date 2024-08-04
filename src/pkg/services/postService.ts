@@ -1,18 +1,11 @@
 import { HTTPException } from "hono/http-exception";
-import {
-  posts as postsModel,
-  postsToTags,
-  tags as tagsModel,
-} from "../../database/schema/schema";
-import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
-import { db } from "../../database/drizzel";
 import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { tagRepository } from "../repository/tagRepository";
 
 export class PostService {
-  postrepository: PostRepository;
-  tagrepository: tagRepository;
+  private postrepository: PostRepository;
+  private tagrepository: tagRepository;
   constructor() {
     this.postrepository = new PostRepository();
     this.tagrepository = new tagRepository();
@@ -34,9 +27,7 @@ export class PostService {
         }
       }
 
-      const getTags = await db.query.tags.findMany({
-        where: inArray(tagsModel.name, body.tags),
-      });
+      const getTags = await this.tagrepository.getTagsByNameArray(body.tags);
 
       for (const tag of getTags) {
         await this.tagrepository.addTagToPost(post[0].id, tag.id);
@@ -59,16 +50,12 @@ export class PostService {
     return this.postrepository.getPostsPaginate(limit, offset);
   }
 
-
   async getPostsByTag($tag: string) {
-    const tag = await db.query.tags.findFirst({
-      where: eq(tagsModel.name, $tag),
-    });
+    const tag = await this.tagrepository.getTag($tag);
     if (!tag) {
       throw new HTTPException(404, { message: "Tag not Found" });
     }
     return await this.postrepository.getPostsByTag(tag.id);
-  
   }
 
   async getPostsRandom(limit = 6) {
@@ -83,11 +70,8 @@ export class PostService {
     return await this.postrepository.getPostBySlug(slug);
   }
 
-  static async deletePost(postId: string) {
-    const deletedPost = await db
-      .delete(postsModel)
-      .where(eq(postsModel.id, postId))
-      .returning();
+  async deletePost(postId: string) {
+    const deletedPost = await this.postrepository.deletePostPermanent(postId);
     if (!deletedPost) {
       throw new HTTPException(404, { message: "Post not found" });
     }
@@ -104,20 +88,4 @@ export class PostService {
       offset
     );
   }
-
-  async deletePost(id: string) {
-    return await PostService.deletePost(id);
-  }
-
-  // async uploadFile(file: File) {
-
-  //     console.log(file.toString());
-  //     const readableStream = new Readable();
-  //     const pipelineAsync = promisify(pipeline);
-  //     await pipelineAsync(file.stream(), readableStream);
-  //     const result = await minioClient.putObject(process.env.S3_BUCKET!, file.name, readableStream, file.size)
-  //     console.log(result);
-
-  //     return result.versionId
-  // }
 }

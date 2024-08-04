@@ -3,6 +3,7 @@ import { likes } from '../../database/schema/schema';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../../database/drizzel';
 import { and, eq } from 'drizzle-orm';
+
 export class LikeService {
     static async updateLike(post_id: string, auth_id: string) {
         try {

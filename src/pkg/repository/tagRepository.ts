@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import { postsToTags, tags as tagsModel } from "../../database/schema/schema";
 
@@ -7,8 +7,14 @@ export class tagRepository {
     return await db.query.tags.findMany();
   }
   async getTag(name: string) {
-    return await db.query.tags.findMany({
+    return await db.query.tags.findFirst({
       where: eq(tagsModel.name, name),
+    });
+  }
+
+  async getTagById(id: number) {
+    return await db.query.tags.findFirst({
+      where: eq(tagsModel.id, id),
     });
   }
 
@@ -17,6 +23,12 @@ export class tagRepository {
       .insert(tagsModel)
       .values({ name: name })
       .onConflictDoNothing();
+  }
+
+  async getTagsByNameArray(name: string[]) {
+    return await db.query.tags.findMany({
+      where: inArray(tagsModel.name, name),
+    });
   }
 
   async addTagToPost(post_id: string, tag_id: number) {

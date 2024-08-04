@@ -2,8 +2,7 @@ import { tagRepository } from '../repository/tagRepository';
 
 
 export class TagService {
-    tagropository: tagRepository;
-
+    private tagropository: tagRepository;
     constructor() {
         this.tagropository = new tagRepository();
     }
