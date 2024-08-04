@@ -3,6 +3,7 @@ import { db } from "../../database/drizzel";
 import {
   users as usersModel,
   posts as postsModel,
+  postsToTags,
 } from "../../database/schema/schema";
 
 export class PostRepository {
@@ -70,6 +71,21 @@ export class PostRepository {
       .where(eq(postsModel.created_by, user_id));
     return { data: posts, total: total[0].count };
   }
+
+  async getPostsByTag(tag_id: number) {
+    return await db
+      .select({
+        id: postsModel.id,
+        title: postsModel.title,
+        slug: postsModel.slug,
+        body: postsModel.body,
+        created_at: postsModel.created_at,
+      })
+      .from(postsModel)
+      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.posts_id))
+      .where(eq(postsToTags.tags_id, tag_id))
+      .orderBy(desc(postsModel.created_at));
+  }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
     const posts = await db
       .select({
@@ -103,5 +119,16 @@ export class PostRepository {
       .from(postsModel)
       .orderBy(sql.raw("RANDOM()"))
       .limit(limit);
+  }
+
+  async deletePost(id: string) {
+    return await db
+      .update(postsModel)
+      .set({ deleted_at: new Date().toISOString() })
+      .where(eq(postsModel.id, id))
+      .returning();
+  }
+  async deletePostPermanent(id: string) {
+    return await db.delete(postsModel).where(eq(postsModel.id, id));
   }
 }

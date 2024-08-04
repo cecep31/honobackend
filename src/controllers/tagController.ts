@@ -1,7 +1,8 @@
-import { Hono } from "hono"
-import { TagService } from "../pkg/services/tagService"
+import { Hono } from "hono";
+import { TagService } from "../pkg/services/tagService";
 
-export const tagController = new Hono()
-    .get("/", async (c) => {
-        return c.json(await TagService.getTags())
-    })
+const tagservice = new TagService();
+
+export const tagController = new Hono().get("/", async (c) => {
+  return c.json(await tagservice.getTags());
+});

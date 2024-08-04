@@ -25,7 +25,7 @@ export const postController = new Hono()
       );
     }
 
-    const posts = await PostService.getPosts(limit, offset);
+    const posts = await postservice.getPosts(limit, offset);
     return c.json(posts);
   })
   .get("/me", auth, async (c) => {
@@ -39,8 +39,7 @@ export const postController = new Hono()
     }
   })
   .get("/tag/:tag", async (c) => {
-    const posts = await PostService.getPostsByTag(c.req.param("tag"));
-    return c.json(posts);
+    return c.json(postservice.getPostsByTag(c.req.param("tag")));
   })
   .get("/slug/:slug", async (c) => {
     const post = await postservice.getPostBySlug(c.req.param("slug"));
@@ -83,16 +82,6 @@ export const postController = new Hono()
   )
   .delete("/:id", auth, async (c) => {
     const id = c.req.param("id");
-    const post = await PostService.deletePost(id);
+    const post = await postservice.deletePost(id)
     return c.json(post);
   });
-
-// postcontroller.post("/image", async (c) => {
-//     const postservice = new PostService(db)
-//     const request = await c.req.parseBody()
-//     const file = request['file'] as File
-//     postservice.uploadFile(file)
-//     console.log(file);
-
-//     return c.json({})
-// })

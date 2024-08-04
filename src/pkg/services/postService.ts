@@ -55,60 +55,20 @@ export class PostService {
     }
   }
 
-  static async getPosts(limit = 100, offset = 0) {
-    const postsdata = await db.query.posts.findMany({
-      columns: { updated_at: false, deleted_at: false },
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
-      with: {
-        creator: {
-          columns: {
-            username: true,
-            first_name: true,
-            last_name: true,
-            image: true,
-          },
-        },
-        tags: {
-          columns: {},
-          with: {
-            tag: {
-              columns: { name: true },
-            },
-          },
-        },
-      },
-      limit: limit,
-      offset: offset,
-      orderBy: desc(postsModel.created_at),
-    });
-
-    const total = await db.select({ count: count() }).from(postsModel);
-    return { data: postsdata, total: total[0].count };
+  async getPosts(limit = 100, offset = 0) {
+    return this.postrepository.getPostsPaginate(limit, offset);
   }
 
 
-
-  static async getPostsByTag($tag: string) {
+  async getPostsByTag($tag: string) {
     const tag = await db.query.tags.findFirst({
       where: eq(tagsModel.name, $tag),
     });
     if (!tag) {
       throw new HTTPException(404, { message: "Tag not Found" });
     }
-    const postsdata = await db
-      .select({
-        id: postsModel.id,
-        title: postsModel.title,
-        slug: postsModel.slug,
-        body: postsModel.body,
-        created_at: postsModel.created_at,
-      })
-      .from(postsModel)
-      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.posts_id))
-      .where(eq(postsToTags.tags_id, tag.id))
-      .orderBy(desc(postsModel.created_at));
-
-    return { data: postsdata, message: "success" };
+    return await this.postrepository.getPostsByTag(tag.id);
+  
   }
 
   async getPostsRandom(limit = 6) {
@@ -143,6 +103,10 @@ export class PostService {
       limit,
       offset
     );
+  }
+
+  async deletePost(id: string) {
+    return await PostService.deletePost(id);
   }
 
   // async uploadFile(file: File) {

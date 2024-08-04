@@ -1,10 +1,14 @@
-import { db } from '../../database/drizzel'
+import { tagRepository } from '../repository/tagRepository';
 
 
 export class TagService {
-    static async getTags() {
-        const tags = await db.query.tags.findMany();
-        return tags;
+    tagropository: tagRepository;
+
+    constructor() {
+        this.tagropository = new tagRepository();
+    }
+    async getTags() {
+        return await this.tagropository.getTags();
     }
 
 }
