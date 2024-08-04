@@ -8,12 +8,17 @@ import {
 
 export class PostRepository {
   async getPostsPaginate(limit = 10, offset = 0) {
-    return await db.query.posts.findMany({
+    const posts = await db.query.posts.findMany({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       orderBy: desc(postsModel.created_at),
       limit: limit,
       offset: offset,
     });
+    const total = await db
+      .select({ count: count() })
+      .from(postsModel)
+      .where(eq(postsModel.published, true));
+    return { data: posts, total: total[0].count };
   }
 
   async getPostBySlug(slug: string) {
