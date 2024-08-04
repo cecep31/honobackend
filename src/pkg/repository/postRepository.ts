@@ -11,6 +11,10 @@ export class PostRepository {
     const posts = await db.query.posts.findMany({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       orderBy: desc(postsModel.created_at),
+      with:{
+        creator: { columns: { password: false } },
+        tags: { columns: {}, with: { tag: true } },
+      },
       limit: limit,
       offset: offset,
     });
