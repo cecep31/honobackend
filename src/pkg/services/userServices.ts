@@ -1,13 +1,11 @@
-import { profiles, users } from "../../database/schema/schema";
 import { HTTPException } from "hono/http-exception";
-import { db } from "../../database/drizzel";
 import { UserRepository } from "../repository/userRepository";
-import type { PostUser } from "../../types/user";
+import type {UserCreateBody } from "../../types/user";
 
 export class UserService {
   userrepository: UserRepository;
   constructor() {
-    this.userrepository = new UserRepository()
+    this.userrepository = new UserRepository();
   }
   getUsers() {
     return this.userrepository.getUsers();
@@ -15,10 +13,10 @@ export class UserService {
   gerUser(id: string) {
     return this.userrepository.getUser(id);
   }
-  async gerUserMe(id: string, profile=false) {
+  async gerUserMe(id: string, profile = false) {
     if (profile) {
       return await this.userrepository.getUserProfile(id);
-    }else{
+    } else {
       return await this.userrepository.getUser(id);
     }
   }
@@ -30,30 +28,20 @@ export class UserService {
     }
     return await this.userrepository.deleteUserSoft(user_id);
   }
-  static async addUser(body: PostUser) {
+  async addUser(body: UserCreateBody) {
     const hash_password = Bun.password.hashSync(body.password, {
       algorithm: "bcrypt",
       cost: 12,
     });
-    const resultuser = await db
-      .insert(users)
-      .values({
-        first_name: body.first_name,
-        last_name: body.last_name,
-        email: body.email,
-        password: hash_password,
-        image: body.image,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .returning({ id: users.id });
-
-    await db.insert(profiles).values({
-      user_id: resultuser[0].id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    const resultuser = await this.userrepository.addUser({
+      first_name: body.first_name,
+      last_name: body.last_name,
+      email: body.email,
+      password: hash_password,
+      image: body.image,
+      isSuperAdmin: false,
     });
 
-    return resultuser;
+    return resultuser[0];
   }
 }

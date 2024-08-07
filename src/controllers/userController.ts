@@ -5,6 +5,7 @@ import { auth } from "../middlewares/auth";
 import { superAdmin } from "../middlewares/superAdmin";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import type { jwtPayload } from "../types/auth";
 
 const userservice = new UserService()
 
@@ -40,11 +41,12 @@ export const userController = new Hono()
         last_name: z.string(),
         email: z.string(),
         password: z.string(),
+        image: z.string().optional().default("/images/default.jpg"),
       })
     ),
     async (c) => {
-      const body = (await c.req.json()) as PostUser;
-      return c.json(await UserService.addUser(body));
+      const body = c.req.valid("json");
+      return c.json(await userservice.addUser(body), 201);
     }
   )
   .delete("/:id", auth, superAdmin, async (c) => {

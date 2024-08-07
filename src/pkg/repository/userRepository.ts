@@ -1,8 +1,19 @@
 import { db } from "../../database/drizzel";
 import { desc, eq, isNull } from "drizzle-orm";
-import { users as usersModel } from "../../database/schema/schema";
+import { profiles, users as usersModel } from "../../database/schema/schema";
+import type { UserCreate } from "../../types/user";
 
 export class UserRepository {
+  async addUser(data: UserCreate) {
+    const user = await db
+      .insert(usersModel)
+      .values(data)
+      .returning({ id: usersModel.id });
+    await db.insert(profiles).values({
+      user_id: user[0].id,
+    });
+    return user;
+  }
   async getUserWithPassword(id: string) {
     return db.query.users.findFirst({
       where: eq(usersModel.id, id),
