@@ -1,3 +1,3 @@
-interface tagcreate {
+export interface tagcreate {
     name: string;
 }

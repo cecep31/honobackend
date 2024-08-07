@@ -1,6 +1,7 @@
 import { decode, sign, verify } from "hono/jwt";
 import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
+import { getSecret } from "../../config/secret";
 
 export class AuthService {
   private userrepository: UserRepository;
@@ -31,7 +32,7 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
     };
 
-    const token = await sign(payload, process.env.JWT_KEY!);
+    const token = await sign(payload, getSecret.jwt_secret);
 
     return { access_token: token };
   }
@@ -41,7 +42,7 @@ export class AuthService {
       try {
         const payloadverify = await verify(
           refreshToken,
-          process.env.JWT_KEY ?? ""
+          getSecret.jwt_secret
         );
         console.log(payloadverify);
       } catch (error) {

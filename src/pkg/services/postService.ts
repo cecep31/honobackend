@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { tagRepository } from "../repository/tagRepository";
+import type { PostCreateBody } from "../../types/post";
 
 export class PostService {
   private postrepository: PostRepository;

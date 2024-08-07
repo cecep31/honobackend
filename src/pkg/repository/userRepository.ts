@@ -56,4 +56,12 @@ export class UserRepository {
       where: isNull(usersModel.deleted_at),
     });
   }
+
+  async deleteUserSoft(user_id: string) {
+    return await db
+      .update(usersModel)
+      .set({ deleted_at: new Date().toISOString() })
+      .where(eq(usersModel.id, user_id))
+      .returning({ id: usersModel.id });
+  }
 }

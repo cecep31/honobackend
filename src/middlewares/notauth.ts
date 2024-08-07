@@ -7,7 +7,7 @@ export const notAuth = createMiddleware(async (c, next) => {
     const token = authorization?.replace('Bearer ', '')
 
     try {
-        const decodedPayload = await verify(token ?? '', getSecret.jwtsecret)
+        const decodedPayload = await verify(token ?? '', getSecret.jwt_secret)
         c.set('jwtPayload', decodedPayload)
     } catch (error) {
         // console.log("non authenticated");

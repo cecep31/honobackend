@@ -1,8 +1,8 @@
-import { desc, eq, isNull } from "drizzle-orm";
 import { profiles, users } from "../../database/schema/schema";
 import { HTTPException } from "hono/http-exception";
 import { db } from "../../database/drizzel";
 import { UserRepository } from "../repository/userRepository";
+import type { PostUser } from "../../types/user";
 
 export class UserService {
   userrepository: UserRepository;
@@ -28,11 +28,7 @@ export class UserService {
     if (!look) {
       throw new HTTPException(404, { message: "User not found" });
     }
-    return await db
-      .update(users)
-      .set({ deleted_at: new Date().toISOString() })
-      .where(eq(users.id, user_id))
-      .returning({ id: users.id });
+    return await this.userrepository.deleteUserSoft(user_id);
   }
   static async addUser(body: PostUser) {
     const hash_password = Bun.password.hashSync(body.password, {

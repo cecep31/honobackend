@@ -1,4 +1,4 @@
-interface PostBase {
+export interface PostBase {
   title: string;
   body: string;
   slug: string;
@@ -6,10 +6,10 @@ interface PostBase {
   published: boolean;
 }
 
-interface PostCreate extends PostBase {
+export interface PostCreate extends PostBase {
   created_by: string;
 }
 
-interface PostCreateBody extends PostBase {
+export interface PostCreateBody extends PostBase {
   tags: string[];
 }

@@ -1,4 +1,4 @@
-interface User {
+export interface User {
     id: string
     first_name: string
     last_name: string
@@ -8,7 +8,7 @@ interface User {
     isSuperAdmin: boolean
 }
 
-interface PostUser {
+export interface PostUser {
     first_name: string
     last_name: string
     email: string

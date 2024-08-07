@@ -5,6 +5,7 @@ import {
   posts as postsModel,
   postsToTags,
 } from "../../database/schema/schema";
+import type { PostCreate } from "../../types/post";
 
 export class PostRepository {
   async getPostsPaginate(limit = 10, offset = 0) {
