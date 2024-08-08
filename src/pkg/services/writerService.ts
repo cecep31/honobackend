@@ -1,7 +1,7 @@
 import { UserRepository } from "../repository/userRepository";
 
 export class WritetService {
-    userrepository: UserRepository;
+    private userrepository: UserRepository;
     constructor(){
         this.userrepository = new UserRepository()
     } 

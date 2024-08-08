@@ -1,9 +1,9 @@
 import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
-import type {UserCreateBody } from "../../types/user";
+import type { UserCreateBody } from "../../types/user";
 
 export class UserService {
-  userrepository: UserRepository;
+  private userrepository: UserRepository;
   constructor() {
     this.userrepository = new UserRepository();
   }
