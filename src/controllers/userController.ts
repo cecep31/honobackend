@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { UserService } from "../pkg/services/userServices";
-import { validate as validateUuid } from "uuid";
 import { auth } from "../middlewares/auth";
 import { superAdmin } from "../middlewares/superAdmin";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { jwtPayload } from "../types/auth";
 
-const userservice = new UserService()
+const userservice = new UserService();
 
 export const userController = new Hono()
   .get("/", auth, async (c) => {
@@ -18,18 +17,19 @@ export const userController = new Hono()
     const profile = c.req.query("profile") ? true : false;
     return c.json(await userservice.gerUserMe(user.id, profile));
   })
-  .get("/:id", auth, async (c) => {
-    const id = c.req.param("id");
-    //check id is uuid
-    if (!validateUuid(id)) {
-      return c.text("invalid id", 400);
+  .get(
+    "/:id",
+    auth,
+    zValidator("param", z.object({ id: z.string().uuid() })),
+    async (c) => {
+      const id = c.req.param("id");
+      const user = await userservice.gerUser(id);
+      if (!user) {
+        return c.text("user not found", 404);
+      }
+      return c.json(user);
     }
-    const user = await userservice.gerUser(id);
-    if (!user) {
-      return c.text("user not found", 404);
-    }
-    return c.json(user);
-  })
+  )
   .post(
     "/",
     auth,
