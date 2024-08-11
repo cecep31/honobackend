@@ -3,6 +3,7 @@ import { AuthService } from "../pkg/services/authService";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
+import type { jwtPayload } from "../types/auth";
 
 const authservice = new AuthService();
 
