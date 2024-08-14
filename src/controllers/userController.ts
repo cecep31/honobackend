@@ -39,9 +39,11 @@ export const userController = new Hono()
       z.object({
         first_name: z.string(),
         last_name: z.string(),
+        username: z.string(),
         email: z.string(),
         password: z.string(),
         image: z.string().optional().default("/images/default.jpg"),
+        issuperadmin: z.boolean().optional().default(false),
       })
     ),
     async (c) => {

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { auth } from "../middlewares/auth";
 import { LikeService } from "../pkg/services/likeService";
+import type { jwtPayload } from "../types/auth";
 
 export const likeController = new Hono()
     .post("/:post_id", auth, async (c) => {

@@ -17,17 +17,24 @@ export interface PostUser {
 }
 
 interface UserBase {
-    first_name: string
-    last_name: string
+    username: string
     email: string
     password: string
-    image: string
+}
+export interface UserSignup extends UserBase {
 }
 
 export interface UserCreateBody extends UserBase {
-
+    first_name: string
+    last_name: string
+    username: string
+    image: string
+    issuperadmin: boolean
 }
 
 export interface UserCreate extends UserBase {
     isSuperAdmin: boolean
+    first_name: string
+    last_name: string
+    image: string
 }

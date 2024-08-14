@@ -1,9 +1,18 @@
 import { db } from "../../database/drizzel";
-import { desc, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { profiles, users as usersModel } from "../../database/schema/schema";
-import type { UserCreate } from "../../types/user";
+import type { UserCreate, UserSignup } from "../../types/user";
 
 export class UserRepository {
+  async getUserCountByUsername(username: string) {
+    const users = await db
+      .select({ count: count() })
+      .from(usersModel)
+      .where(
+        and(eq(usersModel.username, username), isNull(usersModel.deleted_at))
+      );
+      return users[0].count;
+  }
   async addUser(data: UserCreate) {
     const user = await db
       .insert(usersModel)
@@ -13,6 +22,11 @@ export class UserRepository {
       user_id: user[0].id,
     });
     return user;
+  }
+  async createUser(data: UserSignup) {
+    const user = await db.insert(usersModel).values(data).returning();
+    await db.insert(profiles).values({ user_id: user[0].id });
+    return user[0];
   }
   async getUserWithPassword(id: string) {
     return db.query.users.findFirst({

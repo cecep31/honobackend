@@ -2,6 +2,7 @@ import { decode, sign, verify } from "hono/jwt";
 import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 import { getSecret } from "../../config/secret";
+import type { UserSignup } from "../../types/user";
 
 export class AuthService {
   private userrepository: UserRepository;
@@ -37,13 +38,35 @@ export class AuthService {
     return { access_token: token };
   }
 
+  async signUp(data: UserSignup) {
+    const hashedPassword = Bun.password.hashSync(data.password, {
+      algorithm: "bcrypt",
+      cost: 12,
+    });
+    data.password = hashedPassword;
+    const user = await this.userrepository.createUser(data);
+    const payload = {
+      id: user.id,
+      email: user.email,
+      isSuperAdmin: user.issuperadmin,
+      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
+    };
+
+    const token = await sign(payload, getSecret.jwt_secret);
+    return { access_token: token };
+  }
+
+  async checkUsername(username: string) {
+    const user = await this.userrepository.getUserCountByUsername(username);
+    if (user > 0) {
+      return true;
+    }
+    return false;
+  }
   async refreshToken(refreshToken: string) {
     try {
       try {
-        const payloadverify = await verify(
-          refreshToken,
-          getSecret.jwt_secret
-        );
+        const payloadverify = await verify(refreshToken, getSecret.jwt_secret);
         console.log(payloadverify);
       } catch (error) {
         throw new HTTPException(401, { message: "" });

@@ -36,6 +36,7 @@ export class UserService {
     const resultuser = await this.userrepository.addUser({
       first_name: body.first_name,
       last_name: body.last_name,
+      username: body.username,
       email: body.email,
       password: hash_password,
       image: body.image,
