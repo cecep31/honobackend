@@ -1,14 +1,13 @@
 # generate build and running 
-FROM oven/bun:alpine as build
+FROM oven/bun:canary-alpine AS build
 WORKDIR /app
 COPY . .
 RUN bun install
-RUN bun run build
+RUN bun run build:compile
 
 # FROM alpine:latest as run
-FROM oven/bun:alpine as run
+FROM oven/bun:canary-alpine AS run
 WORKDIR /app
-COPY --from=build /app/dist/index.js .
+COPY --from=build /app/bin/honobackend .
 EXPOSE 3001
-CMD [ "bun","index.js" ]
-# CMD [ "bun","run","start" ]
+CMD ["./honobackend"]
