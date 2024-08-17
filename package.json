@@ -7,7 +7,7 @@
     "studio": "drizzle-kit studio",
     "start": "bun run src/index.ts",
     "build": "tsc --noEmit && bun build src/index.ts --outdir dist --minify --target bun",
-    "build:compile": "bun build src/index.ts --outfile bin/honobackend --minify --compile",
+    "build:compile": "bun build src/index.ts --outfile bin/honobackend --minify --compile --target bun",
     "start:prod": "bun run src/index.ts"
   },
   "dependencies": {
