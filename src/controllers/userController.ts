@@ -40,7 +40,7 @@ export const userController = new Hono()
         first_name: z.string(),
         last_name: z.string(),
         username: z.string(),
-        email: z.string(),
+        email: z.string().email(),
         password: z.string(),
         image: z.string().optional().default("/images/default.jpg"),
         issuperadmin: z.boolean().optional().default(false),

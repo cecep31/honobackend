@@ -13,7 +13,7 @@ export const authController = new Hono()
     zValidator(
       "json",
       z.object({
-        email: z.string().email(),
+        email: z.string(),
         password: z.string().min(6),
       })
     ),
