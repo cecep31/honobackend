@@ -2,15 +2,26 @@ import { decode, sign, verify } from "hono/jwt";
 import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 import { getSecret } from "../../config/secret";
-import type { UserSignup } from "../../types/user";
+import type { userLogin, UserSignup } from "../../types/user";
 
 export class AuthService {
   private userrepository: UserRepository;
   constructor() {
     this.userrepository = new UserRepository();
   }
-  async signIn(email: string, password: string) {
-    const user = await this.userrepository.getUserByEmail(email);
+  private isEmail(email: string): boolean {
+    const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return pattern.test(email);
+  }
+  async signIn(username: string, password: string) {
+    let user:
+      | userLogin
+      | undefined;
+    if (this.isEmail(username)) {
+      user = await this.userrepository.getUserByEmailRaw(username);
+    } else {
+      user = await this.userrepository.getUserByUsernameRaw(username);
+    }
 
     if (!user) {
       throw new HTTPException(401, { message: "Invalid credentials" });

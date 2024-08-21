@@ -47,14 +47,25 @@ export class UserRepository {
     });
   }
 
+  async getUserByEmailRaw(email: string) {
+    return await db.query.users.findFirst({
+      where: eq(usersModel.email, email),
+    });
+  }
   async getUserByEmail(email: string) {
     return await db.query.users.findFirst({
+      columns: { password: false },
       where: eq(usersModel.email, email),
     });
   }
   async getUserByUsername(username: string) {
     return await db.query.users.findFirst({
       columns: { password: false },
+      where: eq(usersModel.username, username),
+    });
+  }
+  async getUserByUsernameRaw(username: string) {
+    return await db.query.users.findFirst({
       where: eq(usersModel.username, username),
     });
   }

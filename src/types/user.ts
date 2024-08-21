@@ -33,8 +33,16 @@ export interface UserCreateBody extends UserBase {
 }
 
 export interface UserCreate extends UserBase {
-    isSuperAdmin: boolean
+    issuperAdmin: boolean
     first_name: string
     last_name: string
     image: string
+}
+
+export interface userLogin {
+    id: string | null
+    username: string | null
+    email: string | null
+    password: string | null
+    issuperadmin: boolean | null
 }

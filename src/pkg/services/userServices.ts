@@ -40,7 +40,7 @@ export class UserService {
       email: body.email,
       password: hash_password,
       image: body.image,
-      isSuperAdmin: false,
+      issuperAdmin: false,
     });
 
     return resultuser[0];
