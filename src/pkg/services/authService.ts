@@ -17,11 +17,14 @@ export class AuthService {
     let user:
       | userLogin
       | undefined;
+    
     if (this.isEmail(username)) {
       user = await this.userrepository.getUserByEmailRaw(username);
     } else {
       user = await this.userrepository.getUserByUsernameRaw(username);
     }
+    // console.log(user);
+    
 
     if (!user) {
       throw new HTTPException(401, { message: "Invalid credentials" });
