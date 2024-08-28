@@ -3,13 +3,16 @@ import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { tagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
+import { UserRepository } from "../repository/userRepository";
 
 export class PostService {
   private postrepository: PostRepository;
   private tagrepository: tagRepository;
+  private userrepository: UserRepository;
   constructor() {
     this.postrepository = new PostRepository();
     this.tagrepository = new tagRepository();
+    this.userrepository = new UserRepository();
   }
   async addPost(auth_id: string, body: PostCreateBody) {
     try {
@@ -45,6 +48,13 @@ export class PostService {
         throw new HTTPException(500, { message: "internal server error" });
       }
     }
+  }
+  async getPostByuserIdSlug(username: string, slug: string) {
+    const user = await this.userrepository.getUserByUsername(username);
+    if (!user) {
+      return undefined;
+    }
+    return this.postrepository.getPostByCreatorSlug(user.id, slug);
   }
 
   async getPosts(limit = 100, offset = 0) {

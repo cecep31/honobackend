@@ -12,7 +12,7 @@ export class PostRepository {
     const posts = await db.query.posts.findMany({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       orderBy: desc(postsModel.created_at),
-      with:{
+      with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
       },
@@ -25,6 +25,21 @@ export class PostRepository {
       .where(eq(postsModel.published, true));
     return { data: posts, total: total[0].count };
   }
+
+  async getPostByCreatorSlug(user_id: string, slug: string) {
+    return await db.query.posts.findFirst({
+      where: and(
+        isNull(postsModel.deleted_at),
+        eq(postsModel.created_by, user_id),
+        eq(postsModel.slug, slug)
+      ),
+      with: {
+        creator: { columns: { password: false } },
+        tags: { columns: {}, with: { tag: true } },
+      },
+    });
+  }
+
 
   async getPostBySlug(slug: string) {
     return await db.query.posts.findFirst({

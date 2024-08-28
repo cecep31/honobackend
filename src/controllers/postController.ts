@@ -50,6 +50,26 @@ export const postController = new Hono()
     return c.json(post);
   })
   .get(
+    "/username/:username/slug/:slug",
+    zValidator(
+      "param",
+      z.object({
+        userid: z.string().min(5).max(20),
+        slug: z.string().min(5).max(255),
+      })
+    ),
+    async (c) => {
+      const username = c.req.param("username");
+      const slug = c.req.param("slug");
+      const post = await postservice.getPostByuserIdSlug(username, slug);
+      if (!post) {
+        return c.json({ message: "Post not found" }, 404);
+      }
+      return c.json(post);
+    }
+  )
+
+  .get(
     "/:id",
     zValidator("param", z.object({ id: z.string().uuid() })),
     async (c) => {
@@ -83,6 +103,6 @@ export const postController = new Hono()
   )
   .delete("/:id", auth, async (c) => {
     const id = c.req.param("id");
-    const post = await postservice.deletePost(id)
+    const post = await postservice.deletePost(id);
     return c.json(post);
   });

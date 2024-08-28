@@ -29,7 +29,21 @@ export const authController = new Hono()
     zValidator(
       "json",
       z.object({
-        username: z.string().min(3),
+        username: z
+          .string()
+          .min(3, "Username must be at least 3 characters long")
+          .max(20, "Username cannot exceed 20 characters")
+          .regex(
+            /[a-zA-Z0-9_]+/,
+            "Username must contain only letters, numbers, and underscores"
+          )
+          .refine((username) => {
+            // Additional custom validation logic (optional)
+            if (username.startsWith("_")) {
+              return "Username cannot start with an underscore";
+            }
+            return true;
+          }, "Username cannot start with an underscore"),
         email: z.string().email(),
         password: z.string().min(6),
       })

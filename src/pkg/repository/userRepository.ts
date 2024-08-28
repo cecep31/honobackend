@@ -52,6 +52,7 @@ export class UserRepository {
       where: eq(usersModel.email, email),
     });
   }
+
   async getUserByEmail(email: string) {
     return await db.query.users.findFirst({
       columns: { password: false },
