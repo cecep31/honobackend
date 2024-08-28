@@ -54,7 +54,7 @@ export const postController = new Hono()
     zValidator(
       "param",
       z.object({
-        userid: z.string().min(5).max(20),
+        username: z.string().min(5).max(20),
         slug: z.string().min(5).max(255),
       })
     ),
