@@ -26,6 +26,13 @@ export class PostRepository {
     return { data: posts, total: total[0].count };
   }
 
+  async updatePostPublished(id: string, published: boolean) {
+    return await db
+      .update(postsModel)
+      .set({ published: published })
+      .where(eq(postsModel.id, id));
+  }
+
   async getPostByCreatorSlug(user_id: string, slug: string) {
     return await db.query.posts.findFirst({
       where: and(
