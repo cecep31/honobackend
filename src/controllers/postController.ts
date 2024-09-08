@@ -103,7 +103,6 @@ postController.delete("/:id", auth, async (c) => {
   const post = await postservice.deletePost(id);
   return c.json(post);
 });
-
 postController.put(
   "publish/:id",
   auth,

@@ -47,7 +47,6 @@ export class PostRepository {
     });
   }
 
-
   async getPostBySlug(slug: string) {
     return await db.query.posts.findFirst({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.slug, slug)),
@@ -126,7 +125,13 @@ export class PostRepository {
         slug: postsModel.slug,
         body: postsModel.body,
         created_at: postsModel.created_at,
-        creator: { id: usersModel.id, username: usersModel.username },
+        creator: {
+          id: usersModel.id,
+          username: usersModel.username,
+          email: usersModel.email,
+          firstname: usersModel.first_name,
+          lastname: usersModel.last_name,
+        },
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
@@ -139,7 +144,6 @@ export class PostRepository {
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(eq(usersModel.username, username))
-      .orderBy(desc(postsModel.created_at))
       .limit(limit)
       .offset(offset);
     return { data: posts, total: total[0].count };

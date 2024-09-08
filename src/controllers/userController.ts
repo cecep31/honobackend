@@ -1,12 +1,10 @@
 import { Hono } from "hono";
-import { UserService } from "../pkg/services/userServices";
+import { userservice } from "../pkg/service";
 import { auth } from "../middlewares/auth";
 import { superAdmin } from "../middlewares/superAdmin";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { jwtPayload } from "../types/auth";
-
-const userservice = new UserService();
 
 export const userController = new Hono()
   .get("/", auth, async (c) => {

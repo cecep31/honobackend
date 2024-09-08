@@ -6,8 +6,8 @@
     "db:migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
     "start": "bun run src/index.ts",
-    "build": "tsc --noEmit && bun build src/index.ts --outdir dist --minify --target bun",
-    "build:compile": "tsc --noEmit && bun build src/index.ts --outfile bin/honobackend --minify --compile --target bun",
+    "build": "tsc --noEmit && bun build src/index.ts --outdir dist --target bun",
+    "build:compile": "tsc --noEmit && bun build src/index.ts --outfile bin/honobackend --compile --target bun",
     "start:prod": "bun run src/index.ts"
   },
   "dependencies": {
