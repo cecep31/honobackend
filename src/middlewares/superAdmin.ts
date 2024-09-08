@@ -4,7 +4,7 @@ import type { jwtPayload } from "../types/auth";
 
 export const superAdmin = createMiddleware(async (c, next) => {
   const authorization = c.get("jwtPayload") as jwtPayload;
-  if (authorization.isSuperAdmin) {
+  if (authorization.issuperadmin) {
     await next();
   } else {
     throw new HTTPException(403, { message: "forbidden" });

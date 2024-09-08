@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { userController } from "../controllers/userController";
 import authController from "../controllers/authController";
-import { postController } from "../controllers/postController";
+import postController from "../controllers/postController";
 import { tagController } from "../controllers/tagController";
 import { likeController } from "../controllers/likeCotroller";
 import { writerController } from "../controllers/writerController";

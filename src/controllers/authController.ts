@@ -1,14 +1,14 @@
 import { Hono } from "hono";
-import { AuthService } from "../pkg/services/authService";
+import { authservice } from "../pkg/service";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
 
-const authservice = new AuthService();
 
 const authController = new Hono();
 
+//login
 authController.post(
   "/login",
   zValidator(
@@ -58,6 +58,7 @@ authController.get(
     return c.json({ exsist: await authservice.checkUsername(username) });
   }
 );
+
 authController.put(
   "/password",
   auth,

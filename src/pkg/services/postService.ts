@@ -14,6 +14,11 @@ export class PostService {
     this.tagrepository = new tagRepository();
     this.userrepository = new UserRepository();
   }
+
+  async UpdatePublishedByadmin(id: string, published: boolean) {
+    return this.postrepository.updatePostPublished(id, published);
+  }
+
   async addPost(auth_id: string, body: PostCreateBody) {
     try {
       const post = await this.postrepository.addPost({
