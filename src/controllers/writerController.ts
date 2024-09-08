@@ -13,8 +13,5 @@ export const writerController = new Hono()
   .get("/:username/posts", async (c) => {
     const username = c.req.param("username");
     const posts = await postservice.getPostsByUsername(username);
-    if (!posts) {
-      return c.json({ message: "user not found" }, 404);
-    }
     return c.json(posts);
   });
