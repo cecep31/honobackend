@@ -20,12 +20,17 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("/");
   }
   const token = await authservice.getGithubToken(code);
-  const userResponse = await axios.get("https://api.github.com/user", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return c.json({ userResponse });
+  console.log(token);
+  try {
+    const userResponse = await axios.get("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return c.json({ userResponse });
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 //login

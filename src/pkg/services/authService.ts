@@ -4,6 +4,7 @@ import { UserRepository } from "../repository/userRepository";
 import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
 import { credential } from "../../config/github";
+import axios from "axios";
 
 export class AuthService {
   private userrepository: UserRepository;
@@ -15,17 +16,14 @@ export class AuthService {
     return pattern.test(email);
   }
   async signIn(username: string, password: string) {
-    let user:
-      | userLogin
-      | undefined;
-    
+    let user: userLogin | undefined;
+
     if (this.isEmail(username)) {
       user = await this.userrepository.getUserByEmailRaw(username);
     } else {
       user = await this.userrepository.getUserByUsernameRaw(username);
     }
     // console.log(user);
-    
 
     if (!user) {
       throw new HTTPException(401, { message: "Invalid credentials" });
@@ -71,21 +69,24 @@ export class AuthService {
     return { access_token: token };
   }
 
-  async getGithubToken (code: string) {
-    const response = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        client_id: credential.CLIENT_ID,
-        client_secret: credential.CLIENT_SECRET,
-        code: code,
-      }),
-    });
-    const data = await response.text();
-    return data;
+  async getGithubToken(code: string) {
+    try {
+      const tokenResponse = await axios.post(
+        "https://github.com/login/oauth/access_token",
+        {
+          client_id: credential.CLIENT_ID,
+          client_secret: credential.CLIENT_SECRET,
+          code,
+          redirect_uri: credential.REDIRECT_URI,
+        },
+        {
+          headers: {
+            accept: "application/json",
+          },
+        }
+      );
+      return await tokenResponse.data.access_token;
+    } catch (error) {}
   }
 
   async checkUsername(username: string) {
