@@ -29,6 +29,8 @@ authController.get("/oauth/github/callback", async (c) => {
         Authorization: `Bearer ${token}`,
       },
     });
+    console.log(userResponse);
+    
     return c.json({ userResponse });
   } catch (error) {
     console.log(error);
