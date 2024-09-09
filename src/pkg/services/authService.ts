@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
+import { credential } from "../../config/github";
 
 export class AuthService {
   private userrepository: UserRepository;
@@ -68,6 +69,23 @@ export class AuthService {
 
     const token = await sign(payload, getSecret.jwt_secret);
     return { access_token: token };
+  }
+
+  async getGithubToken (code: string) {
+    const response = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        client_id: credential.CLIENT_ID,
+        client_secret: credential.CLIENT_SECRET,
+        code: code,
+      }),
+    });
+    const data = await response.text();
+    return data;
   }
 
   async checkUsername(username: string) {

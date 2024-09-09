@@ -4,10 +4,30 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
-
+import { credential } from "../config/github";
+import axios from "axios";
 
 const authController = new Hono();
 
+
+authController.get("/oauth/github", async (c) => {
+  const authUrl = `https://github.com/login/oauth/authorize?client_id=${credential.CLIENT_ID}&redirect_uri=${credential.REDIRECT_URI}&scope=user`;
+  return c.redirect(authUrl);
+});
+
+authController.get("/oauth/github/callback", async (c) => {
+  const code = c.req.query("code") ?? "";
+  if (!code) {
+    return c.redirect("/");
+  }
+  const token = await authservice.getGithubToken(code);
+  const userResponse = await axios.get('https://api.github.com/user', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return c.json({ userResponse });
+});
 //login
 authController.post(
   "/login",
