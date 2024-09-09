@@ -20,6 +20,8 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("/");
   }
   const token = await authservice.getGithubToken(code);
+  console.log("the token");
+  
   console.log(token);
   try {
     const userResponse = await axios.get("https://api.github.com/user", {
