@@ -32,6 +32,7 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.json({ userResponse });
   } catch (error) {
     console.log(error);
+    return c.text("failed get user");
   }
 });
 
