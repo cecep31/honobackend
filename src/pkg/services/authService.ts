@@ -86,7 +86,9 @@ export class AuthService {
         }
       );
       return await tokenResponse.data.access_token;
-    } catch (error) {}
+    } catch (error) {
+      return "failed get access token";
+    }
   }
 
   async checkUsername(username: string) {
