@@ -4,13 +4,13 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
-import { credential } from "../config/github";
+import { githubConfig } from "../config/github";
 import axios from "axios";
 
 const authController = new Hono();
 
 authController.get("/oauth/github", async (c) => {
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${credential.CLIENT_ID}&redirect_uri=${credential.REDIRECT_URI}&scope=user`;
+  const authUrl = `https://github.com/login/oauth/authorize?client_id=${githubConfig.CLIENT_ID}&redirect_uri=${githubConfig.REDIRECT_URI}&scope=user`;
   return c.redirect(authUrl);
 });
 

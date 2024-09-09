@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
-import { credential } from "../../config/github";
+import { githubConfig } from "../../config/github";
 import axios from "axios";
 
 export class AuthService {
@@ -74,10 +74,10 @@ export class AuthService {
       const tokenResponse = await axios.post(
         "https://github.com/login/oauth/access_token",
         {
-          client_id: credential.CLIENT_ID,
-          client_secret: credential.CLIENT_SECRET,
+          client_id: githubConfig.CLIENT_ID,
+          client_secret: githubConfig.CLIENT_SECRET,
           code,
-          redirect_uri: credential.REDIRECT_URI,
+          redirect_uri: githubConfig.REDIRECT_URI,
         },
         {
           headers: {
