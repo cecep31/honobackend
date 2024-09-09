@@ -27,6 +27,7 @@ authController.get("/oauth/github/callback", async (c) => {
   });
   return c.json({ userResponse });
 });
+
 //login
 authController.post(
   "/login",
