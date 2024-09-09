@@ -120,6 +120,20 @@
       "when": 1722786310363,
       "tag": "0016_moaning_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1725894300613,
+      "tag": "0017_bizarre_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1725894688289,
+      "tag": "0018_productive_vulture",
+      "breakpoints": true
     }
   ]
 }
