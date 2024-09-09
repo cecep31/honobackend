@@ -18,10 +18,10 @@ authController.get("/oauth/github", async (c) => {
 authController.get("/oauth/github/callback", async (c) => {
   const code = c.req.query("code") ?? "";
   if (!code) {
-    return c.redirect("/");
+    return c.text("code not found", 403);
   }
   const token = await authservice.getGithubToken(code);
-  
+
   try {
     const userResponse = await axios.get("https://api.github.com/user", {
       headers: {
@@ -33,7 +33,7 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.json(response);
   } catch (error) {
     console.log(error);
-    return c.text("failed get user");
+    return c.text("failed get user", 401);
   }
 });
 
