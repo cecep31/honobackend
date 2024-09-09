@@ -9,7 +9,6 @@ import axios from "axios";
 
 const authController = new Hono();
 
-
 authController.get("/oauth/github", async (c) => {
   const authUrl = `https://github.com/login/oauth/authorize?client_id=${credential.CLIENT_ID}&redirect_uri=${credential.REDIRECT_URI}&scope=user`;
   return c.redirect(authUrl);
@@ -21,10 +20,10 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("/");
   }
   const token = await authservice.getGithubToken(code);
-  const userResponse = await axios.get('https://api.github.com/user', {
+  const userResponse = await axios.get("https://api.github.com/user", {
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
   return c.json({ userResponse });
 });
