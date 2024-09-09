@@ -85,15 +85,11 @@ export class AuthService {
           },
         }
       );
-      console.log(tokenResponse.data);
-      console.log("wkwkwkwk");
-      
       
       return await tokenResponse.data.access_token;
     } catch (error) {
       console.log("failet get token");
-    
-      return "failed get access token";
+      throw new HTTPException(401, { message: "failed get token" });
     }
   }
 

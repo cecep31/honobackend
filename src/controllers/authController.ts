@@ -6,6 +6,7 @@ import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
 import { githubConfig } from "../config/github";
 import axios from "axios";
+import type { GithubUser } from "../types/user";
 
 const authController = new Hono();
 
@@ -20,18 +21,16 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("/");
   }
   const token = await authservice.getGithubToken(code);
-  console.log("the token");
   
-  console.log(token);
   try {
     const userResponse = await axios.get("https://api.github.com/user", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log(userResponse);
-    
-    return c.json({ userResponse });
+    const response = userResponse.data as GithubUser;
+
+    return c.json(response);
   } catch (error) {
     console.log(error);
     return c.text("failed get user");
