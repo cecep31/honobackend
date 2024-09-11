@@ -4,6 +4,12 @@ import { profiles, users as usersModel } from "../../database/schema/schema";
 import type { UserCreate, UserSignup } from "../../types/user";
 
 export class UserRepository {
+  async getUserByGithubId(github_id: number) {
+    return db.query.users.findFirst({
+      where: and(eq(usersModel.github_id, github_id), isNull(usersModel.deleted_at)),
+    });
+  }
+  
   async getUserCountByUsername(username: string) {
     const users = await db
       .select({ count: count() })
@@ -11,7 +17,7 @@ export class UserRepository {
       .where(
         and(eq(usersModel.username, username), isNull(usersModel.deleted_at))
       );
-      return users[0].count;
+    return users[0].count;
   }
   async addUser(data: UserCreate) {
     const user = await db

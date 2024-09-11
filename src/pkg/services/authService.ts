@@ -51,6 +51,23 @@ export class AuthService {
     return { access_token: token };
   }
 
+  async signInWithGithub(github_id: number) {
+    const user = await this.userrepository.getUserByGithubId(github_id);
+    if (!user) {
+      throw new HTTPException(401, { message: "User not found" });
+    }
+
+    const payload = {
+      id: user.id,
+      email: user.email,
+      isSuperAdmin: user.issuperadmin,
+      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
+    };
+
+    const token = await sign(payload, getSecret.jwt_secret);
+    return { access_token: token };
+  }
+
   async signUp(data: UserSignup) {
     const hashedPassword = Bun.password.hashSync(data.password, {
       algorithm: "bcrypt",

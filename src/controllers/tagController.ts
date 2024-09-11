@@ -2,5 +2,10 @@ import { Hono } from "hono";
 import { tagservice } from "../pkg/service";
 
 export const tagController = new Hono().get("/", async (c) => {
-  return c.json(await tagservice.getTags());
+  try {
+    const tags = await tagservice.getTags();
+    return c.json(tags);
+  } catch (error) {
+    return c.json({ error: "Failed to fetch tags" }, 500);
+  }
 });

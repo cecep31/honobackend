@@ -7,12 +7,17 @@ import type { jwtPayload } from "../types/auth";
 import { githubConfig } from "../config/github";
 import axios from "axios";
 import type { GithubUser } from "../types/user";
+import { setCookie } from "hono/cookie";
 
 const authController = new Hono();
 
 authController.get("/oauth/github", async (c) => {
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${githubConfig.CLIENT_ID}&redirect_uri=${githubConfig.REDIRECT_URI}&scope=user`;
-  return c.redirect(authUrl);
+  const authUrl = new URL("https://github.com/login/oauth/authorize");
+  authUrl.searchParams.append("client_id", githubConfig.CLIENT_ID);
+  authUrl.searchParams.append("redirect_uri", githubConfig.REDIRECT_URI);
+  authUrl.searchParams.append("scope", "user");
+  
+  return c.redirect(authUrl.toString());
 });
 
 authController.get("/oauth/github/callback", async (c) => {
@@ -30,7 +35,12 @@ authController.get("/oauth/github/callback", async (c) => {
     });
     const response = userResponse.data as GithubUser;
 
-    return c.json(response);
+    const jwtToken = await authservice.signInWithGithub(response.id);
+    setCookie(c, "token", jwtToken.access_token, {
+      domain: ".pilput.dev",
+      maxAge: 60 * 60 * 5,
+    });
+    return c.redirect("https://pilput.dev");
   } catch (error) {
     console.log(error);
     return c.text("failed get user", 401);

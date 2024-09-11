@@ -8,11 +8,12 @@ import type { jwtPayload } from "../types/auth";
 
 export const userController = new Hono()
   .get("/", auth, async (c) => {
-    return c.json(await userservice.getUsers());
+    const users = await userservice.getUsers();
+    return c.json(users);
   })
   .get("/me", auth, async (c) => {
     const user = c.get("jwtPayload") as jwtPayload;
-    const profile = c.req.query("profile") ? true : false;
+    const profile = Boolean(c.req.query("profile"));
     return c.json(await userservice.gerUserMe(user.id, profile));
   })
   .get(
@@ -23,7 +24,7 @@ export const userController = new Hono()
       const id = c.req.param("id");
       const user = await userservice.gerUser(id);
       if (!user) {
-        return c.text("user not found", 404);
+        return c.text("User not found", 404);
       }
       return c.json(user);
     }
