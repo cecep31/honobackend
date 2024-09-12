@@ -4,6 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
+import { superAdmin } from "../middlewares/superAdmin";
 
 const postController = new Hono();
 postController.get("/", async (c) => {
@@ -98,12 +99,12 @@ postController.post(
     return c.json(await postservice.addPost(auth.id, body));
   }
 );
-postController.delete("/:id", auth, async (c) => {
+postController.delete("/:id", auth, superAdmin, async (c) => {
   const id = c.req.param("id");
   const post = await postservice.deletePost(id);
   return c.json(post);
 });
-postController.put(
+postController.patch(
   "publish/:id",
   auth,
   zValidator("param", z.object({ id: z.string().uuid() })),
