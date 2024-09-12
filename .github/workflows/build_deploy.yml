@@ -30,6 +30,7 @@ jobs:
           
   deploy:
     name: Deploy app
+    needs: docker
     runs-on: ubuntu-latest
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
