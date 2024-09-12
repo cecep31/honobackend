@@ -6,22 +6,6 @@ on:
       - 'main'
 
 jobs:
-  build:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-          
-      - name: install depedency
-        run: bun install
-
-      - name: build
-        run: bun run build
-
   docker:
     runs-on: ubuntu-latest
     steps:
@@ -42,7 +26,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: cecep31/honobackend:latest
+          tags: cecep31/honobackend
           
   deploy:
     name: Deploy app
