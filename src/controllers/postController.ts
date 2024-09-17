@@ -14,9 +14,11 @@ postController.get("/", async (c) => {
   const posts = await postservice.getPosts(limit, offset);
   return c.json(posts);
 });
+
 postController.get("/random", async (c) => {
   return c.json(await postservice.getPostsRandom());
 });
+
 postController.get("/mine", auth, async (c) => {
   const limit = parseInt(c.req.query("limit")!) || 10;
   const offset = parseInt(c.req.query("offset")!) || 0;

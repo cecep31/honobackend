@@ -89,13 +89,18 @@ export class PostRepository {
 
   async getPostBySlug(slug: string) {
     return await db.query.posts.findFirst({
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.slug, slug)),
+      where: and(
+        isNull(postsModel.deleted_at),
+        eq(postsModel.slug, slug),
+        eq(postsModel.published, true)
+      ),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
       },
     });
   }
+  
   async getPostById(id: string) {
     return await db.query.posts.findFirst({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.id, id)),
