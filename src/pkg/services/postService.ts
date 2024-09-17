@@ -3,16 +3,13 @@ import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { tagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
-import { UserRepository } from "../repository/userRepository";
 
 export class PostService {
   private postrepository: PostRepository;
   private tagrepository: tagRepository;
-  private userrepository: UserRepository;
   constructor() {
     this.postrepository = new PostRepository();
     this.tagrepository = new tagRepository();
-    this.userrepository = new UserRepository();
   }
 
   async UpdatePublishedByadmin(id: string, published: boolean) {
