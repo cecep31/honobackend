@@ -64,11 +64,7 @@ export class PostService {
   }
 
   async getPostByUsernameSlug(username: string, slug: string) {
-    const user = await this.userrepository.getUserByUsername(username);
-    if (!user) {
-      throw new HTTPException(404, { message: "User not found" });
-    }
-    return await this.postrepository.getPostByCreatorSlug(user.id, slug);
+    return await this.postrepository.getPostByUsernameSlug(username, slug);
   }
 
   async getPosts(limit = 100, offset = 0) {

@@ -4,6 +4,7 @@ import {
   users as usersModel,
   posts as postsModel,
   postsToTags,
+  tags,
 } from "../../database/schema/schema";
 import type { PostCreate } from "../../types/post";
 
@@ -85,6 +86,38 @@ export class PostRepository {
         tags: { columns: {}, with: { tag: true } },
       },
     });
+  }
+
+  async getPostByUsernameSlug(username: string, slug: string) {
+    const posts = await db
+      .select({
+        posts: postsModel,
+        users: {
+          id: usersModel.id,
+          username: usersModel.username,
+          email: usersModel.email,
+          firstname: usersModel.first_name,
+          lastname: usersModel.last_name,
+          image: usersModel.image,
+          issuperadmin: usersModel.issuperadmin
+        },
+        tags: tags
+      })
+      .from(postsModel)
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .leftJoin(postsToTags, eq(postsModel.id, postsToTags.posts_id))
+      .leftJoin(tags, eq(postsToTags.tags_id, tags.id))
+      .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
+    if (posts.length === 0) {
+      return null;
+    }
+    
+    const post = {
+      ...posts[0].posts,
+      creator: posts[0].users,
+      tags: posts.map(p => p.tags).filter(Boolean)
+    };
+    return post;
   }
 
   async getPostBySlug(slug: string) {
