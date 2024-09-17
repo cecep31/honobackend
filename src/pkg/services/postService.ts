@@ -62,16 +62,13 @@ export class PostService {
       }
     }
   }
-  async getPostByuserIdSlug(username: string, slug: string) {
-    const user = await this.userrepository.getUserByUsername(username);
-    if (!user) {
-      return undefined;
-    }
-    return await this.postrepository.getPostByCreatorSlug(user.id, slug);
-  }
 
   async getPostByUsernameSlug(username: string, slug: string) {
-    return await this.postrepository.getPostByUsernameSlug(username, slug);
+    const user = await this.userrepository.getUserByUsername(username);
+    if (!user) {
+      throw new HTTPException(404, { message: "User not found" });
+    }
+    return await this.postrepository.getPostByCreatorSlug(user.id, slug);
   }
 
   async getPosts(limit = 100, offset = 0) {

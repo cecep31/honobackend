@@ -87,21 +87,6 @@ export class PostRepository {
     });
   }
 
-  async getPostByUsernameSlug(username: string, slug: string) {
-    return await db.query.posts.findFirst({
-      where: and(
-        isNull(postsModel.deleted_at),
-        eq(postsModel.slug, slug),
-        eq(postsModel.published, true),
-        eq(usersModel.username, username)
-      ),
-      with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
-      },
-    });
-  }
-
   async getPostBySlug(slug: string) {
     return await db.query.posts.findFirst({
       where: and(
