@@ -40,7 +40,7 @@ postController.get("/slug/:slug", async (c) => {
   return c.json(post);
 });
 postController.get(
-  "/username/:username/slug/:slug",
+  "/:username/:slug",
   zValidator(
     "param",
     z.object({
@@ -49,9 +49,11 @@ postController.get(
     })
   ),
   async (c) => {
-    const username = c.req.param("username");
-    const slug = c.req.param("slug");
-    const post = await postservice.getPostByuserIdSlug(username, slug);
+    const params = c.req.valid("param");
+    const post = await postservice.getPostByUsernameSlug(
+      params.username,
+      params.slug
+    );
     if (!post) {
       return c.json({ message: "Post not found" }, 404);
     }

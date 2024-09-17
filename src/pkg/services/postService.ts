@@ -67,7 +67,11 @@ export class PostService {
     if (!user) {
       return undefined;
     }
-    return this.postrepository.getPostByCreatorSlug(user.id, slug);
+    return await this.postrepository.getPostByCreatorSlug(user.id, slug);
+  }
+
+  async getPostByUsernameSlug(username: string, slug: string) {
+    return await this.postrepository.getPostByUsernameSlug(username, slug);
   }
 
   async getPosts(limit = 100, offset = 0) {
