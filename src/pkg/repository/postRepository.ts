@@ -100,7 +100,7 @@ export class PostRepository {
       },
     });
   }
-  
+
   async getPostById(id: string) {
     return await db.query.posts.findFirst({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.id, id)),
@@ -198,6 +198,7 @@ export class PostRepository {
     return await db
       .select()
       .from(postsModel)
+      .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
       .orderBy(sql.raw("RANDOM()"))
       .limit(limit);
   }
