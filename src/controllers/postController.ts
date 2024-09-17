@@ -106,7 +106,7 @@ postController.patch(
   async (c) => {
     const body = c.req.valid("json");
     const id = c.req.param("id");
-    const user = c.get("jwtPayload") as jwtPayload;
+    // const user = c.get("jwtPayload") as jwtPayload;
     const post = await postservice.UpdatePublishedByadmin(id, body.published);
     return c.json(post);
   }
