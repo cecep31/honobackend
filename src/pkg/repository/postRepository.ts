@@ -26,11 +26,51 @@ export class PostRepository {
     return { data: posts, total: total[0].count };
   }
 
+  async getAllPosts(limit = 100, offset = 0) {
+    const posts = await db.query.posts.findMany({
+      where: isNull(postsModel.deleted_at),
+      orderBy: desc(postsModel.created_at),
+      with: {
+        creator: { columns: { password: false } },
+        tags: { columns: {}, with: { tag: true } },
+      },
+      limit: limit,
+      offset: offset,
+    });
+    const total = await db
+      .select({ count: count() })
+      .from(postsModel)
+      .where(isNull(postsModel.deleted_at));
+    return { data: posts, total: total[0].count };
+  }
+
+  async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
+    const posts = await db.query.posts.findMany({
+      where: and(
+        isNull(postsModel.deleted_at),
+        eq(postsModel.created_by, user_id)
+      ),
+      orderBy: desc(postsModel.created_at),
+      with: {
+        creator: { columns: { password: false } },
+        tags: { columns: {}, with: { tag: true } },
+      },
+      limit: limit,
+      offset: offset,
+    });
+    const total = await db
+      .select({ count: count() })
+      .from(postsModel)
+      .where(eq(postsModel.created_by, user_id));
+    return { data: posts, total: total[0].count };
+  }
+
   async updatePostPublished(id: string, published: boolean) {
     return await db
       .update(postsModel)
       .set({ published: published })
-      .where(eq(postsModel.id, id));
+      .where(eq(postsModel.id, id))
+      .returning();
   }
 
   async getPostByCreatorSlug(user_id: string, slug: string) {

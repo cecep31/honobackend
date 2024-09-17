@@ -6,10 +6,13 @@ import type { UserCreate, UserSignup } from "../../types/user";
 export class UserRepository {
   async getUserByGithubId(github_id: number) {
     return db.query.users.findFirst({
-      where: and(eq(usersModel.github_id, github_id), isNull(usersModel.deleted_at)),
+      where: and(
+        eq(usersModel.github_id, github_id),
+        isNull(usersModel.deleted_at)
+      ),
     });
   }
-  
+
   async getUserCountByUsername(username: string) {
     const users = await db
       .select({ count: count() })
@@ -97,6 +100,16 @@ export class UserRepository {
       },
       orderBy: [desc(usersModel.created_at)],
       where: isNull(usersModel.deleted_at),
+    });
+  }
+  async getUsersAll(limit: number, offset: number) {
+    return await db.query.users.findMany({
+      columns: {
+        password: false,
+      },
+      limit: limit,
+      offset: offset,
+      orderBy: [desc(usersModel.created_at)],
     });
   }
 

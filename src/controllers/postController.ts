@@ -8,27 +8,16 @@ import { superAdmin } from "../middlewares/superAdmin";
 
 const postController = new Hono();
 postController.get("/", async (c) => {
-  if (c.req.query("random")) {
-    return c.json(await postservice.getPostsRandom());
-  }
-
   const limit = parseInt(c.req.query("limit")!) || 10;
   const offset = parseInt(c.req.query("offset")!) || 0;
-
-  if (c.req.query("username")) {
-    return c.json(
-      await postservice.getPostsByUsername(
-        c.req.query("username")!,
-        limit,
-        offset
-      )
-    );
-  }
 
   const posts = await postservice.getPosts(limit, offset);
   return c.json(posts);
 });
-postController.get("/me", auth, async (c) => {
+postController.get("/random", async (c) => {
+  return c.json(await postservice.getPostsRandom());
+});
+postController.get("/mine", auth, async (c) => {
   const limit = parseInt(c.req.query("limit")!) || 10;
   const offset = parseInt(c.req.query("offset")!) || 0;
   const auth = c.get("jwtPayload") as jwtPayload;
@@ -67,6 +56,10 @@ postController.get(
     return c.json(post);
   }
 );
+postController.get("/all", auth, superAdmin, async (c) => {
+  return c.json(await postservice.getAllPosts());
+});
+//get post by id
 postController.get(
   "/:id",
   zValidator("param", z.object({ id: z.string().uuid() })),
@@ -99,27 +92,23 @@ postController.post(
     return c.json(await postservice.addPost(auth.id, body));
   }
 );
+
 postController.delete("/:id", auth, superAdmin, async (c) => {
   const id = c.req.param("id");
   const post = await postservice.deletePost(id);
   return c.json(post);
 });
 postController.patch(
-  "publish/:id",
+  "/:id/published",
   auth,
+  zValidator("json", z.object({ published: z.boolean() })),
   zValidator("param", z.object({ id: z.string().uuid() })),
-  zValidator("json", z.object({ published: z.boolean().default(true) })),
   async (c) => {
-    const id = c.req.param("id");
     const body = c.req.valid("json");
+    const id = c.req.param("id");
     const user = c.get("jwtPayload") as jwtPayload;
-    if (user.issuperadmin) {
-      const post = await postservice.UpdatePublishedByadmin(id, body.published);
-      return c.json(post);
-    } else {
-      const post = await postservice.UpdatePublishedByadmin(id, body.published);
-      return c.json(post);
-    }
+    const post = await postservice.UpdatePublishedByadmin(id, body.published);
+    return c.json(post);
   }
 );
 

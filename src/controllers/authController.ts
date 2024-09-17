@@ -16,7 +16,7 @@ authController.get("/oauth/github", async (c) => {
   authUrl.searchParams.append("client_id", githubConfig.CLIENT_ID);
   authUrl.searchParams.append("redirect_uri", githubConfig.REDIRECT_URI);
   authUrl.searchParams.append("scope", "user");
-  
+
   return c.redirect(authUrl.toString());
 });
 
@@ -91,14 +91,14 @@ authController.post(
 
 authController.get(
   "/username/:username",
-  zValidator("param", z.object({ username: z.string().min(3) })),
+  zValidator("param", z.object({ username: z.string().min(5) })),
   async (c) => {
     const username = c.req.valid("param").username;
     return c.json({ exsist: await authservice.checkUsername(username) });
   }
 );
 
-authController.put(
+authController.patch(
   "/password",
   auth,
   zValidator(
@@ -116,10 +116,13 @@ authController.put(
   ),
   async (c) => {
     const body = c.req.valid("json");
-    const { new_password, old_password } = body;
     const user = c.get("jwtPayload") as jwtPayload;
     return c.json(
-      await authservice.updatePassword(old_password, new_password, user.id)
+      await authservice.updatePassword(
+        body.old_password,
+        body.new_password,
+        user.id
+      )
     );
   }
 );

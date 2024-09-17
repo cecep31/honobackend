@@ -19,6 +19,14 @@ export class PostService {
     return this.postrepository.updatePostPublished(id, published);
   }
 
+  async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
+    return this.postrepository.getAllPostsByUser(user_id, limit, offset);
+  }
+
+  async getAllPosts(limit = 100, offset = 0) {
+    return this.postrepository.getAllPosts(limit, offset);
+  }
+
   async addPost(auth_id: string, body: PostCreateBody) {
     try {
       const post = await this.postrepository.addPost({
