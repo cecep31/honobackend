@@ -111,7 +111,7 @@ export class PostRepository {
     if (posts.length === 0) {
       return null;
     }
-    
+
     const post = {
       ...posts[0].posts,
       creator: posts[0].users,
@@ -229,8 +229,22 @@ export class PostRepository {
 
   async getPostsRandom(limit = 6) {
     return await db
-      .select()
+      .select({
+        id: postsModel.id,
+        title: postsModel.title,
+        slug: postsModel.slug,
+        body: postsModel.body,
+        created_at: postsModel.created_at,
+        creator: {
+          id: usersModel.id,
+          username: usersModel.username,
+          email: usersModel.email,
+          firstname: usersModel.first_name,
+          lastname: usersModel.last_name,
+        },
+      })
       .from(postsModel)
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
       .orderBy(sql.raw("RANDOM()"))
       .limit(limit);
