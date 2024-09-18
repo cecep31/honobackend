@@ -39,6 +39,7 @@ authController.get("/oauth/github/callback", async (c) => {
     setCookie(c, "token", jwtToken.access_token, {
       domain: "pilput.dev",
       maxAge: 60 * 60 * 5,
+      sameSite: "Strict",
     });
     return c.redirect("https://pilput.dev");
   } catch (error) {

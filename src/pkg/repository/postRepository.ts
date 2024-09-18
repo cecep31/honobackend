@@ -166,10 +166,10 @@ export class PostRepository {
       })
       .returning({ id: postsModel.id });
   }
-
+  // inclune published false
   async getPostsByUser(user_id: string, limit = 10, offset = 0) {
     const posts = await db.query.posts.findMany({
-      where: eq(postsModel.created_by, user_id),
+      where: and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
