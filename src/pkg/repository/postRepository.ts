@@ -114,7 +114,6 @@ export class PostRepository {
     if (posts.length === 0) {
       return null;
     }
-    console.log(posts[0])
     const post = {
       ...posts[0].posts,
       creator: posts[0].users,
