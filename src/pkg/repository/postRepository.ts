@@ -254,12 +254,12 @@ export class PostRepository {
       .limit(limit);
   }
 
-  async deletePost(id: string) {
+  async deletePost(id: string, user_id: string) {
     return await db
       .update(postsModel)
       .set({ deleted_at: new Date().toISOString() })
-      .where(eq(postsModel.id, id))
-      .returning();
+      .where(and(eq(postsModel.id, id), eq(postsModel.created_by, user_id)))
+      .returning({ id: postsModel.id });
   }
   async deletePostPermanent(id: string) {
     return await db.delete(postsModel).where(eq(postsModel.id, id));

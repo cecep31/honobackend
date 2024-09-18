@@ -88,8 +88,8 @@ export class PostService {
     return await this.postrepository.getPostBySlug(slug);
   }
 
-  async deletePost(postId: string) {
-    const deletedPost = await this.postrepository.deletePostPermanent(postId);
+  async deletePost(postId: string, auth_id: string) {
+    const deletedPost = await this.postrepository.deletePost(postId, auth_id);
     if (!deletedPost) {
       throw new HTTPException(404, { message: "Post not found" });
     }

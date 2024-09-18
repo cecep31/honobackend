@@ -97,9 +97,10 @@ postController.post(
   }
 );
 
-postController.delete("/:id", auth, superAdmin, async (c) => {
+postController.delete("/:id", auth, async (c) => {
   const id = c.req.param("id");
-  const post = await postservice.deletePost(id);
+  const auth = c.get("jwtPayload") as jwtPayload;
+  const post = await postservice.deletePost(id, auth.id);
   return c.json(post);
 });
 postController.patch(

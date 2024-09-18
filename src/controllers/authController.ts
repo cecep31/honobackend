@@ -37,7 +37,7 @@ authController.get("/oauth/github/callback", async (c) => {
 
     const jwtToken = await authservice.signInWithGithub(response.id);
     setCookie(c, "token", jwtToken.access_token, {
-      domain: ".pilput.dev",
+      domain: "pilput.dev",
       maxAge: 60 * 60 * 5,
     });
     return c.redirect("https://pilput.dev");
