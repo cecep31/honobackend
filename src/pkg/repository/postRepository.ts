@@ -101,7 +101,10 @@ export class PostRepository {
           image: usersModel.image,
           issuperadmin: usersModel.issuperadmin
         },
-        tags: tags
+        tags: {
+          id: tags.id,
+          name: tags.name,
+        }
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
@@ -115,7 +118,9 @@ export class PostRepository {
     const post = {
       ...posts[0].posts,
       creator: posts[0].users,
-      tags: posts.map(p => p.tags).filter(Boolean)
+      tags: posts.map(p => {
+        return {tag: p.tags}
+      }).filter(Boolean)
     };
     return post;
   }
