@@ -181,7 +181,7 @@ export class PostRepository {
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .where(eq(postsModel.created_by, user_id));
+      .where(and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)));
     return { data: posts, total: total[0].count };
   }
 

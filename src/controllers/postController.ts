@@ -23,11 +23,7 @@ postController.get("/mine", auth, async (c) => {
   const limit = parseInt(c.req.query("limit")!) || 10;
   const offset = parseInt(c.req.query("offset")!) || 0;
   const auth = c.get("jwtPayload") as jwtPayload;
-  if (auth) {
-    return c.json(await postservice.getPostsByuser(auth.id, limit, offset));
-  } else {
-    return c.json({ message: "Unauthorized" }, 401);
-  }
+  return c.json(await postservice.getPostsByuser(auth.id, limit, offset));
 });
 postController.get("/tag/:tag", async (c) => {
   return c.json(postservice.getPostsByTag(c.req.param("tag")));
