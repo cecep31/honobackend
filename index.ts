@@ -1,5 +1,5 @@
-import { app } from './server/app'
-import setupRouter from './router'
+import { app } from './src/server/app'
+import setupRouter from './src/router'
 
 setupRouter(app)
 
