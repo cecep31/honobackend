@@ -8,6 +8,7 @@ import { githubConfig } from "../config/github";
 import axios from "axios";
 import type { GithubUser } from "../types/user";
 import { setCookie } from "hono/cookie";
+import { rateLimiter } from "hono-rate-limiter";
 
 const authController = new Hono();
 
@@ -51,6 +52,12 @@ authController.get("/oauth/github/callback", async (c) => {
 //login
 authController.post(
   "/login",
+  rateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 10, // Limit each IP to 10 requests per `window` (here, per 15 minutes).
+    standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+    keyGenerator: (_c) => "<unique_key>", // Method to generate custom identifiers for clients.
+  }),
   zValidator(
     "json",
     z.object({
