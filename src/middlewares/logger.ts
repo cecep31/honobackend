@@ -1,41 +1,45 @@
 import { createMiddleware } from "hono/factory";
 
-const colors = {
-  reset: "\x1b[0m",
-  blue: "\x1b[34m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  red: "\x1b[31m",
-};
+interface LogEntry {
+  level: string;
+  method: string;
+  url: string;
+  status: number;
+  latency: number;
+  userAgent: string;
+  ip: string;
+  requestId: string;
+  timestamp: string;
+}
 
 export const pilputLogger = createMiddleware(async (c, next) => {
   const start = Date.now();
-  await next();
-  const end = Date.now();
-  const method = c.req.method;
-  const url = c.req.url;
-  const duration = end - start;
-  const status = c.res.status;
-  let tatuscolor = "";
-  if (status >= 200 && status < 300) {
-    tatuscolor = colors.green;
-  } else if (status >= 300 && status < 400) {
-    tatuscolor = colors.yellow;
-  } else if (status >= 400 && status < 500) {
-    tatuscolor = colors.blue;
-  } else if (status >= 500 && status < 600) {
-    tatuscolor = colors.red;
+
+  try {
+    await next();
+  } finally {
+    const end = Date.now();
+    const latency = end - start;
+
+    const logEntry: LogEntry = {
+      level: getLogLevel(c.res.status),
+      method: c.req.method,
+      url: new URL(c.req.url).pathname,
+      status: c.res.status,
+      latency,
+      userAgent: c.req.header("user-agent") || "Unknown",
+      ip: c.req.header("x-forwarded-for") || "Unknown",
+      requestId: c.get("requestId") || "N/A",
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log(JSON.stringify(logEntry));
+    
   }
-
-  // {"level":"info","ip":"127.0.0.1","latency":"1.8629287s","status":200,"method":"GET","url":"/api/v2/posts","time":"2024-07-26T15:23:15+07:00","message":"Success"}
-
-  console.log(
-    `${colors.blue}${method}${colors.reset} ${colors.green}${url}${
-      colors.reset
-    } - ${colors.yellow}${duration}ms${colors.reset} | ${tatuscolor}${status}${
-      colors.reset
-    } | ${colors.blue}${c.get("requestId")}${colors.reset} | ${c.req.header(
-      "user-agent"
-    )}`
-  );
 });
+
+function getLogLevel(status: number): string {
+  if (status >= 500) return "error";
+  if (status >= 400) return "warn";
+  return "info";
+}

@@ -57,15 +57,12 @@ export const sessions = pgTable(
       withTimezone: true,
       mode: "string",
     }).defaultNow(),
+    user_agent: text("user_agent"),
     expires_at: timestamp("expires_at", {
       withTimezone: true,
       mode: "string",
     }),
-  },
-  (table) => ({
-    idx_sessions_user_id: uniqueIndex("idx_sessions_user_id").on(table.user_id),
-  }
-  ));
+  });
 
 export const profiles = pgTable(
   "profiles",

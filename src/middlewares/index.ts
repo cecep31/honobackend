@@ -1,22 +1,24 @@
 import { Hono } from "hono";
-import { logger } from "hono/logger";
 import { cors } from "hono/cors";
-import { timeout } from "hono/timeout";
 import { rateLimiter } from "hono-rate-limiter";
+import { requestId } from "hono/request-id";
+import { pilputLogger } from "./logger";
 
 export function setupMiddlewares(app: Hono) {
-  app.use(logger());
-  app.use(
-    cors({
-      origin: [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://pilput.dev",
-        "https://app.pilput.dev",
-        "https://dash.pilput.dev",
-      ],
-    })
-  );
+  app.use(requestId())
+    .use(pilputLogger)
+    .use(
+      cors({
+        origin: [
+          "http://localhost:3000",
+          "http://localhost:5173",
+          "https://pilput.dev",
+          "https://www.pilput.dev",
+          "https://app.pilput.dev",
+          "https://dash.pilput.dev",
+        ],
+      })
+    )
   if (process.env["rate_limiter"] === "true") {
     app.use(
       rateLimiter({
@@ -26,5 +28,4 @@ export function setupMiddlewares(app: Hono) {
         keyGenerator: (_c) => "<unique_key>", // Method to generate custom identifiers for clients.
       }));
   }
-  app.use(timeout(30000));
 }
