@@ -62,7 +62,13 @@ export const sessions = pgTable(
       withTimezone: true,
       mode: "string",
     }),
-  });
+  },
+  (table) => {
+    return {
+      idx_sessions_refresh_token: uniqueIndex("idx_sessions_refresh_token").on(table.refresh_token),
+    };
+  }
+);
 
 export const profiles = pgTable(
   "profiles",

@@ -5,17 +5,21 @@ import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
 import { githubConfig } from "../../config/github";
 import axios from "axios";
+import { v4 as uuidv4 } from 'uuid';
+import { SessionRepository } from "../repository/sessionRepository";
 
 export class AuthService {
   private userrepository: UserRepository;
+  private sessionRepository: SessionRepository;
   constructor() {
     this.userrepository = new UserRepository();
+    this.sessionRepository = new SessionRepository();
   }
   private isEmail(email: string): boolean {
     const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return pattern.test(email);
   }
-  async signIn(username: string, password: string) {
+  async signIn(username: string, password: string, user_agent: string) {
     let user: userLogin | undefined;
 
     if (this.isEmail(username)) {
@@ -46,9 +50,16 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
     };
 
+    const session = await this.sessionRepository.insertSession({
+      user_id: user.id ?? "",
+      refresh_token: uuidv4(),
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
+      user_agent: user_agent,
+    });
+
     const token = await sign(payload, getSecret.jwt_secret);
 
-    return { access_token: token };
+    return { access_token: token, refresh_token: session.refresh_token };
   }
 
   async signInWithGithub(github_id: number) {
@@ -102,7 +113,7 @@ export class AuthService {
           },
         }
       );
-      
+
       return await tokenResponse.data.access_token;
     } catch (error) {
       console.log("failet get token");

@@ -68,7 +68,7 @@ authController.post(
   async (c) => {
     const body = c.req.valid("json");
     const { email, password } = body;
-    const token = await authservice.signIn(email, password);
+    const token = await authservice.signIn(email, password, c.req.header("User-Agent") ?? "");
     return c.json(token);
   }
 );

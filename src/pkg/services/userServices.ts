@@ -29,7 +29,7 @@ export class UserService {
     return await this.userrepository.deleteUserSoft(user_id);
   }
   async addUser(body: UserCreateBody) {
-    const hash_password = Bun.password.hashSync(body.password, {
+    const hash_password = await Bun.password.hash(body.password, {
       algorithm: "bcrypt",
       cost: 12,
     });
