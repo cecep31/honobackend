@@ -19,11 +19,11 @@ export function setupMiddlewares(app: Hono) {
         ],
       })
     )
-  if (process.env["rate_limiter"] === "true") {
+  if (process.env["RATE_LIMITER"] === "true") {
     app.use(
       rateLimiter({
         windowMs: 1 * 60 * 1000, // 1 minute
-        limit: 300, // Limit each IP to 300 requests per `window` (here, per 1 minute).
+        limit: 200, // Limit each IP to 300 requests per `window` (here, per 1 minute).
         standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
         keyGenerator: (_c) => "<unique_key>", // Method to generate custom identifiers for clients.
       }));
