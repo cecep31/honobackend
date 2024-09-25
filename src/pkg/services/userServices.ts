@@ -3,10 +3,7 @@ import { UserRepository } from "../repository/userRepository";
 import type { UserCreateBody } from "../../types/user";
 
 export class UserService {
-  private userrepository: UserRepository;
-  constructor() {
-    this.userrepository = new UserRepository();
-  }
+  constructor(private userrepository: UserRepository) {}
   getUsers() {
     return this.userrepository.getUsers();
   }

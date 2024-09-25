@@ -9,12 +9,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { SessionRepository } from "../repository/sessionRepository";
 
 export class AuthService {
-  private userrepository: UserRepository;
-  private sessionRepository: SessionRepository;
-  constructor() {
-    this.userrepository = new UserRepository();
-    this.sessionRepository = new SessionRepository();
-  }
+  
+  constructor(
+    private userrepository: UserRepository,
+    private sessionrepository: SessionRepository
+  ) {}
+
+
   private isEmail(email: string): boolean {
     const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return pattern.test(email);
@@ -27,7 +28,6 @@ export class AuthService {
     } else {
       user = await this.userrepository.getUserByUsernameRaw(username);
     }
-    // console.log(user);
 
     if (!user) {
       throw new HTTPException(401, { message: "Invalid credentials" });
@@ -50,7 +50,7 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
     };
 
-    const session = await this.sessionRepository.insertSession({
+    const session = await this.sessionrepository.insertSession({
       user_id: user.id ?? "",
       refresh_token: uuidv4(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day

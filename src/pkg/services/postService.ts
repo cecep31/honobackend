@@ -5,12 +5,10 @@ import { tagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
 
 export class PostService {
-  private postrepository: PostRepository;
-  private tagrepository: tagRepository;
-  constructor() {
-    this.postrepository = new PostRepository();
-    this.tagrepository = new tagRepository();
-  }
+  constructor(
+    private postrepository: PostRepository,
+    private tagrepository: tagRepository
+  ) {}
 
   async UpdatePublishedByadmin(id: string, published: boolean) {
     return this.postrepository.updatePostPublished(id, published);

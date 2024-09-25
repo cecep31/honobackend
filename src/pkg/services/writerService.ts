@@ -2,10 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 
 export class WritetService {
-  private userrepository: UserRepository;
-  constructor() {
-    this.userrepository = new UserRepository();
-  }
+  constructor(private userrepository: UserRepository) {}
   async getWriterByUsername(username: string) {
     const usernameRegex = /^[a-zA-Z0-9_]{3,16}$/;
     function validateUsername(username: string) {
