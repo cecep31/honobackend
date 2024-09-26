@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { authservice } from "../pkg/service";
+import { authService } from "../pkg/service";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
@@ -26,7 +26,7 @@ authController.get("/oauth/github/callback", async (c) => {
   if (!code) {
     return c.text("code not found", 403);
   }
-  const token = await authservice.getGithubToken(code);
+  const token = await authService.getGithubToken(code);
 
   try {
     const userResponse = await axios.get("https://api.github.com/user", {
@@ -36,7 +36,7 @@ authController.get("/oauth/github/callback", async (c) => {
     });
     const response = userResponse.data as GithubUser;
 
-    const jwtToken = await authservice.signInWithGithub(response.id);
+    const jwtToken = await authService.signInWithGithub(response.id);
     setCookie(c, "token", jwtToken.access_token, {
       domain: "pilput.dev",
       maxAge: 60 * 60 * 5,
@@ -68,7 +68,7 @@ authController.post(
   async (c) => {
     const body = c.req.valid("json");
     const { email, password } = body;
-    const token = await authservice.signIn(email, password, c.req.header("User-Agent") ?? "");
+    const token = await authService.signIn(email, password, c.req.header("User-Agent") ?? "");
     return c.json(token);
   }
 );
@@ -92,7 +92,7 @@ authController.post(
   ),
   async (c) => {
     const body = c.req.valid("json");
-    const token = await authservice.signUp(body);
+    const token = await authService.signUp(body);
     return c.json(token);
   }
 );
@@ -102,7 +102,7 @@ authController.get(
   zValidator("param", z.object({ username: z.string().min(5) })),
   async (c) => {
     const username = c.req.valid("param").username;
-    return c.json({ exsist: await authservice.checkUsername(username) });
+    return c.json({ exsist: await authService.checkUsername(username) });
   }
 );
 
@@ -126,7 +126,7 @@ authController.patch(
     const body = c.req.valid("json");
     const user = c.get("jwtPayload") as jwtPayload;
     return c.json(
-      await authservice.updatePassword(
+      await authService.updatePassword(
         body.old_password,
         body.new_password,
         user.id

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { postservice } from "../pkg/service";
+import { postService } from "../pkg/service";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { auth } from "../middlewares/auth";
@@ -11,25 +11,25 @@ postController.get("/", async (c) => {
   const limit = parseInt(c.req.query("limit")!) || 10;
   const offset = parseInt(c.req.query("offset")!) || 0;
 
-  const posts = await postservice.getPosts(limit, offset);
+  const posts = await postService.getPosts(limit, offset);
   return c.json(posts);
 });
 
 postController.get("/random", async (c) => {
-  return c.json(await postservice.getPostsRandom());
+  return c.json(await postService.getPostsRandom());
 });
 
 postController.get("/mine", auth, async (c) => {
   const limit = parseInt(c.req.query("limit")!) || 10;
   const offset = parseInt(c.req.query("offset")!) || 0;
   const auth = c.get("jwtPayload") as jwtPayload;
-  return c.json(await postservice.getPostsByuser(auth.id, limit, offset));
+  return c.json(await postService.getPostsByuser(auth.id, limit, offset));
 });
 postController.get("/tag/:tag", async (c) => {
-  return c.json(postservice.getPostsByTag(c.req.param("tag")));
+  return c.json(postService.getPostsByTag(c.req.param("tag")));
 });
 postController.get("/slug/:slug", async (c) => {
-  const post = await postservice.getPostBySlug(c.req.param("slug"));
+  const post = await postService.getPostBySlug(c.req.param("slug"));
   if (!post) {
     return c.json({ message: "Post not found" }, 404);
   }
@@ -46,7 +46,7 @@ postController.get(
   ),
   async (c) => {
     const params = c.req.valid("param");
-    const post = await postservice.getPostByUsernameSlug(
+    const post = await postService.getPostByUsernameSlug(
       params.username,
       params.slug
     );
@@ -57,7 +57,7 @@ postController.get(
   }
 );
 postController.get("/all", auth, superAdmin, async (c) => {
-  return c.json(await postservice.getAllPosts());
+  return c.json(await postService.getAllPosts());
 });
 //get post by id
 postController.get(
@@ -65,7 +65,7 @@ postController.get(
   zValidator("param", z.object({ id: z.string().uuid() })),
   async (c) => {
     const id = c.req.param("id");
-    const post = await postservice.getPost(id);
+    const post = await postService.getPost(id);
     if (!post) {
       return c.json({ message: "Post not found" }, 404);
     }
@@ -89,14 +89,14 @@ postController.post(
   async (c) => {
     const auth = c.get("jwtPayload") as jwtPayload;
     const body = c.req.valid("json");
-    return c.json(await postservice.addPost(auth.id, body));
+    return c.json(await postService.addPost(auth.id, body));
   }
 );
 
 postController.delete("/:id", auth, async (c) => {
   const id = c.req.param("id");
   const auth = c.get("jwtPayload") as jwtPayload;
-  const post = await postservice.deletePost(id, auth.id);
+  const post = await postService.deletePost(id, auth.id);
   return c.json(post);
 });
 postController.patch(
@@ -108,7 +108,7 @@ postController.patch(
     const body = c.req.valid("json");
     const id = c.req.param("id");
     // const user = c.get("jwtPayload") as jwtPayload;
-    const post = await postservice.UpdatePublishedByadmin(id, body.published);
+    const post = await postService.UpdatePublishedByadmin(id, body.published);
     return c.json(post);
   }
 );

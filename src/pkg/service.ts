@@ -10,8 +10,8 @@ import {
   tagrepository,
 } from "./repository";
 
-export const postservice = new PostService(postrepository, tagrepository);
-export const authservice = new AuthService(userrepository, sessionRepository);
-export const userservice = new UserService(userrepository);
-export const tagservice = new TagService(tagrepository);
-export const writetservice = new WritetService(userrepository);
+export const postService = new PostService(postrepository, tagrepository);
+export const authService = new AuthService(userrepository, sessionRepository);
+export const userService = new UserService(userrepository);
+export const tagService = new TagService(tagrepository);
+export const writetService = new WritetService(userrepository);

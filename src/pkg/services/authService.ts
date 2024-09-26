@@ -1,19 +1,19 @@
 import { decode, sign, verify } from "hono/jwt";
 import { HTTPException } from "hono/http-exception";
-import { UserRepository } from "../repository/userRepository";
+import type { UserRepository } from "../repository/userRepository";
+import type { SessionRepository } from "../repository/sessionRepository";
 import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
 import { githubConfig } from "../../config/github";
 import axios from "axios";
 import { v4 as uuidv4 } from 'uuid';
-import { SessionRepository } from "../repository/sessionRepository";
 
 export class AuthService {
-  
+
   constructor(
-    private userrepository: UserRepository,
-    private sessionrepository: SessionRepository
-  ) {}
+    private userRepository: UserRepository,
+    private sessionRepository: SessionRepository
+  ) { }
 
 
   private isEmail(email: string): boolean {
@@ -24,9 +24,9 @@ export class AuthService {
     let user: userLogin | undefined;
 
     if (this.isEmail(username)) {
-      user = await this.userrepository.getUserByEmailRaw(username);
+      user = await this.userRepository.getUserByEmailRaw(username);
     } else {
-      user = await this.userrepository.getUserByUsernameRaw(username);
+      user = await this.userRepository.getUserByUsernameRaw(username);
     }
 
     if (!user) {
@@ -50,7 +50,7 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
     };
 
-    const session = await this.sessionrepository.insertSession({
+    const session = await this.sessionRepository.insertSession({
       user_id: user.id ?? "",
       refresh_token: uuidv4(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
@@ -63,7 +63,7 @@ export class AuthService {
   }
 
   async signInWithGithub(github_id: number) {
-    const user = await this.userrepository.getUserByGithubId(github_id);
+    const user = await this.userRepository.getUserByGithubId(github_id);
     if (!user) {
       throw new HTTPException(401, { message: "User not found" });
     }
@@ -85,7 +85,7 @@ export class AuthService {
       cost: 12,
     });
     data.password = hashedPassword;
-    const user = await this.userrepository.createUser(data);
+    const user = await this.userRepository.createUser(data);
     const payload = {
       id: user.id,
       email: user.email,
@@ -122,7 +122,7 @@ export class AuthService {
   }
 
   async checkUsername(username: string) {
-    const user = await this.userrepository.getUserCountByUsername(username);
+    const user = await this.userRepository.getUserCountByUsername(username);
     if (user > 0) {
       return true;
     }
@@ -161,7 +161,7 @@ export class AuthService {
     newPassword: string,
     userId: string
   ) {
-    const user = await this.userrepository.getUserWithPassword(userId);
+    const user = await this.userRepository.getUserWithPassword(userId);
 
     if (
       !(await Bun.password.verify(
@@ -177,6 +177,6 @@ export class AuthService {
       algorithm: "bcrypt",
     });
 
-    return this.userrepository.updatePassword(userId, hashedPassword);
+    return this.userRepository.updatePassword(userId, hashedPassword);
   }
 }
