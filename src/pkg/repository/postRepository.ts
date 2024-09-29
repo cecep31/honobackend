@@ -99,12 +99,12 @@ export class PostRepository {
           firstname: usersModel.first_name,
           lastname: usersModel.last_name,
           image: usersModel.image,
-          issuperadmin: usersModel.issuperadmin
+          issuperadmin: usersModel.issuperadmin,
         },
         tags: {
           id: tags.id,
           name: tags.name,
-        }
+        },
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
@@ -117,9 +117,7 @@ export class PostRepository {
     const post = {
       ...posts[0].posts,
       creator: posts[0].users,
-      tags: posts
-        .filter(p => p.tags !== null)
-        .map(p => ({ tag: p.tags }))
+      tags: posts.filter((p) => p.tags !== null).map((p) => ({ tag: p.tags })),
     };
     return post;
   }
@@ -169,7 +167,10 @@ export class PostRepository {
   // inclune published false
   async getPostsByUser(user_id: string, limit = 10, offset = 0) {
     const posts = await db.query.posts.findMany({
-      where: and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)),
+      where: and(
+        eq(postsModel.created_by, user_id),
+        isNull(postsModel.deleted_at)
+      ),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
@@ -181,7 +182,9 @@ export class PostRepository {
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .where(and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)));
+      .where(
+        and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at))
+      );
     return { data: posts, total: total[0].count };
   }
 

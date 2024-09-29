@@ -13,7 +13,7 @@
     "start:prod": "bun run dist/index.js"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.2.2",
+    "@hono/zod-validator": "^0.3.0",
     "axios": "^1.7.7",
     "drizzle-orm": "^0.33.0",
     "hono": "^4.6.3",
@@ -23,7 +23,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@faker-js/faker": "^9.0.2",
+    "@faker-js/faker": "^9.0.3",
     "@types/bun": "latest",
     "@types/uuid": "^10.0.0",
     "drizzle-kit": "^0.24.2",
