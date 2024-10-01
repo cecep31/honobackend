@@ -22,6 +22,7 @@ export class UserRepository {
       );
     return users[0].count;
   }
+
   async addUser(data: UserCreate) {
     const user = await db
       .insert(usersModel)
@@ -117,6 +118,17 @@ export class UserRepository {
     return await db
       .update(usersModel)
       .set({ deleted_at: new Date().toISOString() })
+      .where(eq(usersModel.id, user_id))
+      .returning({ id: usersModel.id });
+  }
+
+  async deleteUserPermanent(user_id: string) {
+    // First, delete the user's profile
+    await db.delete(profiles).where(eq(profiles.user_id, user_id));
+
+    // Then, delete the user
+    return await db
+      .delete(usersModel)
       .where(eq(usersModel.id, user_id))
       .returning({ id: usersModel.id });
   }
