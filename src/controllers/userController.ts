@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { userService } from "../pkg/service";
 import { auth } from "../middlewares/auth";
-import { superAdmin } from "../middlewares/superAdmin";
+import { superAdminMiddleware } from "../middlewares/superAdmin";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { jwtPayload } from "../types/auth";
@@ -32,7 +32,7 @@ export const userController = new Hono()
   .post(
     "/",
     auth,
-    superAdmin,
+    superAdminMiddleware,
     zValidator(
       "json",
       z.object({
@@ -50,7 +50,7 @@ export const userController = new Hono()
       return c.json(await userService.addUser(body), 201);
     }
   )
-  .delete("/:id", auth, superAdmin, async (c) => {
+  .delete("/:id", auth, superAdminMiddleware, async (c) => {
     const id = c.req.param("id");
     const user = await userService.deleteUser(id);
     return c.json(user);

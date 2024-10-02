@@ -4,7 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
-import { superAdmin } from "../middlewares/superAdmin";
+import { superAdminMiddleware } from "../middlewares/superAdmin";
 
 const postController = new Hono();
 postController.get("/", async (c) => {
@@ -56,7 +56,7 @@ postController.get(
     return c.json(post);
   }
 );
-postController.get("/all", auth, superAdmin, async (c) => {
+postController.get("/all", auth, superAdminMiddleware, async (c) => {
   return c.json(await postService.getAllPosts());
 });
 //get post by id
