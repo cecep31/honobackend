@@ -22,21 +22,19 @@ authController.get("/oauth/github", async (c) => {
 });
 
 authController.get("/oauth/github/callback", async (c) => {
-  const code = c.req.query("code") ?? "";
+  const code = c.req.query("code");
   if (!code) {
     return c.text("code not found", 403);
   }
   const token = await authService.getGithubToken(code);
 
   try {
-    const userResponse = await axios.get("https://api.github.com/user", {
+    const userResponse = await axios.get<GithubUser>("https://api.github.com/user", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    const response = userResponse.data as GithubUser;
-
-    const jwtToken = await authService.signInWithGithub(response.id);
+    const jwtToken = await authService.signInWithGithub(userResponse.data.id);
     setCookie(c, "token", jwtToken.access_token, {
       domain: "pilput.dev",
       maxAge: 60 * 60 * 5,
@@ -48,7 +46,6 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.text("failed get user", 401);
   }
 });
-
 //login
 authController.post(
   "/login",

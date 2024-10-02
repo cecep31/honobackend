@@ -34,7 +34,6 @@ export const pilputLogger = createMiddleware(async (c, next) => {
     };
 
     console.log(JSON.stringify(logEntry));
-    
   }
 });
 
