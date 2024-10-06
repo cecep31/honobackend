@@ -7,7 +7,7 @@ import type { jwtPayload } from "../types/auth";
 import { validateRequest } from "../middlewares/validateRequest";
 
 export const userController = new Hono()
-  .get("/", auth, async (c) => {
+  .get("/", auth, superAdminMiddleware, async (c) => {
     const users = await userService.getUsers();
     return c.json(users);
   })
@@ -21,12 +21,16 @@ export const userController = new Hono()
     auth,
     validateRequest("param", z.object({ id: z.string().uuid() })),
     async (c) => {
-      const id = c.req.param("id");
-      const user = await userService.gerUser(id);
+      const params = c.req.valid("param");
+      const user = await userService.gerUser(params.id);
       if (!user) {
-        return c.text("User not found", 404);
+        return c.json({ meesage: "usernot found", success: false }, 404);
       }
-      return c.json(user);
+      return c.json({
+        data: user,
+        success: true,
+        requestId: c.get("requestId") || "N/A",
+      });
     }
   )
   .post(

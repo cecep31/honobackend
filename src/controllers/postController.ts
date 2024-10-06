@@ -37,11 +37,21 @@ postController.get("/", async (c) => {
 postController.get("/random", async (c) => {
   try {
     const posts = await postService.getPostsRandom();
-    return c.json({ success: true, data: posts });
+    return c.json({
+      success: true,
+      data: posts,
+      message: "Posts fetched",
+      requestId: c.get("requestId") || "N/A",
+    });
   } catch (error) {
     console.error("Error fetching random posts:", error);
     return c.json(
-      { success: false, message: "Failed to fetch random posts" },
+      {
+        success: false,
+        message: "Failed to fetch random posts",
+        error: "an unpected error",
+        requestId: c.get("requestId") || "N/A",
+      },
       500
     );
   }
@@ -50,7 +60,14 @@ postController.get("/random", async (c) => {
 postController.get("/mine", auth, async (c) => {
   const params = getPaginationParams(c);
   const auth = c.get("jwtPayload") as jwtPayload;
-  return c.json(await postService.getPostsByuser(auth.id, params));
+  const posts = await postService.getPostsByuser(auth.id, params);
+  return c.json({
+    ...posts,
+    message: "Posts fetched successfully",
+    success: true,
+    error: null,
+    requestId: c.get("requestId") || "N/A",
+  });
 });
 
 postController.get("/tag/:tag", async (c) => {
@@ -81,9 +98,22 @@ postController.get(
       params.slug
     );
     if (!post) {
-      return c.json({ message: "Post not found" }, 404);
+      return c.json(
+        {
+          success: false,
+          message: "Post not found",
+          data: null,
+          requestId: c.get("requestId") || "N/A",
+        },
+        404
+      );
     }
-    return c.json(post);
+    return c.json({
+      success: true,
+      data: post,
+      message: "Post fetched",
+      requestId: c.get("requestId") || "N/A",
+    });
   }
 );
 

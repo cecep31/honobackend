@@ -9,7 +9,6 @@ import type { GithubUser } from "../types/user";
 import { setCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
-import { requestId } from "hono/request-id";
 
 const authController = new Hono();
 
