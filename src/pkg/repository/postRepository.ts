@@ -7,9 +7,12 @@ import {
   tags,
 } from "../../database/schema/schema";
 import type { PostCreate } from "../../types/post";
+import type { GetPaginationParams } from "../../types/paginate";
 
 export class PostRepository {
-  async getPostsPaginate(limit = 10, offset = 0) {
+  async getPostsPaginate(params: GetPaginationParams) {
+    const { page, limit } = params;
+    const offset = (page - 1) * limit;
     const posts = await db.query.posts.findMany({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       orderBy: desc(postsModel.created_at),
@@ -165,7 +168,9 @@ export class PostRepository {
       .returning({ id: postsModel.id });
   }
   // inclune published false
-  async getPostsByUser(user_id: string, limit = 10, offset = 0) {
+  async getPostsByUser(user_id: string, params: GetPaginationParams) {
+    const { page, limit } = params;
+    const offset = (page - 1) * limit;
     const posts = await db.query.posts.findMany({
       where: and(
         eq(postsModel.created_by, user_id),

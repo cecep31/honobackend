@@ -3,6 +3,8 @@ import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { tagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
+import type { GetPaginationParams } from "../../types/paginate";
+import { getPaginationMetadata } from "../../utils/paginate";
 
 export class PostService {
   constructor(
@@ -62,8 +64,10 @@ export class PostService {
     return await this.postrepository.getPostByUsernameSlug(username, slug);
   }
 
-  async getPosts(limit = 100, offset = 0) {
-    return this.postrepository.getPostsPaginate(limit, offset);
+  async getPosts(params: GetPaginationParams) {
+    const { total, data } = await this.postrepository.getPostsPaginate(params);
+    const metadata = getPaginationMetadata(total, params.page, params.limit);
+    return { data: data, metadata };
   }
 
   async getPostsByTag($tag: string) {
@@ -94,8 +98,13 @@ export class PostService {
     return deletedPost;
   }
 
-  async getPostsByuser(user_id: string, limit = 10, offset = 0) {
-    return await this.postrepository.getPostsByUser(user_id, limit, offset);
+  async getPostsByuser(user_id: string, params: GetPaginationParams) {
+    const { data, total } = await this.postrepository.getPostsByUser(
+      user_id,
+      params
+    );
+    const metadata = getPaginationMetadata(total, params.page, params.limit);
+    return { data, metadata };
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
     return await this.postrepository.getPostsByUsername(

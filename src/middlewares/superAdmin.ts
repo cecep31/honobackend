@@ -1,13 +1,11 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import type { jwtPayload } from "../types/auth";
-import { UserRepository } from "../pkg/repository/userRepository";
-
-const userRepo = new UserRepository();
+import { userrepository } from "../pkg/repository";
 
 export const superAdminMiddleware = createMiddleware(async (c, next) => {
   const auth = c.get("jwtPayload") as jwtPayload;
-  const user = await userRepo.getUser(auth.id);
+  const user = await userrepository.getUser(auth.id);
 
   if (user?.issuperadmin) {
     await next();

@@ -1,33 +1,62 @@
 import { Hono } from "hono";
 import { postService } from "../pkg/service";
-import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
+import { getPaginationParams } from "../utils/paginate";
+import { validateRequest } from "../middlewares/validateRequest";
 
 const postController = new Hono();
-postController.get("/", async (c) => {
-  const limit = parseInt(c.req.query("limit")!) || 10;
-  const offset = parseInt(c.req.query("offset")!) || 0;
 
-  const posts = await postService.getPosts(limit, offset);
-  return c.json(posts);
+postController.get("/", async (c) => {
+  try {
+    const params = getPaginationParams(c);
+    const posts = await postService.getPosts(params);
+    return c.json({
+      ...posts,
+      message: "Posts fetched successfully",
+      success: true,
+      error: null,
+      requestId: c.get("requestId") || "N/A",
+    });
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    return c.json(
+      {
+        message: "Failed to fetch posts",
+        success: false,
+        error: "An unexpected error occurred",
+        requestId: c.get("requestId") || "N/A",
+      },
+      500
+    );
+  }
 });
 
 postController.get("/random", async (c) => {
-  return c.json(await postService.getPostsRandom());
+  try {
+    const posts = await postService.getPostsRandom();
+    return c.json({ success: true, data: posts });
+  } catch (error) {
+    console.error("Error fetching random posts:", error);
+    return c.json(
+      { success: false, message: "Failed to fetch random posts" },
+      500
+    );
+  }
 });
 
 postController.get("/mine", auth, async (c) => {
-  const limit = parseInt(c.req.query("limit")!) || 10;
-  const offset = parseInt(c.req.query("offset")!) || 0;
+  const params = getPaginationParams(c);
   const auth = c.get("jwtPayload") as jwtPayload;
-  return c.json(await postService.getPostsByuser(auth.id, limit, offset));
+  return c.json(await postService.getPostsByuser(auth.id, params));
 });
+
 postController.get("/tag/:tag", async (c) => {
   return c.json(postService.getPostsByTag(c.req.param("tag")));
 });
+
 postController.get("/slug/:slug", async (c) => {
   const post = await postService.getPostBySlug(c.req.param("slug"));
   if (!post) {
@@ -35,9 +64,10 @@ postController.get("/slug/:slug", async (c) => {
   }
   return c.json(post);
 });
+
 postController.get(
   "/:username/:slug",
-  zValidator(
+  validateRequest(
     "param",
     z.object({
       username: z.string().min(5).max(20),
@@ -56,13 +86,28 @@ postController.get(
     return c.json(post);
   }
 );
+
 postController.get("/all", auth, superAdminMiddleware, async (c) => {
-  return c.json(await postService.getAllPosts());
+  try {
+    const posts = await postService.getAllPosts();
+    return c.json({ success: true, data: posts });
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    return c.json(
+      {
+        message: "Failed to fetch posts",
+        success: false,
+        error: "An unexpected error occurred",
+        requestId: c.get("requestId") || "N/A",
+      },
+      500
+    );
+  }
 });
 //get post by id
 postController.get(
   "/:id",
-  zValidator("param", z.object({ id: z.string().uuid() })),
+  validateRequest("param", z.object({ id: z.string().uuid() })),
   async (c) => {
     const id = c.req.param("id");
     const post = await postService.getPost(id);
@@ -75,7 +120,7 @@ postController.get(
 postController.post(
   "/",
   auth,
-  zValidator(
+  validateRequest(
     "json",
     z.object({
       title: z.string().min(5).max(255),
@@ -99,11 +144,12 @@ postController.delete("/:id", auth, async (c) => {
   const post = await postService.deletePost(id, auth.id);
   return c.json(post);
 });
+
 postController.patch(
   "/:id/published",
   auth,
-  zValidator("json", z.object({ published: z.boolean() })),
-  zValidator("param", z.object({ id: z.string().uuid() })),
+  validateRequest("json", z.object({ published: z.boolean() })),
+  validateRequest("param", z.object({ id: z.string().uuid() })),
   async (c) => {
     const body = c.req.valid("json");
     const id = c.req.param("id");

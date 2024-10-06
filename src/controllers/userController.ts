@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import { userService } from "../pkg/service";
 import { auth } from "../middlewares/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
-import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { jwtPayload } from "../types/auth";
+import { validateRequest } from "../middlewares/validateRequest";
 
 export const userController = new Hono()
   .get("/", auth, async (c) => {
@@ -19,7 +19,7 @@ export const userController = new Hono()
   .get(
     "/:id",
     auth,
-    zValidator("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", z.object({ id: z.string().uuid() })),
     async (c) => {
       const id = c.req.param("id");
       const user = await userService.gerUser(id);
@@ -33,7 +33,7 @@ export const userController = new Hono()
     "/",
     auth,
     superAdminMiddleware,
-    zValidator(
+    validateRequest(
       "json",
       z.object({
         first_name: z.string(),

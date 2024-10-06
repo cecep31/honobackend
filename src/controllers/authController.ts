@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { authService } from "../pkg/service";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
 import { githubConfig } from "../config/github";
@@ -9,6 +8,8 @@ import axios from "axios";
 import type { GithubUser } from "../types/user";
 import { setCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
+import { validateRequest } from "../middlewares/validateRequest";
+import { requestId } from "hono/request-id";
 
 const authController = new Hono();
 
@@ -29,11 +30,14 @@ authController.get("/oauth/github/callback", async (c) => {
   const token = await authService.getGithubToken(code);
 
   try {
-    const userResponse = await axios.get<GithubUser>("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const userResponse = await axios.get<GithubUser>(
+      "https://api.github.com/user",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     const jwtToken = await authService.signInWithGithub(userResponse.data.id);
     setCookie(c, "token", jwtToken.access_token, {
       domain: "pilput.dev",
@@ -46,33 +50,45 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.text("failed get user", 401);
   }
 });
+
 //login
 authController.post(
   "/login",
   rateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 10, // Limit each IP to 10 requests per `window` (here, per 15 minutes).
+    limit: 7, // Limit each IP to 7 requests per `window` (here, per 15 minutes).
     standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
     keyGenerator: (_c) => "<unique_key>", // Method to generate custom identifiers for clients.
   }),
-  zValidator(
+  validateRequest(
     "json",
     z.object({
-      email: z.string(),
+      email: z.string().min(5),
       password: z.string().min(6),
     })
   ),
   async (c) => {
     const body = c.req.valid("json");
     const { email, password } = body;
-    const token = await authService.signIn(email, password, c.req.header("User-Agent") ?? "");
-    return c.json(token);
+    const token = await authService.signIn(
+      email,
+      password,
+      c.req.header("User-Agent") ?? ""
+    );
+    return c.json({
+      data: {
+        ...token,
+      },
+      message: "Login successful",
+      success: true,
+      requestId: c.get("requestId") || "N/A",
+    });
   }
 );
 
 authController.post(
   "register",
-  zValidator(
+  validateRequest(
     "json",
     z.object({
       username: z
@@ -90,13 +106,20 @@ authController.post(
   async (c) => {
     const body = c.req.valid("json");
     const token = await authService.signUp(body);
-    return c.json(token);
+    return c.json({
+      data: {
+        ...token,
+      },
+      message: "User created successfully",
+      success: true,
+      requestId: c.get("requestId") || "N/A",
+    });
   }
 );
 
 authController.get(
   "/username/:username",
-  zValidator("param", z.object({ username: z.string().min(5) })),
+  validateRequest("param", z.object({ username: z.string().min(5) })),
   async (c) => {
     const username = c.req.valid("param").username;
     return c.json({ exsist: await authService.checkUsername(username) });
@@ -106,7 +129,7 @@ authController.get(
 authController.patch(
   "/password",
   auth,
-  zValidator(
+  validateRequest(
     "json",
     z
       .object({
