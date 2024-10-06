@@ -9,12 +9,23 @@ import { validateRequest } from "../middlewares/validateRequest";
 export const userController = new Hono()
   .get("/", auth, superAdminMiddleware, async (c) => {
     const users = await userService.getUsers();
-    return c.json(users);
+    return c.json({
+      data: users,
+      success: true,
+      message: "users fetched successfully",
+      requestId: c.get("requestId") || "N/A",
+    });
   })
   .get("/me", auth, async (c) => {
-    const user = c.get("jwtPayload") as jwtPayload;
+    const jwtPayload = c.get("jwtPayload") as jwtPayload;
     const profile = Boolean(c.req.query("profile"));
-    return c.json(await userService.gerUserMe(user.id, profile));
+    const user = await userService.gerUserMe(jwtPayload.id, profile);
+    return c.json({
+      data: user,
+      success: true,
+      message: "user fetched successfully",
+      requestId: c.get("requestId") || "N/A",
+    });
   })
   .get(
     "/:id",
@@ -29,6 +40,7 @@ export const userController = new Hono()
       return c.json({
         data: user,
         success: true,
+        message: "user fetched successfully",
         requestId: c.get("requestId") || "N/A",
       });
     }
@@ -51,11 +63,22 @@ export const userController = new Hono()
     ),
     async (c) => {
       const body = c.req.valid("json");
-      return c.json(await userService.addUser(body), 201);
+      const user = await userService.addUser(body);
+      return c.json({
+        data: user,
+        success: true,
+        message: "user created successfully",
+        requestId: c.get("requestId") || "N/A",
+      }, 201);
     }
   )
   .delete("/:id", auth, superAdminMiddleware, async (c) => {
     const id = c.req.param("id");
     const user = await userService.deleteUser(id);
-    return c.json(user);
+    return c.json({
+      data: user,
+      success: true,
+      message: "user deleted successfully",
+      requestId: c.get("requestId") || "N/A",
+    });
   });
