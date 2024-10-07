@@ -12,11 +12,17 @@ export function validateRequest(
       const erros = parsed.error.issues.map((issue) => {
         return {
           message: issue.message,
-          field: issue.path.join("."),
+          field: issue.path.join(".")
         };
       });
       return c.json(
-        { succes: false, error: erros, message: "Invalid input", data: null },
+        {
+          success: false,
+          error: erros,
+          message: "Invalid input",
+          data: null,
+          requestId: c.get("requestId") ?? "unknown"
+        },
         400
       );
     }

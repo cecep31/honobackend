@@ -1,10 +1,11 @@
-import { HTTPException } from "hono/http-exception";
 import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { tagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
+import { HTTPException } from "hono/http-exception";
+import { errorHttp } from "../../utils/error";
 
 export class PostService {
   constructor(
@@ -51,11 +52,11 @@ export class PostService {
     } catch (error) {
       if (error instanceof Postgres.PostgresError) {
         if (error.code == "23505") {
-          throw new HTTPException(400, { message: "slug already exist" });
+          throw errorHttp("slug already exist", 400);
         }
       } else {
         console.log(error);
-        throw new HTTPException(500, { message: "internal server error" });
+        throw errorHttp("internal server error", 500);
       }
     }
   }

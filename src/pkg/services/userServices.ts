@@ -1,6 +1,6 @@
-import { HTTPException } from "hono/http-exception";
 import { UserRepository } from "../repository/userRepository";
 import type { UserCreateBody } from "../../types/user";
+import { errorHttp } from "../../utils/error";
 
 export class UserService {
   constructor(private userrepository: UserRepository) {}
@@ -21,7 +21,7 @@ export class UserService {
   async deleteUser(user_id: string) {
     const look = await this.userrepository.getUser(user_id);
     if (!look) {
-      throw new HTTPException(404, { message: "User not found" });
+      throw errorHttp("User not found", 404);
     }
     return await this.userrepository.deleteUserSoft(user_id);
   }

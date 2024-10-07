@@ -1,8 +1,8 @@
 import postgres from "postgres";
 import { likes } from "../../database/schema/schema";
-import { HTTPException } from "hono/http-exception";
 import { db } from "../../database/drizzel";
 import { and, eq } from "drizzle-orm";
+import { errorHttp } from "../../utils/error";
 
 export class LikeService {
   static async updateLike(post_id: string, auth_id: string) {
@@ -28,11 +28,11 @@ export class LikeService {
     } catch (error) {
       if (error instanceof postgres.PostgresError) {
         if (error.code == "23505") {
-          throw new HTTPException(400, { message: "already liked" });
+          throw errorHttp("already liked", 400);
         }
       } else {
         console.log(error);
-        throw new HTTPException(500, { message: "internal server error" });
+        throw errorHttp("internal server error", 500);
       }
     }
   }
