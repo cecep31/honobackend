@@ -2,22 +2,22 @@ import type { Context } from "hono";
 import type { GetPaginationParams } from "../types/paginate";
 
 export const getPaginationParams = (c: Context): GetPaginationParams => {
-  const page = Number(c.req.query("page")) || 1;
+  const offset = Number(c.req.query("offset")) || 0;
   const limit = Number(c.req.query("limit")) || 10;
-  return { page, limit };
+  return { offset, limit };
 };
 
 export const getPaginationMetadata = (
   total: number,
-  page: number,
+  offset: number,
   limit: number
 ) => {
   const totalPages = Math.ceil(total / limit);
-  const hasNextPage = page < totalPages;
-  const hasPrevPage = page > 1;
+  const hasNextPage = offset < totalPages;
+  const hasPrevPage = offset > 0;
 
   return {
-    currentPage: page,
+    currentPage: offset,
     totalPages,
     totalItems: total,
     itemsPerPage: limit,

@@ -1,9 +1,9 @@
 export interface PaginationParams {
-  page?: number;
+  offset?: number;
   limit?: number;
 }
 
 export interface GetPaginationParams {
-  page: number;
+  offset: number;
   limit: number;
 }

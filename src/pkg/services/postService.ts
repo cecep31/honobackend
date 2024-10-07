@@ -66,7 +66,7 @@ export class PostService {
 
   async getPosts(params: GetPaginationParams) {
     const { total, data } = await this.postrepository.getPostsPaginate(params);
-    const metadata = getPaginationMetadata(total, params.page, params.limit);
+    const metadata = getPaginationMetadata(total, params.offset, params.limit);
     return { data: data, metadata };
   }
 
@@ -103,7 +103,7 @@ export class PostService {
       user_id,
       params
     );
-    const metadata = getPaginationMetadata(total, params.page, params.limit);
+    const metadata = getPaginationMetadata(total, params.offset, params.limit);
     return { data, metadata };
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
