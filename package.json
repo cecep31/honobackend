@@ -9,15 +9,21 @@
     "studio": "drizzle-kit studio",
     "start": "bun run index.ts",
     "build": "tsc --noEmit && bun build index.ts --minify --outdir dist --target bun",
-    "build:compile": "tsc --noEmit && bun build index.ts --minify --outfile bin/honobackend --compile --target bun",
+    "build:compile": "tsc --noEmit && bun build index.ts --minify --outfile bin/honobackend --bytecode --compile --target bun",
     "start:prod": "bun run dist/index.js"
   },
   "dependencies": {
+    "@aws-sdk/client-rds-data": "^3.666.0",
+    "@electric-sql/pglite": "^0.2.11",
     "@hono/zod-validator": "^0.4.1",
+    "@planetscale/database": "^1.19.0",
+    "@vercel/postgres": "^0.10.0",
     "axios": "^1.7.7",
-    "drizzle-orm": "^0.34.0",
+    "drizzle-orm": "^0.34.1",
     "hono": "^4.6.3",
     "hono-rate-limiter": "^0.4.0",
+    "honobackend": "file:",
+    "pg": "^8.13.0",
     "postgres": "^3.4.4",
     "uuid": "^10.0.0",
     "zod": "^3.23.8"

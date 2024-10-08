@@ -27,5 +27,6 @@
   },
     "exclude": [
       "./src/test",
+      "node_modules", // Exclude the node_modules folder
     ]
 }

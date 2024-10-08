@@ -26,7 +26,7 @@ export const pilputLogger = createMiddleware(async (c, next) => {
       method: c.req.method,
       url: new URL(c.req.url).pathname,
       status: c.res.status,
-      latency,
+      latency, // in milliseconds
       userAgent: c.req.header("user-agent") || "Unknown",
       ip: c.req.header("x-forwarded-for") || "Unknown",
       requestId: c.get("requestId") || "N/A",
