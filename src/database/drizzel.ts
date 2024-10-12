@@ -1,9 +1,10 @@
-import { drizzle } from "drizzle-orm/connect";
+import { Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from "./schema/schema";
-import { getSecret } from "../config/secret";
 
-export const db = await drizzle("postgres-js", {
-  connection: getSecret.db_url ?? "",
-  schema: schema,
-  logger: process.env["SQL_LOG"] ? true : undefined,
+const pool = new Pool({ connectionString: process.env["DATABASE_URL"] }); 
+
+export const db = drizzle(pool, { 
+  schema: schema, 
+  logger: process.env["SQL_LOG"] ? true : undefined 
 });
