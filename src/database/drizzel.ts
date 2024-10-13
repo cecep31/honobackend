@@ -1,13 +1,10 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from "./schema/schema";
-import { getSecret } from "../config/secret";
 
-const queryClient = postgres(getSecret.db_url ?? "", {
-  max: parseInt(process.env["MAX_CONNECTION"] || "10"),
-});
+const pool = new Pool({ connectionString: process.env["DATABASE_URL"] }); 
 
-export const db = drizzle(queryClient, {
-  schema: schema,
-  logger: process.env["SQL_LOG"] ? true : undefined,
+export const db = drizzle(pool, { 
+  schema: schema, 
+  logger: process.env["SQL_LOG"] ? true : undefined 
 });

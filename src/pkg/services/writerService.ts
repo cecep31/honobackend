@@ -1,6 +1,5 @@
-import { HTTPException } from "hono/http-exception";
+import { errorHttp } from "../../utils/error";
 import { UserRepository } from "../repository/userRepository";
-
 export class WritetService {
   constructor(private userrepository: UserRepository) {}
   async getWriterByUsername(username: string) {
@@ -9,7 +8,7 @@ export class WritetService {
       return usernameRegex.test(username);
     }
     if (!validateUsername(username)) {
-      throw new HTTPException(404, { message: "Username not valid" });
+      throw errorHttp("Username not valid", 404);
     }
     return await this.userrepository.getUserByUsernameProfile(username);
   }

@@ -1,5 +1,4 @@
 import { decode, sign, verify } from "hono/jwt";
-import { HTTPException } from "hono/http-exception";
 import type { UserRepository } from "../repository/userRepository";
 import type { SessionRepository } from "../repository/sessionRepository";
 import { getSecret } from "../../config/secret";
@@ -7,6 +6,7 @@ import type { userLogin, UserSignup } from "../../types/user";
 import { githubConfig } from "../../config/github";
 import axios from "axios";
 import { v4 as uuidv4 } from 'uuid';
+import { errorHttp } from "../../utils/error";
 
 export class AuthService {
 
@@ -30,7 +30,7 @@ export class AuthService {
     }
 
     if (!user) {
-      throw new HTTPException(401, { message: "Invalid credentials" });
+      throw errorHttp("Invalid credentials", 401);
     }
 
     const isPasswordValid = await Bun.password.verify(
@@ -40,7 +40,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new HTTPException(401, { message: "Invalid credentials" });
+      throw errorHttp("Invalid credentials", 401);
     }
 
     const payload = {
@@ -65,7 +65,7 @@ export class AuthService {
   async signInWithGithub(github_id: number) {
     const user = await this.userRepository.getUserByGithubId(github_id);
     if (!user) {
-      throw new HTTPException(401, { message: "User not found" });
+      throw errorHttp("User not found", 401);
     }
 
     const payload = {
@@ -117,7 +117,7 @@ export class AuthService {
       return await tokenResponse.data.access_token;
     } catch (error) {
       console.log("failet get token");
-      throw new HTTPException(401, { message: "failed get token" });
+      throw errorHttp("failed get token", 401);
     }
   }
 
@@ -134,7 +134,7 @@ export class AuthService {
         const payloadverify = await verify(refreshToken, getSecret.jwt_secret);
         console.log(payloadverify);
       } catch (error) {
-        throw new HTTPException(401, { message: "" });
+        throw errorHttp("Invalid token", 401);
       }
       const { payload } = decode(refreshToken);
       console.log(payload);
@@ -152,7 +152,7 @@ export class AuthService {
       // const newToken = await sign(newPayload, process.env.JWT_KEY ?? "");
       // return { access_token: newToken };
     } catch (error) {
-      throw new HTTPException(401, { message: "Invalid token" });
+      throw errorHttp("Invalid token", 401);
     }
   }
 
@@ -170,7 +170,7 @@ export class AuthService {
         "bcrypt"
       ))
     ) {
-      throw new HTTPException(401, { message: "Invalid credentials" });
+      throw errorHttp("Invalid credentials", 401);
     }
 
     const hashedPassword = Bun.password.hashSync(newPassword, {
