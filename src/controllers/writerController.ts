@@ -8,7 +8,8 @@ export const writerController = new Hono()
     if (!user) {
       return c.json({ message: "user not found" }, 404);
     }
-    return c.json(user);
+
+    return c.json({ success: true, data: user, message: "User fetched" });
   })
   .get("/:username/posts", async (c) => {
     const username = c.req.param("username");
