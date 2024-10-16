@@ -3,20 +3,14 @@ import { cors } from "hono/cors";
 import { rateLimiter } from "hono-rate-limiter";
 import { requestId } from "hono/request-id";
 import { pilputLogger } from "./logger";
+import { originList } from "../config";
 
 export function setupMiddlewares(app: Hono) {
   app.use(requestId())
     .use(pilputLogger)
     .use(
       cors({
-        origin: [
-          "http://localhost:3000",
-          "http://localhost:5173",
-          "https://pilput.dev",
-          "https://www.pilput.dev",
-          "https://app.pilput.dev",
-          "https://dash.pilput.dev",
-        ],
+        origin: originList
       })
     )
   if (process.env["RATE_LIMITER"] === "true") {
