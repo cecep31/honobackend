@@ -46,7 +46,11 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("https://pilput.dev");
   } catch (error) {
     console.log(error);
-    return c.text("failed get user", 401);
+    return c.json({
+      message: "Failed to get user",
+      success: false,
+      requestId: c.get("requestId") || "N/A",
+    }, 401);
   }
 });
 
@@ -121,7 +125,10 @@ authController.get(
   validateRequest("param", z.object({ username: z.string().min(5) })),
   async (c) => {
     const username = c.req.valid("param").username;
-    return c.json({ exsist: await authService.checkUsername(username) });
+    return c.json({
+      exsist: await authService.checkUsername(username),
+      requestId: c.get("requestId") || "N/A",
+    });
   }
 );
 
@@ -144,13 +151,17 @@ authController.patch(
   async (c) => {
     const body = c.req.valid("json");
     const user = c.get("jwtPayload") as jwtPayload;
-    return c.json(
-      await authService.updatePassword(
-        body.old_password,
-        body.new_password,
-        user.id
-      )
+    const result = await authService.updatePassword(
+      body.old_password,
+      body.new_password,
+      user.id
     );
+    return c.json({
+      success: true,
+      message: "Password updated successfully",
+      data: result,
+      requestId: c.get("requestId") || "N/A",
+    });
   }
 );
 
