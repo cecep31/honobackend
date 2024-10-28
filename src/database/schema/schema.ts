@@ -19,7 +19,7 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id")
-      .default(sql`uuid_generate_v4()`)
+      .default(sql`uuid_generate_v7()`)
       .primaryKey()
       .notNull(),
     github_id: bigint("github_id", { mode: "number" }).unique(),
@@ -65,7 +65,9 @@ export const sessions = pgTable(
   },
   (table) => {
     return {
-      idx_sessions_refresh_token: uniqueIndex("idx_sessions_refresh_token").on(table.refresh_token),
+      idx_sessions_refresh_token: uniqueIndex("idx_sessions_refresh_token").on(
+        table.refresh_token
+      ),
     };
   }
 );
@@ -134,8 +136,7 @@ export const post_comments = pgTable("post_comments", {
   deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   text: text("text"),
   post_id: uuid("post_id").references(() => posts.id, {
-    onDelete: "set null",
-    onUpdate: "cascade",
+    onDelete: "cascade",
   }),
   // You can use { mode: "bigint" } if numbers are exceeding js number limitations
   parrent_comment_id: bigint("parrent_comment_id", { mode: "number" }),
@@ -146,7 +147,7 @@ export const posts = pgTable(
   "posts",
   {
     id: uuid("id")
-      .default(sql`uuid_generate_v4()`)
+      .default(sql`uuid_generate_v7()`)
       .primaryKey()
       .notNull(),
     created_at: timestamp("created_at", {

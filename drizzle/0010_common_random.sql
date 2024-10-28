@@ -1,1 +1,0 @@
-ALTER TABLE "likes" ALTER COLUMN "created_at" SET DEFAULT now();

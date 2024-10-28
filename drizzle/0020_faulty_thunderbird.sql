@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX IF NOT EXISTS "idx_sessions_refresh_token" ON "sessions" USING btree ("refresh_token");
