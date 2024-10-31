@@ -3,7 +3,7 @@
   "module": "index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "dev": "bun run --hot index.ts",
+    "dev": "bun --hot index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
