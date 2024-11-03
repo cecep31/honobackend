@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import { postsToTags, tags as tagsModel } from "../../database/schema/schema";
 
-export class tagRepository {
+export class TagRepository {
   async getTags() {
     return await db.query.tags.findMany();
   }
