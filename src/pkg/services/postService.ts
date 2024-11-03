@@ -1,6 +1,6 @@
 import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
-import { tagRepository } from "../repository/tagRepository";
+import { TagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
@@ -10,7 +10,7 @@ import { errorHttp } from "../../utils/error";
 export class PostService {
   constructor(
     private postrepository: PostRepository,
-    private tagrepository: tagRepository
+    private tagrepository: TagRepository
   ) {}
 
   async UpdatePublishedByadmin(id: string, published: boolean) {

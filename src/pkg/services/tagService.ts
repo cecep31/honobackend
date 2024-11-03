@@ -1,8 +1,8 @@
-import { tagRepository } from "../repository/tagRepository";
+import { TagRepository } from "../repository/tagRepository";
 
 export class TagService {
-  constructor(private tagropository: tagRepository) {}
+  constructor(private tagrepository: TagRepository) {}
   async getTags() {
-    return await this.tagropository.getTags();
+    return await this.tagrepository.getTags();
   }
 }
