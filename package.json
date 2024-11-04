@@ -17,7 +17,7 @@
     "@neondatabase/serverless": "^0.10.1",
     "axios": "^1.7.7",
     "drizzle-orm": "^0.36.0",
-    "hono": "^4.6.8",
+    "hono": "^4.6.9",
     "hono-rate-limiter": "^0.4.0",
     "postgres": "^3.4.5",
     "uuid": "^11.0.2",
