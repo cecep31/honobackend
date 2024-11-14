@@ -1,5 +1,4 @@
 import { createMiddleware } from "hono/factory";
-import { writeLog } from "../jobs/log";
 
 interface LogEntry {
   level: string;
@@ -15,15 +14,6 @@ interface LogEntry {
 
 export const pilputLogger = createMiddleware(async (c, next) => {
   const start = Date.now();
-  try {
-    writeLog(
-      c.get("jwtPayload")?.id,
-      c.req.path,
-      `${c.req.method} ${c.req.url}`
-    );
-  } catch (error) {
-    console.log(error);
-  }
 
   try {
     await next();

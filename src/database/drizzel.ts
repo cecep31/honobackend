@@ -1,7 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { drizzle as drizzleLibsql } from "drizzle-orm/libsql";
 import * as schema from "./schemas/postgre/schema";
-import * as schematurso from "./schemas/turso/schema";
 
 
 export const db = drizzle({
@@ -14,12 +12,4 @@ export const db = drizzle({
   },
   logger: process.env["SQL_LOG"] ? true : undefined,
   schema: schema,
-});
-
-export const tursodb = drizzleLibsql({
-  connection: {
-    url: process.env["LIBSQL_URL"] ?? "",
-    authToken: process.env["LIBSQL_TOKEN"],
-  },
-  schema: schematurso
 });
