@@ -10,5 +10,5 @@ export async function writeLog(user_id: string = "",path: string = "", data: str
     updated_at: new Date().toISOString(),
     activity_type: "log",
     data,
-  }).returning();
+  });
 }
