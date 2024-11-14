@@ -1,13 +1,14 @@
 # generate build and running 
-FROM oven/bun:1-debian AS build
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
 COPY . .
 RUN bun install
 RUN bun run build:compile
 
 # FROM alpine:latest as run
-FROM oven/bun:1-debian AS run
+FROM oven/bun:1-alpine AS run
 WORKDIR /app
 COPY --from=build /app/bin/honobackend .
+COPY --from=build /app/node_modules .
 EXPOSE 3001
 CMD ["./honobackend"]
