@@ -1,5 +1,5 @@
 {
-  "id": "ef695eb7-073b-4d7d-990a-d8d81e9661ca",
+  "id": "73b978b2-8ab2-4b77-8103-39ce041a0e37",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -82,7 +82,9 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.likes": {
       "name": "likes",
@@ -167,7 +169,9 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.post_comments": {
       "name": "post_comments",
@@ -256,7 +260,9 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.posts": {
       "name": "posts",
@@ -359,7 +365,9 @@
           ]
         }
       },
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.posts_to_tags": {
       "name": "posts_to_tags",
@@ -417,7 +425,9 @@
         }
       },
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.profiles": {
       "name": "profiles",
@@ -507,15 +517,17 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.sessions": {
       "name": "sessions",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
+        "token": {
+          "name": "token",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -524,12 +536,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "refresh_token": {
-          "name": "refresh_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -551,23 +557,7 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "idx_sessions_refresh_token": {
-          "name": "idx_sessions_refresh_token",
-          "columns": [
-            {
-              "expression": "refresh_token",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
@@ -585,7 +575,9 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.tags": {
       "name": "tags",
@@ -631,7 +623,9 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.users": {
       "name": "users",
@@ -758,12 +752,16 @@
           ]
         }
       },
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {},
   "schemas": {},
   "sequences": {},
+  "roles": {},
+  "policies": {},
   "views": {},
   "_meta": {
     "columns": {},

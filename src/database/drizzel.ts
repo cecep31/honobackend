@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import { drizzle as drizzleLibsql } from "drizzle-orm/libsql";
-import * as schema from "./schemas/postgres/schema";
+import * as schema from "./schemas/postgre/schema";
 import * as schematurso from "./schemas/turso/schema";
 
 

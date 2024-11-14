@@ -6,7 +6,7 @@ import {
   posts as postsModel,
   postsToTags,
   tags,
-} from "../../database/schemas/postgres/schema";
+} from "../../database/schemas/postgre/schema";
 import type { PostCreate } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 

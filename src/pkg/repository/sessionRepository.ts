@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../database/drizzel";
-import { sessions as sessionModel } from "../../database/schemas/postgres/schema";
+import { sessions as sessionModel } from "../../database/schemas/postgre/schema";
+import { randomUUIDv7 } from "bun";
 
 interface SessionCreate {
   user_id: string;
@@ -13,10 +14,10 @@ export class SessionRepository {
   async insertSession(data: SessionCreate) {
     const session = await db
       .insert(sessionModel)
-      .values(data)
+      .values({ ...data, id: randomUUIDv7() })
       .returning({
         id: sessionModel.id,
-        refresh_token: sessionModel.refresh_token,
+        refresh_token: sessionModel.id,
       });
     return session[0];
   }
@@ -25,14 +26,12 @@ export class SessionRepository {
     const session = await db
       .select()
       .from(sessionModel)
-      .where(eq(sessionModel.refresh_token, refresh_token));
+      .where(eq(sessionModel.id, refresh_token));
     return session[0];
   }
 
   async deleteSessionByRefreshToken(refresh_token: string) {
-    await db
-      .delete(sessionModel)
-      .where(eq(sessionModel.refresh_token, refresh_token));
+    await db.delete(sessionModel).where(eq(sessionModel.id, refresh_token));
   }
 
   async getSessionByUserId(user_id: string) {

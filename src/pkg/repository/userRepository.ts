@@ -1,7 +1,10 @@
 import { randomUUIDv7 } from "bun";
 import { db } from "../../database/drizzel";
 import { and, count, desc, eq, isNull } from "drizzle-orm";
-import { profiles, users as usersModel } from "../../database/schemas/postgres/schema";
+import {
+  profiles,
+  users as usersModel,
+} from "../../database/schemas/postgre/schema";
 import type { UserCreate, UserSignup } from "../../types/user";
 
 export class UserRepository {

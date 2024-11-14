@@ -61,9 +61,8 @@ CREATE TABLE IF NOT EXISTS "profiles" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "sessions" (
-	"id" serial PRIMARY KEY NOT NULL,
+	"token" uuid PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
-	"refresh_token" text,
 	"created_at" timestamp with time zone DEFAULT now(),
 	"user_agent" text,
 	"expires_at" timestamp with time zone
@@ -153,7 +152,6 @@ END $$;
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_like_post_id_created_by" ON "likes" USING btree ("post_id","created_by");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_profiles_user_id" ON "profiles" USING btree ("user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "idx_sessions_refresh_token" ON "sessions" USING btree ("refresh_token");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_tags_name" ON "tags" USING btree ("name");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_users_email" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_users_username" ON "users" USING btree ("username");

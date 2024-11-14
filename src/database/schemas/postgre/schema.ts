@@ -48,11 +48,10 @@ export const users = pgTable(
 export const sessions = pgTable(
   "sessions",
   {
-    id: serial("id").primaryKey().notNull(),
+    id: uuid("token").primaryKey().notNull(),
     user_id: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    refresh_token: text("refresh_token"),
     created_at: timestamp("created_at", {
       withTimezone: true,
       mode: "string",
@@ -63,13 +62,6 @@ export const sessions = pgTable(
       mode: "string",
     }),
   },
-  (table) => {
-    return {
-      idx_sessions_refresh_token: uniqueIndex("idx_sessions_refresh_token").on(
-        table.refresh_token
-      ),
-    };
-  }
 );
 
 export const profiles = pgTable(
