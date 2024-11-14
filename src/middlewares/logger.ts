@@ -15,8 +15,11 @@ interface LogEntry {
 
 export const pilputLogger = createMiddleware(async (c, next) => {
   const start = Date.now();
-  
-  writeLog(c.get("jwtPayload")?.id, `${c.req.method} ${c.req.url}`);
+  try {
+    writeLog(c.get("jwtPayload")?.id, `${c.req.method} ${c.req.url}`);
+  } catch (error) {
+    console.log(error);
+  }
   
   try {
     await next();
