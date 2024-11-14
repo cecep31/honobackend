@@ -1,6 +1,7 @@
+import { randomUUIDv7 } from "bun";
 import { db } from "../../database/drizzel";
 import { and, count, desc, eq, isNull } from "drizzle-orm";
-import { profiles, users as usersModel } from "../../database/schema/schema";
+import { profiles, users as usersModel } from "../../database/schemas/postgres/schema";
 import type { UserCreate, UserSignup } from "../../types/user";
 
 export class UserRepository {
@@ -25,7 +26,7 @@ export class UserRepository {
 
   async addUser(data: UserCreate) {
     const user = await db
-      .insert(usersModel)
+      .insert({ ...usersModel, id: randomUUIDv7() })
       .values(data)
       .returning({ id: usersModel.id });
     await db.insert(profiles).values({
