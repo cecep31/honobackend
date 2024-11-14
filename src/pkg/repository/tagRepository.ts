@@ -1,6 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../database/drizzel";
-import { postsToTags, tags as tagsModel } from "../../database/schema/schema";
+import { postsToTags, tags as tagsModel } from "../../database/schemas/postgres/schema";
 
 export class TagRepository {
   async getTags() {

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../database/drizzel";
-import { sessions as sessionModel } from "../../database/schema/schema";
+import { sessions as sessionModel } from "../../database/schemas/postgres/schema";
 
 interface SessionCreate {
   user_id: string;

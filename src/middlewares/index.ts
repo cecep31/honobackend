@@ -12,7 +12,7 @@ export function setupMiddlewares(app: Hono) {
       cors({
         origin: originList
       })
-    )
+    );
   if (process.env["RATE_LIMITER"] === "true") {
     app.use(
       rateLimiter({

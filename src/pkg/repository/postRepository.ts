@@ -1,3 +1,4 @@
+import { randomUUIDv7 } from "bun";
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import {
@@ -5,7 +6,7 @@ import {
   posts as postsModel,
   postsToTags,
   tags,
-} from "../../database/schema/schema";
+} from "../../database/schemas/postgres/schema";
 import type { PostCreate } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 
@@ -157,6 +158,7 @@ export class PostRepository {
     return await db
       .insert(postsModel)
       .values({
+        id: randomUUIDv7(),
         body: data.body,
         title: data.title,
         slug: data.slug,
