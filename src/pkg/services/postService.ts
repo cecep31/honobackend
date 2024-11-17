@@ -62,32 +62,37 @@ export class PostService {
   }
 
   async getPostByUsernameSlug(username: string, slug: string) {
-    const data = await this.postrepository.getPostByUsernameSlug(username, slug);
+    const data = await this.postrepository.getPostByUsernameSlug(
+      username,
+      slug
+    );
     return {
       ...data,
       tags: data?.tags.map((tag) => tag.tag) ?? [],
-    }
+    };
   }
 
-  async getPosts(params: GetPaginationParams) {
-    const { total, data } = await this.postrepository.getPostsPaginate(params);
-    const response = data.map((post) => {
-      post.body = post.body?.substring(0, 200) || "" + "...";
-      return {
-        id: post.id,
-        title: post.title,
-        body: post.body,
-        slug: post.slug,
-        photo_url: post.photo_url,
-        created_by: post.created_by,
-        created_at: post.created_at,
-        updated_at: post.updated_at,
-        published: post.published,
-        creator: post.creator,
-        tags: post.tags.map((tag) => tag.tag),
-      };
+  async getPosts({ offset, limit }: GetPaginationParams) {
+    const { total, data } = await this.postrepository.getPostsPaginate({
+      offset,
+      limit,
     });
-    const metadata = getPaginationMetadata(total, params.offset, params.limit);
+
+    const response = data.map((post) => ({
+      id: post.id,
+      title: post.title,
+      body:
+        post.body?.slice(0, 200) + (post.body?.length ?? 0 > 200 ? "..." : ""),
+      slug: post.slug,
+      photoUrl: post.photo_url,
+      createdAt: post.created_at,
+      updatedAt: post.updated_at,
+      published: post.published,
+      creator: post.creator,
+      tags: post.tags.map((tag) => tag.tag),
+    }));
+
+    const metadata = getPaginationMetadata(total, offset, limit);
     return { data: response, metadata };
   }
 
@@ -103,7 +108,7 @@ export class PostService {
     const data = await this.postrepository.getPostsRandom(limit);
     const response = data.forEach((post) => {
       post.body = post.body?.substring(0, 200) || "" + "...";
-    })
+    });
     return response;
   }
 
