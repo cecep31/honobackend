@@ -7,6 +7,7 @@ setupRouter()
 
 export default {
   port: process.env['PORT'] || 3001,
-  fetch: app.fetch
+  fetch: app.fetch,
+  idleTimeout: 30
 }
 

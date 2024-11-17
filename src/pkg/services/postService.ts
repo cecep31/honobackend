@@ -67,6 +67,9 @@ export class PostService {
 
   async getPosts(params: GetPaginationParams) {
     const { total, data } = await this.postrepository.getPostsPaginate(params);
+    data.forEach((post) => {
+      post.body = post.body?.substring(0, 200) || "" + '...';
+    })
     const metadata = getPaginationMetadata(total, params.offset, params.limit);
     return { data: data, metadata };
   }
