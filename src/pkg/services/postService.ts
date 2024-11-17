@@ -62,7 +62,11 @@ export class PostService {
   }
 
   async getPostByUsernameSlug(username: string, slug: string) {
-    return await this.postrepository.getPostByUsernameSlug(username, slug);
+    const data = await this.postrepository.getPostByUsernameSlug(username, slug);
+    return {
+      ...data,
+      tags: data?.tags.map((tag) => tag.tag),
+    }
   }
 
   async getPosts(params: GetPaginationParams) {
