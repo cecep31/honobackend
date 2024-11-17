@@ -65,7 +65,7 @@ export class PostService {
     const data = await this.postrepository.getPostByUsernameSlug(username, slug);
     return {
       ...data,
-      tags: data?.tags.map((tag) => tag.tag),
+      tags: data?.tags.map((tag) => tag.tag) ?? [],
     }
   }
 
