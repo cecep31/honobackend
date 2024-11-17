@@ -67,11 +67,24 @@ export class PostService {
 
   async getPosts(params: GetPaginationParams) {
     const { total, data } = await this.postrepository.getPostsPaginate(params);
-    data.forEach((post) => {
-      post.body = post.body?.substring(0, 200) || "" + '...';
-    })
+    const response = data.map((post) => {
+      post.body = post.body?.substring(0, 200) || "" + "...";
+      return {
+        id: post.id,
+        title: post.title,
+        body: post.body,
+        slug: post.slug,
+        photo_url: post.photo_url,
+        created_by: post.created_by,
+        created_at: post.created_at,
+        updated_at: post.updated_at,
+        published: post.published,
+        creator: post.creator,
+        tags: post.tags.map((tag) => tag.tag),
+      };
+    });
     const metadata = getPaginationMetadata(total, params.offset, params.limit);
-    return { data: data, metadata };
+    return { data: response, metadata };
   }
 
   async getPostsByTag($tag: string) {
@@ -83,7 +96,11 @@ export class PostService {
   }
 
   async getPostsRandom(limit = 6) {
-    return await this.postrepository.getPostsRandom(limit);
+    const data = await this.postrepository.getPostsRandom(limit);
+    const response = data.forEach((post) => {
+      post.body = post.body?.substring(0, 200) || "" + "...";
+    })
+    return response;
   }
 
   async getPost(id_post: string) {
