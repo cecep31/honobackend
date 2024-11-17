@@ -84,9 +84,9 @@ export class PostService {
       body:
         post.body?.slice(0, 200) + (post.body?.length ?? 0 > 200 ? "..." : ""),
       slug: post.slug,
-      photoUrl: post.photo_url,
-      createdAt: post.created_at,
-      updatedAt: post.updated_at,
+      photo_url: post.photo_url,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
       published: post.published,
       creator: post.creator,
       tags: post.tags.map((tag) => tag.tag),
