@@ -189,15 +189,15 @@ export const tags = pgTable(
 export const postsToTags = pgTable(
   "posts_to_tags",
   {
-    posts_id: uuid("posts_id")
+    post_id: uuid("post_id")
       .notNull()
       .references(() => posts.id, { onDelete: "cascade" }),
-    tags_id: integer("tags_id")
+    tag_id: integer("tag_id")
       .notNull()
       .references(() => tags.id, { onDelete: "cascade" }),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.posts_id, t.tags_id] }),
+    pk: primaryKey({ columns: [t.post_id, t.tag_id] }),
   })
 );
 
@@ -251,11 +251,11 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
 
 export const postToTagsRelations = relations(postsToTags, ({ one }) => ({
   post: one(posts, {
-    fields: [postsToTags.posts_id],
+    fields: [postsToTags.post_id],
     references: [posts.id],
   }),
   tag: one(tags, {
-    fields: [postsToTags.tags_id],
+    fields: [postsToTags.tag_id],
     references: [tags.id],
   }),
 }));

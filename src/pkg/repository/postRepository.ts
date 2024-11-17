@@ -111,8 +111,8 @@ export class PostRepository {
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .leftJoin(postsToTags, eq(postsModel.id, postsToTags.posts_id))
-      .leftJoin(tags, eq(postsToTags.tags_id, tags.id))
+      .leftJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
+      .leftJoin(tags, eq(postsToTags.tag_id, tags.id))
       .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
     if (posts.length === 0) {
       return null;
@@ -203,8 +203,8 @@ export class PostRepository {
         created_at: postsModel.created_at,
       })
       .from(postsModel)
-      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.posts_id))
-      .where(eq(postsToTags.tags_id, tag_id))
+      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
+      .where(eq(postsToTags.tag_id, tag_id))
       .orderBy(desc(postsModel.created_at));
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
