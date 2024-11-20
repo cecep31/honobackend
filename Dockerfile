@@ -9,6 +9,5 @@ RUN bun run build:compile
 FROM oven/bun:1-alpine AS run
 WORKDIR /app
 COPY --from=build /app/bin/honobackend .
-COPY --from=build /app/node_modules .
 EXPOSE 3001
 CMD ["./honobackend"]
