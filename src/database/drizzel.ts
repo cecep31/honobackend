@@ -7,9 +7,8 @@ export const db = drizzle({
     url: process.env["DATABASE_URL"],
     ssl: true,
     idle_timeout: 30 * 1000, // 30 seconds
-    connect_timeout: 2 * 1000, // 2 seconds
-    max: 10,
+    connect_timeout: 45 * 1000, // 45 seconds
   },
-  logger: process.env["SQL_LOG"] ? true : undefined,
+  logger: undefined,
   schema: schema,
 });
