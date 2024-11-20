@@ -6,7 +6,7 @@ RUN bun install
 RUN bun run build:compile
 
 # FROM alpine:latest as run
-FROM alpine:latest AS run
+FROM oven/bun:1-alpine AS run
 WORKDIR /app
 COPY --from=build /app/bin/honobackend .
 EXPOSE 3001
