@@ -6,7 +6,6 @@ import {
   text,
   boolean,
   bigint,
-  unique,
   varchar,
   serial,
   integer,
@@ -15,54 +14,42 @@ import {
 import { relations } from "drizzle-orm/relations";
 import { sql } from "drizzle-orm";
 
-export const users = pgTable(
-  "users",
-  {
-    id: uuid("id")
-      .default(sql`uuid_generate_v7()`)
-      .primaryKey()
-      .notNull(),
-    github_id: bigint("github_id", { mode: "number" }).unique(),
-    created_at: timestamp("created_at", {
-      withTimezone: true,
-      mode: "string",
-    }).defaultNow(),
-    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-    first_name: varchar("first_name", { length: 255 }).default("pilput"),
-    last_name: varchar("last_name", { length: 255 }).default("admin"),
-    email: varchar("email", { length: 255 }).notNull(),
-    username: varchar("username", { length: 255 }),
-    password: varchar("password", { length: 255 }),
-    image: text("image"),
-    issuperadmin: boolean("issuperadmin").default(false),
-  },
-  (table) => {
-    return {
-      idx_users_email: uniqueIndex("idx_users_email").on(table.email),
-      idx_users_username: uniqueIndex("idx_users_username").on(table.username),
-    };
-  }
-);
+export const users = pgTable("users", {
+  id: uuid("id")
+    .default(sql`uuid_generate_v7()`)
+    .primaryKey()
+    .notNull(),
+  github_id: bigint("github_id", { mode: "number" }).unique(),
+  created_at: timestamp("created_at", {
+    withTimezone: true,
+    mode: "string",
+  }).defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }),
+  deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  first_name: varchar("first_name", { length: 255 }).default("pilput"),
+  last_name: varchar("last_name", { length: 255 }).default("admin"),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  username: varchar("username", { length: 255 }),
+  password: varchar("password", { length: 255 }),
+  image: text("image"),
+  issuperadmin: boolean("issuperadmin").default(false),
+});
 
-export const sessions = pgTable(
-  "sessions",
-  {
-    id: uuid("token").primaryKey().notNull(),
-    user_id: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    created_at: timestamp("created_at", {
-      withTimezone: true,
-      mode: "string",
-    }).defaultNow(),
-    user_agent: text("user_agent"),
-    expires_at: timestamp("expires_at", {
-      withTimezone: true,
-      mode: "string",
-    }),
-  },
-);
+export const sessions = pgTable("sessions", {
+  id: uuid("token").primaryKey().notNull(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  created_at: timestamp("created_at", {
+    withTimezone: true,
+    mode: "string",
+  }).defaultNow(),
+  user_agent: text("user_agent"),
+  expires_at: timestamp("expires_at", {
+    withTimezone: true,
+    mode: "string",
+  }),
+});
 
 export const profiles = pgTable(
   "profiles",
@@ -135,39 +122,30 @@ export const post_comments = pgTable("post_comments", {
   created_by: uuid("created_by").references(() => users.id),
 });
 
-export const posts = pgTable(
-  "posts",
-  {
-    id: uuid("id")
-      .default(sql`uuid_generate_v7()`)
-      .primaryKey()
-      .notNull(),
-    created_at: timestamp("created_at", {
-      withTimezone: true,
-      mode: "string",
-    }).defaultNow(),
-    updated_at: timestamp("updated_at", {
-      withTimezone: true,
-      mode: "string",
-    }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-    title: varchar("title", { length: 255 }),
-    created_by: uuid("created_by").references(() => users.id, {
-      onDelete: "set null",
-      onUpdate: "cascade",
-    }),
-    body: text("body"),
-    slug: varchar("slug", { length: 255 }),
-    createbyid: varchar("createbyid", { length: 50 }),
-    published: boolean("published").default(true),
-    photo_url: text("photo_url"),
-  },
-  (table) => {
-    return {
-      idx_posts_slug: unique("idx_posts_slug").on(table.slug),
-    };
-  }
-);
+export const posts = pgTable("posts", {
+  id: uuid("id")
+    .default(sql`uuid_generate_v7()`)
+    .primaryKey()
+    .notNull(),
+  title: varchar("title", { length: 255 }),
+  slug: varchar("slug", { length: 255 }).unique(),
+  body: text("body"),
+  created_at: timestamp("created_at", {
+    withTimezone: true,
+    mode: "string",
+  }).defaultNow(),
+  updated_at: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "string",
+  }).defaultNow(),
+  deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  created_by: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+    onUpdate: "cascade",
+  }),
+  published: boolean("published").default(true),
+  photo_url: text("photo_url"),
+});
 
 export const tags = pgTable(
   "tags",
