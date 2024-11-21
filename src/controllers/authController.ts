@@ -46,11 +46,14 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("https://pilput.dev");
   } catch (error) {
     console.log(error);
-    return c.json({
-      message: "Failed to get user",
-      success: false,
-      requestId: c.get("requestId") || "N/A",
-    }, 401);
+    return c.json(
+      {
+        message: "Failed to get user",
+        success: false,
+        requestId: c.get("requestId") || "N/A",
+      },
+      401
+    );
   }
 });
 
@@ -150,7 +153,7 @@ authController.patch(
   ),
   async (c) => {
     const body = c.req.valid("json");
-    const user = c.get("jwtPayload") as jwtPayload;
+    const user: jwtPayload = c.get("jwtPayload");
     const result = await authService.updatePassword(
       body.old_password,
       body.new_password,
