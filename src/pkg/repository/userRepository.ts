@@ -11,8 +11,8 @@ export class UserRepository {
   async getUserByGithubId(github_id: number) {
     return db.query.users.findFirst({
       where: and(
-        eq(usersModel.github_id, github_id),
-        isNull(usersModel.deleted_at)
+        eq(usersModel.githubId, github_id),
+        isNull(usersModel.deletedAt)
       ),
     });
   }
@@ -22,7 +22,7 @@ export class UserRepository {
       .select({ count: count() })
       .from(usersModel)
       .where(
-        and(eq(usersModel.username, username), isNull(usersModel.deleted_at))
+        and(eq(usersModel.username, username), isNull(usersModel.deletedAt))
       );
     return users[0].count;
   }
@@ -33,13 +33,13 @@ export class UserRepository {
       .values(data)
       .returning({ id: usersModel.id });
     await db.insert(profiles).values({
-      user_id: user[0].id,
+      userId: user[0].id,
     });
     return user;
   }
   async createUser(data: UserSignup) {
     const user = await db.insert(usersModel).values(data).returning();
-    await db.insert(profiles).values({ user_id: user[0].id });
+    await db.insert(profiles).values({ userId: user[0].id });
     return user[0];
   }
   async getUserWithPassword(id: string) {
@@ -103,8 +103,8 @@ export class UserRepository {
       columns: {
         password: false,
       },
-      orderBy: [desc(usersModel.created_at)],
-      where: isNull(usersModel.deleted_at),
+      orderBy: [desc(usersModel.createdAt)],
+      where: isNull(usersModel.deletedAt),
     });
   }
   async getUsersAll(limit: number, offset: number) {
@@ -114,21 +114,21 @@ export class UserRepository {
       },
       limit: limit,
       offset: offset,
-      orderBy: [desc(usersModel.created_at)],
+      orderBy: [desc(usersModel.createdAt)],
     });
   }
 
   async deleteUserSoft(user_id: string) {
     return await db
       .update(usersModel)
-      .set({ deleted_at: new Date().toISOString() })
+      .set({ deletedAt: new Date().toISOString() })
       .where(eq(usersModel.id, user_id))
       .returning({ id: usersModel.id });
   }
 
   async deleteUserPermanent(user_id: string) {
     // First, delete the user's profile
-    await db.delete(profiles).where(eq(profiles.user_id, user_id));
+    await db.delete(profiles).where(eq(profiles.userId, user_id));
 
     // Then, delete the user
     return await db

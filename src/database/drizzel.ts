@@ -6,7 +6,7 @@ export const db = drizzle({
     url: process.env["DATABASE_URL"],
     ssl: true,
   },
-  logger: true,
+  logger: undefined,
   schema: schema,
 });
 

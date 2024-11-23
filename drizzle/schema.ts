@@ -192,23 +192,23 @@ export const likesRelations = relations(likes, ({one}) => ({
 	}),
 }));
 
-export const usersRelations = relations(users, ({many,one}) => ({
+export const usersRelations = relations(users, ({many}) => ({
 	likes: many(likes),
 	files: many(files),
 	postComments: many(postComments),
 	posts: many(posts),
-	profile: one(profiles),
+	profiles: many(profiles),
 	sessions: many(sessions),
 }));
 
 export const postsRelations = relations(posts, ({one, many}) => ({
 	likes: many(likes),
 	postComments: many(postComments),
-	creator: one(users, {
+	user: one(users, {
 		fields: [posts.createdBy],
 		references: [users.id]
 	}),
-	tags: many(postsToTags),
+	postsToTags: many(postsToTags),
 }));
 
 export const filesRelations = relations(files, ({one}) => ({
