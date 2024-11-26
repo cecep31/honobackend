@@ -5,7 +5,7 @@ import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
 import { githubConfig } from "../../config/github";
 import axios from "axios";
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUIDv7 } from 'bun';
 import { errorHttp } from "../../utils/error";
 
 export class AuthService {
@@ -52,7 +52,7 @@ export class AuthService {
 
     const session = await this.sessionRepository.insertSession({
       user_id: user.id ?? "",
-      refresh_token: uuidv4(),
+      refresh_token: randomUUIDv7().toString(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
       user_agent: user_agent,
     });
