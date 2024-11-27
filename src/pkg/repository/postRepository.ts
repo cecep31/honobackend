@@ -4,7 +4,7 @@ import {
   users as usersModel,
   posts as postsModel,
   postsToTags,
-  tags,
+  tags as tagsModel,
 } from "../../database/schemas/postgre/schema";
 import type { PostCreate } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
@@ -104,14 +104,14 @@ export class PostRepository {
           issuperadmin: usersModel.issuperadmin,
         },
         tags: {
-          id: tags.id,
-          name: tags.name,
+          id: tagsModel.id,
+          name: tagsModel.name,
         },
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.createdBy, usersModel.id))
       .leftJoin(postsToTags, eq(postsModel.id, postsToTags.postId))
-      .leftJoin(tags, eq(postsToTags.tagId, tags.id))
+      .leftJoin(tagsModel, eq(postsToTags.tagId, tagsModel.id))
       .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
     if (posts.length === 0) {
       return null;
