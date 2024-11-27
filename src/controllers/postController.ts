@@ -83,7 +83,7 @@ postController.get("/slug/:slug", async (c) => {
 });
 
 postController.get(
-  "/:username/:slug",
+  "u/:username/:slug",
   validateRequest(
     "param",
     z.object({
