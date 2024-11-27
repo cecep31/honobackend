@@ -4,6 +4,7 @@ import { LikeService } from "../pkg/services/likeService";
 import type { jwtPayload } from "../types/auth";
 
 const likeController = new Hono();
+
 likeController.post("/:postId", auth, async (c) => {
   const { postId } = c.req.param();
   const { id: userId } = c.get("jwtPayload") as jwtPayload;
