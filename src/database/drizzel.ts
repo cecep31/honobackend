@@ -6,8 +6,8 @@ export const db = drizzle({
   connection: {
     url: getSecret.db_url,
     ssl: true,
+    max: 10,
   },
   logger: undefined,
   schema: schema,
 });
-

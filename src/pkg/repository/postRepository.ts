@@ -1,13 +1,13 @@
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../database/drizzel";
+import type { PostCreate } from "../../types/post";
+import type { GetPaginationParams } from "../../types/paginate";
 import {
   users as usersModel,
   posts as postsModel,
   postsToTags,
   tags as tagsModel,
 } from "../../database/schemas/postgre/schema";
-import type { PostCreate } from "../../types/post";
-import type { GetPaginationParams } from "../../types/paginate";
 
 export class PostRepository {
   async getPostsPaginate(params: GetPaginationParams) {
