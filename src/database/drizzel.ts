@@ -5,9 +5,8 @@ import { getSecret } from "../config/secret";
 export const db = drizzle({
   connection: {
     url: getSecret.db_url,
-    ssl: true,
+    ssl: "prefer",
     max: 10,
   },
-  logger: undefined,
   schema: schema,
 });
