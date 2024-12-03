@@ -173,7 +173,7 @@ export const users = pgTable(
     email: varchar("email", { length: 255 }).notNull(),
     password: varchar("password", { length: 255 }),
     image: text("image"),
-    issuperadmin: boolean("issuperadmin").default(false),
+    issuperadmin: boolean("is_super_admin").default(false),
     username: varchar("username", { length: 255 }),
     githubId: bigint("github_id", { mode: "number" }),
   },
