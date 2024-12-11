@@ -3,7 +3,7 @@ import { drizzle as drizzle_neon } from "drizzle-orm/neon-serverless";
 import * as schema from "./schemas/postgre/schema";
 import { getSecret } from "../config/secret";
 
-export const db_disbled = drizzle({
+export const db_old = drizzle({
   connection: {
     url: getSecret.db_url,
     ssl: "prefer",
