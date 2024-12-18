@@ -9,11 +9,14 @@ export const app = new Hono()
   })
   .onError((err, c) => {
     if (err instanceof HTTPException) {
-      return c.json({
-        message: err.message,
-        success: false,
-        requestId: c.get("requestId") || "N/A"
-      }, err.status);
+      return c.json(
+        {
+          message: err.message,
+          success: false,
+          requestId: c.get("requestId") || "N/A",
+        },
+        err.status
+      );
     }
     console.log(err);
     return c.json({ message: "internal server error" }, 500);

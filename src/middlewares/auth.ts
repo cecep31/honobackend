@@ -1,5 +1,4 @@
 import { createMiddleware } from "hono/factory";
-import { HTTPException } from "hono/http-exception";
 import { verify } from "hono/jwt";
 import { getSecret } from "../config/secret";
 
@@ -12,7 +11,14 @@ export const auth = createMiddleware(async (c, next) => {
     c.set("jwtPayload", decodedPayload);
   } catch (error) {
     if (error instanceof Error) {
-      throw new HTTPException(401, { message: "Invalid token" });
+      return c.json(
+        {
+          message: "Unauthorized",
+          success: false,
+          requestId: c.get("requestId") || "N/A",
+        },
+        401
+      );
     }
   }
   await next();
