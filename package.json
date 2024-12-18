@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.2",
-    "@neondatabase/serverless": "^0.10.4",
     "axios": "^1.7.9",
     "drizzle-orm": "^0.38.2",
     "hono": "^4.6.14",
