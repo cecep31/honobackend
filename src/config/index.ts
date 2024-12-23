@@ -5,4 +5,5 @@ export const originList = [
     "https://www.pilput.dev",
     "https://app.pilput.dev",
     "https://dash.pilput.dev",
+    "https://pilput.me",
 ];
