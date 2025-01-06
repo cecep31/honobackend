@@ -3,12 +3,37 @@ import { verify } from "hono/jwt";
 import { getSecret } from "../config/secret";
 
 export const auth = createMiddleware(async (c, next) => {
-  const authorization = c.req.header("Authorization");
-  const token = authorization?.replace("Bearer ", "");
 
   try {
-    const decodedPayload = await verify(token ?? "", getSecret.jwt_secret);
+    const authorization = c.req.header("Authorization");
+
+    if (!authorization) {
+      return c.json(
+        {
+          message: "No authorization header found",
+          success: false,
+          requestId: c.get("requestId") || "N/A",
+        },
+        401
+      );
+    }
+
+    const token = authorization.replace("Bearer ", "");
+
+    if (!token) {
+      return c.json(
+        {
+          message: "No token provided",
+          success: false,
+          requestId: c.get("requestId") || "N/A",
+        },
+        401
+      );
+    }
+
+    const decodedPayload = await verify(token, getSecret.jwt_secret);
     c.set("jwtPayload", decodedPayload);
+    await next();
   } catch (error) {
     if (error instanceof Error) {
       return c.json(
@@ -21,5 +46,4 @@ export const auth = createMiddleware(async (c, next) => {
       );
     }
   }
-  await next();
 });
