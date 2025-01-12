@@ -133,6 +133,9 @@ export class PostService {
       user_id,
       params
     );
+    data.forEach((post) => {
+      post.body = post.body?.substring(0, 200) || "" + "...";
+    });
     const metadata = getPaginationMetadata(total, params.offset, params.limit);
     return { data, metadata };
   }
