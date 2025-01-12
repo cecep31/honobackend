@@ -98,8 +98,8 @@ export class PostRepository {
           id: usersModel.id,
           username: usersModel.username,
           email: usersModel.email,
-          firstname: usersModel.firstName,
-          lastname: usersModel.lastName,
+          first_name: usersModel.first_name,
+          last_name: usersModel.last_name,
           image: usersModel.image,
           issuperadmin: usersModel.issuperadmin,
         },
@@ -217,8 +217,8 @@ export class PostRepository {
           id: usersModel.id,
           username: usersModel.username,
           email: usersModel.email,
-          firstname: usersModel.firstName,
-          lastname: usersModel.lastName,
+          first_name: usersModel.first_name,
+          last_name: usersModel.last_name,
         },
       })
       .from(postsModel)
@@ -249,8 +249,8 @@ export class PostRepository {
           id: usersModel.id,
           username: usersModel.username,
           email: usersModel.email,
-          firstname: usersModel.firstName,
-          lastname: usersModel.lastName,
+          first_name: usersModel.first_name,
+          last_name: usersModel.last_name,
         },
       })
       .from(postsModel)
