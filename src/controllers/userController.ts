@@ -3,10 +3,10 @@ import { userService } from "../pkg/service";
 import { auth } from "../middlewares/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
 import { z } from "zod";
-import type { jwtPayload } from "../types/auth";
 import { validateRequest } from "../middlewares/validateRequest";
+import type { Variables } from "../types/context";
 
-export const userController = new Hono()
+export const userController = new Hono<{ Variables: Variables }>()
   .get("/", auth, superAdminMiddleware, async (c) => {
     const users = await userService.getUsers();
     return c.json({
@@ -17,9 +17,9 @@ export const userController = new Hono()
     });
   })
   .get("/me", auth, async (c) => {
-    const jwtPayload = c.get("jwtPayload") as jwtPayload;
+    const auth = c.get("user");
     const profile = Boolean(c.req.query("profile"));
-    const user = await userService.gerUserMe(jwtPayload.id, profile);
+    const user = await userService.gerUserMe(auth.user_id, profile);
     return c.json({
       data: user,
       success: true,

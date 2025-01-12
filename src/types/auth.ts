@@ -1,5 +1,5 @@
 export interface jwtPayload {
-    id: string
+    user_id: string
     email: string
     issuperadmin: boolean
 }

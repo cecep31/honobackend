@@ -6,8 +6,9 @@ import type { jwtPayload } from "../types/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
 import { getPaginationParams } from "../utils/paginate";
 import { validateRequest } from "../middlewares/validateRequest";
+import type { Variables } from '../types/context'
 
-const postController = new Hono();
+const postController = new Hono<{ Variables: Variables }>();
 
 postController.get("/", async (c) => {
   try {
@@ -59,8 +60,8 @@ postController.get("/random", async (c) => {
 
 postController.get("/mine", auth, async (c) => {
   const params = getPaginationParams(c);
-  const auth = c.get("jwtPayload") as jwtPayload;
-  const posts = await postService.getPostsByuser(auth.id, params);
+  const auth = c.get("user");
+  const posts = await postService.getPostsByuser(auth.user_id, params);
   return c.json({
     ...posts,
     message: "Posts fetched successfully",
@@ -162,16 +163,16 @@ postController.post(
     })
   ),
   async (c) => {
-    const auth = c.get("jwtPayload") as jwtPayload;
+    const auth = c.get("user");
     const body = c.req.valid("json");
-    return c.json(await postService.addPost(auth.id, body));
+    return c.json(await postService.addPost(auth.user_id, body));
   }
 );
 
 postController.delete("/:id", auth, async (c) => {
   const id = c.req.param("id");
-  const auth = c.get("jwtPayload") as jwtPayload;
-  const post = await postService.deletePost(id, auth.id);
+  const auth = c.get("user") as jwtPayload;
+  const post = await postService.deletePost(id, auth.user_id);
   return c.json(post);
 });
 

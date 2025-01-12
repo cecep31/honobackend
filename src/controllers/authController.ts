@@ -2,15 +2,15 @@ import { Hono } from "hono";
 import { authService } from "../pkg/service";
 import { z } from "zod";
 import { auth } from "../middlewares/auth";
-import type { jwtPayload } from "../types/auth";
 import { githubConfig } from "../config/github";
 import axios from "axios";
 import type { GithubUser } from "../types/user";
 import { setCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
+import type { Variables } from '../types/context'
 
-const authController = new Hono();
+const authController = new Hono<{ Variables: Variables }>();
 
 authController.get("/oauth/github", async (c) => {
   const authUrl = new URL("https://github.com/login/oauth/authorize");
@@ -153,11 +153,11 @@ authController.patch(
   ),
   async (c) => {
     const body = c.req.valid("json");
-    const user: jwtPayload = c.get("jwtPayload");
+    const user = c.get("user");
     const result = await authService.updatePassword(
       body.old_password,
       body.new_password,
-      user.id
+      user.user_id
     );
     return c.json({
       success: true,

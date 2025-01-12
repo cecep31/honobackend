@@ -32,7 +32,7 @@ export const auth = createMiddleware(async (c, next) => {
     }
 
     const decodedPayload = await verify(token, getSecret.jwt_secret);
-    c.set("jwtPayload", decodedPayload);
+    c.set("user", decodedPayload);
 
     await next();
   } catch (error) {

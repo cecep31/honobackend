@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { auth } from "../middlewares/auth";
 import { LikeService } from "../pkg/services/likeService";
-import type { jwtPayload } from "../types/auth";
+import type { Variables } from "../types/context";
 
-const likeController = new Hono();
+const likeController = new Hono<{ Variables: Variables }>();
 
 likeController.post("/:postId", auth, async (c) => {
   const { postId } = c.req.param();
-  const { id: userId } = c.get("jwtPayload") as jwtPayload;
-  return c.json(await LikeService.updateLike(postId, userId));
+  const { user_id } = c.get("user");
+  return c.json(await LikeService.updateLike(postId, user_id));
 });
 likeController.get("/:post_id", auth, async (c) => {
   const post_id = c.req.param("post_id");
