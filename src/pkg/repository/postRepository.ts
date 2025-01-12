@@ -13,8 +13,8 @@ export class PostRepository {
   async getPostsPaginate(params: GetPaginationParams) {
     const { offset, limit } = params;
     const posts = await db.query.posts.findMany({
-      where: and(isNull(postsModel.deletedAt), eq(postsModel.published, true)),
-      orderBy: desc(postsModel.createdAt),
+      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
+      orderBy: desc(postsModel.created_at),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
@@ -31,8 +31,8 @@ export class PostRepository {
 
   async getAllPosts(limit = 100, offset = 0) {
     const posts = await db.query.posts.findMany({
-      where: isNull(postsModel.deletedAt),
-      orderBy: desc(postsModel.createdAt),
+      where: isNull(postsModel.deleted_at),
+      orderBy: desc(postsModel.created_at),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
@@ -43,17 +43,17 @@ export class PostRepository {
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .where(isNull(postsModel.deletedAt));
+      .where(isNull(postsModel.deleted_at));
     return { data: posts, total: total[0].count };
   }
 
   async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
     const posts = await db.query.posts.findMany({
       where: and(
-        isNull(postsModel.deletedAt),
-        eq(postsModel.createdBy, user_id)
+        isNull(postsModel.deleted_at),
+        eq(postsModel.created_by, user_id)
       ),
-      orderBy: desc(postsModel.createdAt),
+      orderBy: desc(postsModel.created_at),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
@@ -64,7 +64,7 @@ export class PostRepository {
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .where(eq(postsModel.createdBy, user_id));
+      .where(eq(postsModel.created_by, user_id));
     return { data: posts, total: total[0].count };
   }
 
@@ -79,8 +79,8 @@ export class PostRepository {
   async getPostByCreatorSlug(user_id: string, slug: string) {
     return await db.query.posts.findFirst({
       where: and(
-        isNull(postsModel.deletedAt),
-        eq(postsModel.createdBy, user_id),
+        isNull(postsModel.deleted_at),
+        eq(postsModel.created_by, user_id),
         eq(postsModel.slug, slug)
       ),
       with: {
@@ -109,8 +109,8 @@ export class PostRepository {
         },
       })
       .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.createdBy, usersModel.id))
-      .leftJoin(postsToTags, eq(postsModel.id, postsToTags.postId))
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .leftJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
       .leftJoin(tagsModel, eq(postsToTags.tagId, tagsModel.id))
       .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
     if (posts.length === 0) {
@@ -127,7 +127,7 @@ export class PostRepository {
   async getPostBySlug(slug: string) {
     return await db.query.posts.findFirst({
       where: and(
-        isNull(postsModel.deletedAt),
+        isNull(postsModel.deleted_at),
         eq(postsModel.slug, slug),
         eq(postsModel.published, true)
       ),
@@ -140,7 +140,7 @@ export class PostRepository {
 
   async getPostById(id: string) {
     return await db.query.posts.findFirst({
-      where: and(isNull(postsModel.deletedAt), eq(postsModel.id, id)),
+      where: and(isNull(postsModel.deleted_at), eq(postsModel.id, id)),
       with: {
         creator: { columns: { password: false } },
         tags: { columns: {}, with: { tag: true } },
@@ -160,8 +160,8 @@ export class PostRepository {
         body: data.body,
         title: data.title,
         slug: data.slug,
-        photoUrl: data.photo_url,
-        createdBy: data.created_by,
+        photo_url: data.photo_url,
+        created_by: data.created_by,
         published: data.published,
       })
       .returning({ id: postsModel.id });
@@ -171,8 +171,8 @@ export class PostRepository {
     const { offset, limit } = params;
     const posts = await db.query.posts.findMany({
       where: and(
-        eq(postsModel.createdBy, user_id),
-        isNull(postsModel.deletedAt)
+        eq(postsModel.created_by, user_id),
+        isNull(postsModel.deleted_at)
       ),
       with: {
         creator: { columns: { password: false } },
@@ -180,13 +180,13 @@ export class PostRepository {
       },
       limit: limit,
       offset: offset,
-      orderBy: desc(postsModel.createdAt),
+      orderBy: desc(postsModel.created_at),
     });
     const total = await db
       .select({ count: count() })
       .from(postsModel)
       .where(
-        and(eq(postsModel.createdBy, user_id), isNull(postsModel.deletedAt))
+        and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at))
       );
     return { data: posts, total: total[0].count };
   }
@@ -198,12 +198,12 @@ export class PostRepository {
         title: postsModel.title,
         slug: postsModel.slug,
         body: postsModel.body,
-        createdAt: postsModel.createdAt,
+        created_at: postsModel.created_at,
       })
       .from(postsModel)
-      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.postId))
+      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
       .where(eq(postsToTags.tagId, tag_id))
-      .orderBy(desc(postsModel.createdAt));
+      .orderBy(desc(postsModel.created_at));
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
     const posts = await db
@@ -212,7 +212,7 @@ export class PostRepository {
         title: postsModel.title,
         slug: postsModel.slug,
         body: postsModel.body,
-        createdAt: postsModel.createdAt,
+        created_at: postsModel.created_at,
         creator: {
           id: usersModel.id,
           username: usersModel.username,
@@ -222,15 +222,15 @@ export class PostRepository {
         },
       })
       .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.createdBy, usersModel.id))
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(eq(usersModel.username, username))
-      .orderBy(desc(postsModel.createdAt))
+      .orderBy(desc(postsModel.created_at))
       .limit(limit)
       .offset(offset);
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.createdBy, usersModel.id))
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(eq(usersModel.username, username))
       .limit(limit)
       .offset(offset);
@@ -244,7 +244,7 @@ export class PostRepository {
         title: postsModel.title,
         slug: postsModel.slug,
         body: postsModel.body,
-        createdAt: postsModel.createdAt,
+        created_at: postsModel.created_at,
         creator: {
           id: usersModel.id,
           username: usersModel.username,
@@ -254,8 +254,8 @@ export class PostRepository {
         },
       })
       .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.createdBy, usersModel.id))
-      .where(and(isNull(postsModel.deletedAt), eq(postsModel.published, true)))
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
       .orderBy(sql.raw("RANDOM()"))
       .limit(limit);
   }
@@ -263,8 +263,8 @@ export class PostRepository {
   async deletePost(id: string, user_id: string) {
     return await db
       .update(postsModel)
-      .set({ deletedAt: new Date().toISOString() })
-      .where(and(eq(postsModel.id, id), eq(postsModel.createdBy, user_id)))
+      .set({ deleted_at: new Date().toISOString() })
+      .where(and(eq(postsModel.id, id), eq(postsModel.created_by, user_id)))
       .returning({ id: postsModel.id });
   }
   async deletePostPermanent(id: string) {

@@ -1,3 +1,6 @@
+import type { Tag } from "../domain/tag";
+import type { User } from "./user";
+
 export interface PostBase {
   title: string;
   body: string;
@@ -12,4 +15,12 @@ export interface PostCreate extends PostBase {
 
 export interface PostCreateBody extends PostBase {
   tags: string[];
+}
+
+export interface PostResponse extends PostBase {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  creator: User;
+  tags: Tag[];
 }

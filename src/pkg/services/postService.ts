@@ -84,9 +84,9 @@ export class PostService {
       body:
         post.body?.slice(0, 200) + (post.body?.length ?? 0 > 200 ? "..." : ""),
       slug: post.slug,
-      photo_url: post.photoUrl,
-      createdAt: post.createdAt,
-      updatedAt: post.updatedAt,
+      photo_url: post.photo_url,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
       published: post.published,
       creator: post.creator,
       tags: post.tags.map((tag) => tag.tag),
@@ -120,8 +120,8 @@ export class PostService {
     return await this.postrepository.getPostBySlug(slug);
   }
 
-  async deletePost(postId: string, auth_id: string) {
-    const deletedPost = await this.postrepository.deletePost(postId, auth_id);
+  async deletePost(post_id: string, auth_id: string) {
+    const deletedPost = await this.postrepository.deletePost(post_id, auth_id);
     if (!deletedPost) {
       throw new HTTPException(404, { message: "Post not found" });
     }

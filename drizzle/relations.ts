@@ -3,11 +3,11 @@ import { users, likes, posts, files, postComments, profiles, sessions, postsToTa
 
 export const likesRelations = relations(likes, ({one}) => ({
 	user: one(users, {
-		fields: [likes.createdBy],
+		fields: [likes.created_by],
 		references: [users.id]
 	}),
 	post: one(posts, {
-		fields: [likes.postId],
+		fields: [likes.post_id],
 		references: [posts.id]
 	}),
 }));
@@ -25,7 +25,7 @@ export const postsRelations = relations(posts, ({one, many}) => ({
 	likes: many(likes),
 	postComments: many(postComments),
 	user: one(users, {
-		fields: [posts.createdBy],
+		fields: [posts.created_by],
 		references: [users.id]
 	}),
 	postsToTags: many(postsToTags),
@@ -33,18 +33,18 @@ export const postsRelations = relations(posts, ({one, many}) => ({
 
 export const filesRelations = relations(files, ({one}) => ({
 	user: one(users, {
-		fields: [files.createdBy],
+		fields: [files.created_by],
 		references: [users.id]
 	}),
 }));
 
 export const postCommentsRelations = relations(postComments, ({one}) => ({
 	user: one(users, {
-		fields: [postComments.createdBy],
+		fields: [postComments.created_by],
 		references: [users.id]
 	}),
 	post: one(posts, {
-		fields: [postComments.postId],
+		fields: [postComments.post_id],
 		references: [posts.id]
 	}),
 }));
@@ -65,7 +65,7 @@ export const sessionsRelations = relations(sessions, ({one}) => ({
 
 export const postsToTagsRelations = relations(postsToTags, ({one}) => ({
 	post: one(posts, {
-		fields: [postsToTags.postId],
+		fields: [postsToTags.post_id],
 		references: [posts.id]
 	}),
 	tag: one(tags, {

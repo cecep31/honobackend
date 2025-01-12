@@ -6,19 +6,19 @@ import { sql } from "drizzle-orm"
 
 export const likes = pgTable("likes", {
 	id: serial().primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	postId: uuid("post_id"),
-	createdBy: uuid("created_by"),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	post_id: uuid("post_id"),
+	created_by: uuid("created_by"),
 }, (table) => {
 	return {
-		idxLikePostIdCreatedBy: uniqueIndex("idx_like_post_id_created_by").using("btree", table.postId.asc().nullsLast().op("uuid_ops"), table.createdBy.asc().nullsLast().op("uuid_ops")),
-		likesCreatedByUsersIdFk: foreignKey({
-			columns: [table.createdBy],
+		idxLikepost_idcreated_by: uniqueIndex("idx_like_post_id_created_by").using("btree", table.post_id.asc().nullsLast().op("uuid_ops"), table.created_by.asc().nullsLast().op("uuid_ops")),
+		likescreated_byUsersIdFk: foreignKey({
+			columns: [table.created_by],
 			foreignColumns: [users.id],
 			name: "likes_created_by_users_id_fk"
 		}),
-		likesPostIdPostsIdFk: foreignKey({
-			columns: [table.postId],
+		likespost_idPostsIdFk: foreignKey({
+			columns: [table.post_id],
 			foreignColumns: [posts.id],
 			name: "likes_post_id_posts_id_fk"
 		}).onDelete("cascade"),
@@ -27,18 +27,18 @@ export const likes = pgTable("likes", {
 
 export const files = pgTable("files", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
-	deletedAt: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
+	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	name: varchar({ length: 255 }),
 	path: text(),
 	size: integer(),
 	type: varchar({ length: 255 }),
-	createdBy: uuid("created_by"),
+	created_by: uuid("created_by"),
 }, (table) => {
 	return {
-		filesCreatedByUsersIdFk: foreignKey({
-			columns: [table.createdBy],
+		filescreated_byUsersIdFk: foreignKey({
+			columns: [table.created_by],
 			foreignColumns: [users.id],
 			name: "files_created_by_users_id_fk"
 		}),
@@ -47,23 +47,23 @@ export const files = pgTable("files", {
 
 export const postComments = pgTable("post_comments", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	deletedAt: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
+	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	text: text(),
-	postId: uuid("post_id"),
+	post_id: uuid("post_id"),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	parrentCommentId: bigint("parrent_comment_id", { mode: "number" }),
-	createdBy: uuid("created_by"),
+	created_by: uuid("created_by"),
 }, (table) => {
 	return {
-		postCommentsCreatedByUsersIdFk: foreignKey({
-			columns: [table.createdBy],
+		postCommentscreated_byUsersIdFk: foreignKey({
+			columns: [table.created_by],
 			foreignColumns: [users.id],
 			name: "post_comments_created_by_users_id_fk"
 		}),
-		postCommentsPostIdPostsIdFk: foreignKey({
-			columns: [table.postId],
+		postCommentspost_idPostsIdFk: foreignKey({
+			columns: [table.post_id],
 			foreignColumns: [posts.id],
 			name: "post_comments_post_id_posts_id_fk"
 		}).onDelete("cascade"),
@@ -72,11 +72,11 @@ export const postComments = pgTable("post_comments", {
 
 export const posts = pgTable("posts", {
 	id: uuid().default(sql`uuid_generate_v7()`).primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	deletedAt: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
+	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	title: varchar({ length: 255 }),
-	createdBy: uuid("created_by"),
+	created_by: uuid("created_by"),
 	body: text(),
 	slug: varchar({ length: 255 }),
 	createbyid: varchar({ length: 50 }),
@@ -84,8 +84,8 @@ export const posts = pgTable("posts", {
 	published: boolean().default(true),
 }, (table) => {
 	return {
-		postsCreatedByUsersIdFk: foreignKey({
-			columns: [table.createdBy],
+		postscreated_byUsersIdFk: foreignKey({
+			columns: [table.created_by],
 			foreignColumns: [users.id],
 			name: "posts_created_by_users_id_fk"
 		}).onUpdate("cascade").onDelete("set null"),
@@ -96,7 +96,7 @@ export const posts = pgTable("posts", {
 export const tags = pgTable("tags", {
 	id: serial().primaryKey().notNull(),
 	name: varchar({ length: 30 }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 }, (table) => {
 	return {
 		idxTagsName: uniqueIndex("idx_tags_name").using("btree", table.name.asc().nullsLast().op("text_ops")),
@@ -105,9 +105,9 @@ export const tags = pgTable("tags", {
 
 export const users = pgTable("users", {
 	id: uuid().default(sql`uuid_generate_v7()`).primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
-	deletedAt: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
+	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	firstName: varchar("first_name", { length: 255 }).default('pilput'),
 	lastName: varchar("last_name", { length: 255 }).default('admin'),
 	email: varchar({ length: 255 }).notNull(),
@@ -128,7 +128,7 @@ export const users = pgTable("users", {
 export const profiles = pgTable("profiles", {
 	id: serial().primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
 	bio: text(),
 	website: text(),
@@ -148,7 +148,7 @@ export const profiles = pgTable("profiles", {
 export const sessions = pgTable("sessions", {
 	token: uuid().primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	userAgent: text("user_agent"),
 	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }),
 }, (table) => {
@@ -162,12 +162,12 @@ export const sessions = pgTable("sessions", {
 });
 
 export const postsToTags = pgTable("posts_to_tags", {
-	postId: uuid("post_id").notNull(),
+	post_id: uuid("post_id").notNull(),
 	tagId: integer("tag_id").notNull(),
 }, (table) => {
 	return {
 		postsToTagsPostsIdPostsIdFk: foreignKey({
-			columns: [table.postId],
+			columns: [table.post_id],
 			foreignColumns: [posts.id],
 			name: "posts_to_tags_posts_id_posts_id_fk"
 		}).onDelete("cascade"),
@@ -176,18 +176,18 @@ export const postsToTags = pgTable("posts_to_tags", {
 			foreignColumns: [tags.id],
 			name: "posts_to_tags_tags_id_tags_id_fk"
 		}).onDelete("cascade"),
-		postsToTagsPostsIdTagsIdPk: primaryKey({ columns: [table.postId, table.tagId], name: "posts_to_tags_posts_id_tags_id_pk"}),
+		postsToTagsPostsIdTagsIdPk: primaryKey({ columns: [table.post_id, table.tagId], name: "posts_to_tags_posts_id_tags_id_pk"}),
 	}
 });
 
 
 export const likesRelations = relations(likes, ({one}) => ({
 	user: one(users, {
-		fields: [likes.createdBy],
+		fields: [likes.created_by],
 		references: [users.id]
 	}),
 	post: one(posts, {
-		fields: [likes.postId],
+		fields: [likes.post_id],
 		references: [posts.id]
 	}),
 }));
@@ -205,7 +205,7 @@ export const postsRelations = relations(posts, ({one, many}) => ({
 	likes: many(likes),
 	postComments: many(postComments),
 	user: one(users, {
-		fields: [posts.createdBy],
+		fields: [posts.created_by],
 		references: [users.id]
 	}),
 	postsToTags: many(postsToTags),
@@ -213,18 +213,18 @@ export const postsRelations = relations(posts, ({one, many}) => ({
 
 export const filesRelations = relations(files, ({one}) => ({
 	user: one(users, {
-		fields: [files.createdBy],
+		fields: [files.created_by],
 		references: [users.id]
 	}),
 }));
 
 export const postCommentsRelations = relations(postComments, ({one}) => ({
 	user: one(users, {
-		fields: [postComments.createdBy],
+		fields: [postComments.created_by],
 		references: [users.id]
 	}),
 	post: one(posts, {
-		fields: [postComments.postId],
+		fields: [postComments.post_id],
 		references: [posts.id]
 	}),
 }));
@@ -245,7 +245,7 @@ export const sessionsRelations = relations(sessions, ({one}) => ({
 
 export const postsToTagsRelations = relations(postsToTags, ({one}) => ({
 	post: one(posts, {
-		fields: [postsToTags.postId],
+		fields: [postsToTags.post_id],
 		references: [posts.id]
 	}),
 	tag: one(tags, {

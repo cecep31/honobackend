@@ -5,12 +5,12 @@ import { and, eq } from "drizzle-orm";
 import { errorHttp } from "../../utils/error";
 
 export class LikeService {
-  static async updateLike(postId: string, authId: string) {
+  static async updateLike(post_id: string, authId: string) {
     try {
       const checkLike = await db
         .select({ id: likes.id })
         .from(likes)
-        .where(and(eq(likes.createdBy, authId), eq(likes.postId, postId)));
+        .where(and(eq(likes.created_by, authId), eq(likes.post_id, post_id)));
       if (checkLike.length > 0) {
         console.log("ada data");
         const deletresult = await db.delete(likes).returning();
@@ -19,7 +19,7 @@ export class LikeService {
         console.log("tidak ada data");
         const like = await db
           .insert(likes)
-          .values({ postId: postId, createdBy: authId })
+          .values({ post_id: post_id, created_by: authId })
           .returning({
             id: likes.id,
           });
@@ -41,10 +41,10 @@ export class LikeService {
     const like = await db
       .select({
         id: likes.id,
-        created_at: likes.createdAt,
+        created_at: likes.created_at,
       })
       .from(likes)
-      .where(eq(likes.postId, post_id));
+      .where(eq(likes.post_id, post_id));
     return like;
   }
 }

@@ -12,7 +12,7 @@ export class UserRepository {
     return db.query.users.findFirst({
       where: and(
         eq(usersModel.githubId, github_id),
-        isNull(usersModel.deletedAt)
+        isNull(usersModel.deleted_at)
       ),
     });
   }
@@ -22,7 +22,7 @@ export class UserRepository {
       .select({ count: count() })
       .from(usersModel)
       .where(
-        and(eq(usersModel.username, username), isNull(usersModel.deletedAt))
+        and(eq(usersModel.username, username), isNull(usersModel.deleted_at))
       );
     return users[0].count;
   }
@@ -103,8 +103,8 @@ export class UserRepository {
       columns: {
         password: false,
       },
-      orderBy: [desc(usersModel.createdAt)],
-      where: isNull(usersModel.deletedAt),
+      orderBy: [desc(usersModel.created_at)],
+      where: isNull(usersModel.deleted_at),
     });
   }
   async getUsersAll(limit: number, offset: number) {
@@ -114,14 +114,14 @@ export class UserRepository {
       },
       limit: limit,
       offset: offset,
-      orderBy: [desc(usersModel.createdAt)],
+      orderBy: [desc(usersModel.created_at)],
     });
   }
 
   async deleteUserSoft(user_id: string) {
     return await db
       .update(usersModel)
-      .set({ deletedAt: new Date().toISOString() })
+      .set({ deleted_at: new Date().toISOString() })
       .where(eq(usersModel.id, user_id))
       .returning({ id: usersModel.id });
   }
