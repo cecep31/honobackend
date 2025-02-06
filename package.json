@@ -15,7 +15,7 @@
   "dependencies": {
     "@hono/zod-validator": "^0.4.2",
     "axios": "^1.7.9",
-    "drizzle-orm": "^0.39.1",
+    "drizzle-orm": "^0.39.2",
     "hono": "^4.6.20",
     "hono-rate-limiter": "^0.4.2",
     "postgres": "^3.4.5",
