@@ -1,4 +1,3 @@
-import postgres from "postgres";
 import { likes } from "../../database/schemas/postgre/schema";
 import { db } from "../../database/drizzel";
 import { and, eq } from "drizzle-orm";
@@ -26,14 +25,8 @@ export class LikeService {
         return like[0];
       }
     } catch (error) {
-      if (error instanceof postgres.PostgresError) {
-        if (error.code == "23505") {
-          throw errorHttp("already liked", 400);
-        }
-      } else {
-        console.log(error);
-        throw errorHttp("internal server error", 500);
-      }
+      console.log(error);
+      throw errorHttp("internal server error", 500);
     }
   }
 

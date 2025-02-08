@@ -1,4 +1,3 @@
-import Postgres from "postgres";
 import { PostRepository } from "../repository/postRepository";
 import { TagRepository } from "../repository/tagRepository";
 import type { PostCreateBody } from "../../types/post";
@@ -50,14 +49,8 @@ export class PostService {
 
       return post[0];
     } catch (error) {
-      if (error instanceof Postgres.PostgresError) {
-        if (error.code == "23505") {
-          throw errorHttp("slug already exist", 400);
-        }
-      } else {
-        console.log(error);
-        throw errorHttp("internal server error", 500);
-      }
+      console.log(error);
+      throw errorHttp("internal server error", 500);
     }
   }
 
