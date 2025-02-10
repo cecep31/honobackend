@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgres://username:password@postgres:5432/pilput_db
-      - JWT_KEY=
+      - JWT_SECRET=
       - PORT=3001
     depends_on:
       - postgres

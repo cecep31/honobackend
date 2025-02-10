@@ -5,16 +5,14 @@ import { getSecret } from "../../config/secret";
 import type { userLogin, UserSignup } from "../../types/user";
 import { githubConfig } from "../../config/github";
 import axios from "axios";
-import { randomUUIDv7 } from 'bun';
+import { randomUUIDv7 } from "bun";
 import { errorHttp } from "../../utils/error";
 
 export class AuthService {
-
   constructor(
     private userRepository: UserRepository,
     private sessionRepository: SessionRepository
-  ) { }
-
+  ) {}
 
   private isEmail(email: string): boolean {
     const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -138,19 +136,6 @@ export class AuthService {
       }
       const { payload } = decode(refreshToken);
       console.log(payload);
-
-      // const user = await this.userrepository.getUser(payload.id)
-      // if (!user) {
-      //     throw new HTTPException(401, { message: "User not found" });
-      // }
-      // const newPayload = {
-      //     id: user.id,
-      //     email: user.email,
-      //     isSuperAdmin: user.issuperadmin,
-      //     exp: Math.floor(Date.now() / 1000) + 2 * 24 * 60 * 60
-      // }
-      // const newToken = await sign(newPayload, process.env.JWT_KEY ?? "");
-      // return { access_token: newToken };
     } catch (error) {
       throw errorHttp("Invalid token", 401);
     }
