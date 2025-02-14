@@ -67,7 +67,7 @@ export class AuthService {
     }
 
     const payload = {
-      id: user.id,
+      user_id: user.id,
       email: user.email,
       isSuperAdmin: user.issuperadmin,
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
