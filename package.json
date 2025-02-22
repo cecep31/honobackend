@@ -13,10 +13,10 @@
     "start:prod": "bun run dist/index.js"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.4.2",
+    "@hono/zod-validator": "^0.4.3",
     "axios": "^1.7.9",
     "drizzle-orm": "^0.39.3",
-    "hono": "^4.7.1",
+    "hono": "^4.7.2",
     "hono-rate-limiter": "^0.4.2",
     "zod": "^3.24.2"
   },
