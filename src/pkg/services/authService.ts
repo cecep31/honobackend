@@ -15,9 +15,13 @@ export class AuthService {
   ) {}
 
   private isEmail(email: string): boolean {
-    const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!email || email.length < 5 || email.length > 254) {
+      return false;
+    }
+    const pattern = /^[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$/;
     return pattern.test(email);
   }
+
   async signIn(username: string, password: string, user_agent: string) {
     let user: userLogin | undefined;
 
@@ -70,7 +74,7 @@ export class AuthService {
       user_id: user.id,
       email: user.email,
       isSuperAdmin: user.issuperadmin,
-      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
+      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
     };
 
     const token = await sign(payload, getSecret.jwt_secret);
@@ -88,7 +92,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       isSuperAdmin: user.issuperadmin,
-      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
+      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
     };
 
     const token = await sign(payload, getSecret.jwt_secret);
