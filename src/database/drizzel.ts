@@ -1,5 +1,14 @@
-import { drizzle } from "drizzle-orm/bun-sql";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schemas/postgre/schema";
 import { getSecret } from "../config/secret";
 
-export const db = drizzle(getSecret.db_url, { schema });
+export const db = drizzle({
+  connection: {
+    url: getSecret.db_url,
+    ssl: "prefer",
+    max: 20,
+    connect_timeout: 30000,
+    idle_timeout: 60000,
+  },
+  schema: schema,
+});

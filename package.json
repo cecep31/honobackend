@@ -18,6 +18,7 @@
     "drizzle-orm": "^0.40.1",
     "hono": "^4.7.4",
     "hono-rate-limiter": "^0.4.2",
+    "postgres": "^3.4.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {
