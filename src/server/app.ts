@@ -19,5 +19,11 @@ export const app = new Hono()
       );
     }
     console.log(err);
-    return c.json({ message: "internal server error" }, 500);
+    return c.json(
+      {
+        success: false,
+        message: "internal server error",
+      },
+      500
+    );
   });
