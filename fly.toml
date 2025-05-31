@@ -4,7 +4,7 @@
 #
 
 app = 'honobackend'
-primary_region = 'sin'
+primary_region = 'sin'  # Singapore is cost-effective, alternatives: 'bom' (Mumbai), 'hkg' (Hong Kong)
 
 [build]
   image = "cecep31/honobackend:latest"
@@ -12,12 +12,18 @@ primary_region = 'sin'
 [http_service]
   internal_port = 3001
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = true  # Changed from 'stop' to true for better compatibility
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 0   # Saves cost by scaling to 0 when not in use
   processes = ['app']
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
 
 [[vm]]
-  memory = '256mb'
-  cpu_kind = 'shared'
-  cpus = 1
+  memory = '256mb'    # Minimum memory configuration
+  cpu_kind = 'shared'  # Shared CPUs are more cost-effective
+  cpus = 1            # Single CPU core
+  memory_mb = 256     # Explicit memory limit in MB
+  swap_size_mb = 128  # Add swap to help with memory spikes
