@@ -12,9 +12,10 @@ primary_region = 'sin'  # Singapore is cost-effective, alternatives: 'bom' (Mumb
 [http_service]
   internal_port = 3001
   force_https = true
-  auto_stop_machines = "stop"  # Changed from 'stop' to true for better compatibility
-  auto_start_machines = true
-  min_machines_running = 0   # Saves cost by scaling to 0 when not in use
+  auto_stop_machines = "stop"  # Automatically stop machines when idle
+  auto_start_machines = true  # Automatically start machines when needed
+  min_machines_running = 0    # Saves cost by scaling to 0 when not in use
+  min_idle_count = 0          # Number of machines to keep running when idle (0 = stop all when idle)
   processes = ['app']
   [http_service.concurrency]
     type = "connections"
