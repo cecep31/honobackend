@@ -1,15 +1,8 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from 'postgres';
+import { drizzle } from "drizzle-orm/bun-sql";
+import { SQL } from "bun";
 import * as schema from "./schemas/postgre/schema";
 import { getSecret } from "../config/secret";
 
-// Create the connection pool
-const connection = postgres(getSecret.db_url, {
-  ssl: 'prefer',
-  max: 100,
-  max_lifetime: 60 * 60, // 1 hour
-  idle_timeout: 20 * 60, // 20 minutes
-  connect_timeout: 10,
-});
+const client = new SQL(getSecret.db_url);
 
-export const db = drizzle(connection, { schema });
+export const db = drizzle({ client, schema });
