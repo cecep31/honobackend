@@ -35,7 +35,7 @@ export const userController = new Hono<{ Variables: Variables }>()
       const params = c.req.valid("param");
       const user = await userService.gerUser(params.id);
       if (!user) {
-        return c.json({ meesage: "usernot found", success: false }, 404);
+        return c.json({ message: "user not found", success: false, requestId: c.get("requestId") || "N/A" }, 404);
       }
       return c.json({
         data: user,
@@ -72,13 +72,19 @@ export const userController = new Hono<{ Variables: Variables }>()
       }, 201);
     }
   )
-  .delete("/:id", auth, superAdminMiddleware, async (c) => {
-    const id = c.req.param("id");
-    const user = await userService.deleteUser(id);
-    return c.json({
-      data: user,
-      success: true,
-      message: "user deleted successfully",
-      requestId: c.get("requestId") || "N/A",
-    });
-  });
+  .delete(
+    "/:id",
+    auth,
+    superAdminMiddleware,
+    validateRequest("param", z.object({ id: z.string().uuid() })),
+    async (c) => {
+      const id = c.req.valid("param").id;
+      const user = await userService.deleteUser(id);
+      return c.json({
+        data: user,
+        success: true,
+        message: "user deleted successfully",
+        requestId: c.get("requestId") || "N/A",
+      });
+    }
+  );

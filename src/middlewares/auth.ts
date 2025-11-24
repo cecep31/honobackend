@@ -8,10 +8,11 @@ export const auth = createMiddleware(async (c, next) => {
     const authorization = c.req.header("Authorization");
 
     if (!authorization) {
+      c.res.headers.set("WWW-Authenticate", "Bearer");
       return c.json(
         {
-          message: "No authorization header found",
           success: false,
+          message: "Authorization header missing",
           requestId: c.get("requestId") || "N/A",
         },
         401
@@ -21,10 +22,11 @@ export const auth = createMiddleware(async (c, next) => {
     const token = authorization.replace("Bearer ", "");
 
     if (!token) {
+      c.res.headers.set("WWW-Authenticate", "Bearer error=\"invalid_token\"");
       return c.json(
         {
-          message: "No token provided",
           success: false,
+          message: "Token not provided",
           requestId: c.get("requestId") || "N/A",
         },
         401
@@ -36,10 +38,11 @@ export const auth = createMiddleware(async (c, next) => {
 
     await next();
   } catch (error) {
+    c.res.headers.set("WWW-Authenticate", "Bearer error=\"invalid_token\"");
     return c.json(
       {
-        message: "Unauthorized",
         success: false,
+        message: "Unauthorized",
         requestId: c.get("requestId") || "N/A",
       },
       401

@@ -6,13 +6,13 @@ export const writerController = new Hono()
     const username = c.req.param("username");
     const user = await writerService.getWriterByUsername(username);
     if (!user) {
-      return c.json({ message: "user not found" }, 404);
+      return c.json({ success: false, message: "user not found", requestId: c.get("requestId") || "N/A" }, 404);
     }
 
-    return c.json({ success: true, data: user, message: "User fetched" });
+    return c.json({ success: true, data: user, message: "User fetched", requestId: c.get("requestId") || "N/A" });
   })
   .get("/:username/posts", async (c) => {
     const username = c.req.param("username");
     const posts = await postService.getPostsByUsername(username);
-    return c.json(posts);
+    return c.json({ success: true, data: posts, message: "Posts fetched", requestId: c.get("requestId") || "N/A" });
   });
