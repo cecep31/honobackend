@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { rateLimiter } from "hono-rate-limiter";
 import { requestId } from "hono/request-id";
 import { pilputLogger } from "./logger";
-import { originList, rateLimitConfig } from "../config";
+import config, { originList, rateLimitConfig } from "../config";
 
 export function setupMiddlewares() {
   app
@@ -14,7 +14,7 @@ export function setupMiddlewares() {
         origin: originList,
       })
     );
-  if (process.env["RATE_LIMITER"] === "true") {
+  if (config.rateLimiter) {
     app.use(
       rateLimiter({
         windowMs: rateLimitConfig.windowMs, // 1 minute

@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { verify } from "hono/jwt";
-import { getSecret } from "../config/secret";
+import config from "../config";
 
 export const auth = createMiddleware(async (c, next) => {
 
@@ -33,7 +33,7 @@ export const auth = createMiddleware(async (c, next) => {
       );
     }
 
-    const decodedPayload = await verify(token, getSecret.jwt_secret);
+    const decodedPayload = await verify(token, config.jwt.secret);
     c.set("user", decodedPayload);
 
     await next();

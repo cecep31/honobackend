@@ -1,10 +1,8 @@
 import { app } from './src/server/app';
 import setupRouter from './src/router';
 import { setupMiddlewares } from './src/middlewares';
-import { requireSecrets } from './src/config/secret';
 
 // Setup application
-requireSecrets();
 setupMiddlewares();
 setupRouter();
 

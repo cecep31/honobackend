@@ -1,7 +1,7 @@
 import { decode, sign, verify } from "hono/jwt";
 import type { UserRepository } from "../repository/userRepository";
 import type { SessionRepository } from "../repository/sessionRepository";
-import { getSecret } from "../../config/secret";
+import config from "../../config";
 import type { userLogin, UserSignup } from "../../types/user";
 import { githubConfig } from "../../config/github";
 import axios from "axios";
@@ -59,7 +59,7 @@ export class AuthService {
       user_agent: user_agent,
     });
 
-    const token = await sign(payload, getSecret.jwt_secret);
+    const token = await sign(payload, config.jwt.secret);
 
     return { access_token: token, refresh_token: session.refresh_token };
   }
@@ -77,7 +77,7 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
     };
 
-    const token = await sign(payload, getSecret.jwt_secret);
+    const token = await sign(payload, config.jwt.secret);
     return { access_token: token };
   }
 
@@ -95,7 +95,7 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
     };
 
-    const token = await sign(payload, getSecret.jwt_secret);
+    const token = await sign(payload, config.jwt.secret);
     return { access_token: token };
   }
 
@@ -133,7 +133,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       try {
-        const payloadverify = await verify(refreshToken, getSecret.jwt_secret);
+        const payloadverify = await verify(refreshToken, config.jwt.secret);
         console.log(payloadverify);
       } catch (error) {
         throw errorHttp("Invalid token", 401);
