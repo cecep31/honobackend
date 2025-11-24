@@ -15,6 +15,13 @@ export const rateLimitConfig = {
     : 150, // Limit each IP to 300 requests per `window` (here, per 1 minute).
 };
 
+const githubConfig = {
+  CLIENT_ID: process.env["GITHUB_CLIENT_ID"] ?? "",
+  CLIENT_SECRET: process.env["GITHUB_CLIENT_SECRET"] ?? "",
+  REDIRECT_URI: process.env["GITHUB_REDIRECT_URI"] ?? "https://hono.pilput.dev/auth/oauth/github/callback"
+};
+
+
 const getConfig = {
   rateLimiter: process.env["RATE_LIMITER"] === "true",
   rateLimitConfig,
@@ -25,6 +32,7 @@ const getConfig = {
     secret: process.env["JWT_SECRET"] ?? "",
     expiresIn: process.env["JWT_EXPIRES_IN"] ?? "1d",
   },
+  github : githubConfig,
 };
 
 export default getConfig;

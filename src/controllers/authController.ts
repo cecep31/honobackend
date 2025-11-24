@@ -2,20 +2,20 @@ import { Hono } from "hono";
 import { authService } from "../pkg/service";
 import { z } from "zod";
 import { auth } from "../middlewares/auth";
-import { githubConfig } from "../config/github";
+import config from "../config";
 import axios from "axios";
 import type { GithubUser } from "../types/user";
 import { setCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from '../types/context'
+import type { Variables } from "../types/context";
 
 const authController = new Hono<{ Variables: Variables }>();
 
 authController.get("/oauth/github", async (c) => {
   const authUrl = new URL("https://github.com/login/oauth/authorize");
-  authUrl.searchParams.append("client_id", githubConfig.CLIENT_ID);
-  authUrl.searchParams.append("redirect_uri", githubConfig.REDIRECT_URI);
+  authUrl.searchParams.append("client_id", config.github.CLIENT_ID);
+  authUrl.searchParams.append("redirect_uri", config.github.REDIRECT_URI);
   authUrl.searchParams.append("scope", "user");
 
   return c.redirect(authUrl.toString());

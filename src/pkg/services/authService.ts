@@ -1,9 +1,8 @@
 import { decode, sign, verify } from "hono/jwt";
 import type { UserRepository } from "../repository/userRepository";
 import type { SessionRepository } from "../repository/sessionRepository";
-import config from "../../config";
 import type { userLogin, UserSignup } from "../../types/user";
-import { githubConfig } from "../../config/github";
+import config from "../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
 import { errorHttp } from "../../utils/error";
@@ -104,10 +103,10 @@ export class AuthService {
       const tokenResponse = await axios.post(
         "https://github.com/login/oauth/access_token",
         {
-          client_id: githubConfig.CLIENT_ID,
-          client_secret: githubConfig.CLIENT_SECRET,
+          client_id: config.github.CLIENT_ID,
+          client_secret: config.github.CLIENT_SECRET,
           code,
-          redirect_uri: githubConfig.REDIRECT_URI,
+          redirect_uri: config.github.REDIRECT_URI,
         },
         {
           headers: {
