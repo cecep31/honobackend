@@ -1,11 +1,16 @@
 import { UserRepository } from "../repository/userRepository";
 import type { UserCreateBody } from "../../types/user";
 import { errorHttp } from "../../utils/error";
+import type { GetPaginationParams } from "../../types/paginate";
+import { getPaginationMetadata } from "../../utils/paginate";
 
 export class UserService {
   constructor(private userrepository: UserRepository) {}
-  getUsers() {
-    return this.userrepository.getUsers();
+
+  async getUsers(params: GetPaginationParams = { offset: 0, limit: 10 }) {
+    const { data, total } = await this.userrepository.getUsersPaginate(params);
+    const meta = getPaginationMetadata(total, params.offset, params.limit);
+    return { data, meta };
   }
   gerUser(id: string) {
     return this.userrepository.getUser(id);

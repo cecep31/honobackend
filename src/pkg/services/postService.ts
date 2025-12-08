@@ -85,8 +85,8 @@ export class PostService {
       tags: post.tags.map((tag) => tag.tag),
     }));
 
-    const metadata = getPaginationMetadata(total, offset, limit);
-    return { data: response, metadata };
+    const meta = getPaginationMetadata(total, offset, limit);
+    return { data: response, meta };
   }
 
   async getPostsByTag($tag: string) {
@@ -129,14 +129,16 @@ export class PostService {
     data.forEach((post) => {
       post.body = post.body?.substring(0, 200) || "" + "...";
     });
-    const metadata = getPaginationMetadata(total, params.offset, params.limit);
-    return { data, metadata };
+    const meta = getPaginationMetadata(total, params.offset, params.limit);
+    return { data, meta };
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
-    return await this.postrepository.getPostsByUsername(
+    const { data, total } = await this.postrepository.getPostsByUsername(
       username,
       limit,
       offset
     );
+    const meta = getPaginationMetadata(total, offset, limit);
+    return { data, meta };
   }
 }

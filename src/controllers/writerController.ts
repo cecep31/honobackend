@@ -14,5 +14,11 @@ export const writerController = new Hono()
   .get("/:username/posts", async (c) => {
     const username = c.req.param("username");
     const posts = await postService.getPostsByUsername(username);
-    return c.json({ success: true, data: posts, message: "Posts fetched", requestId: c.get("requestId") || "N/A" });
+    return c.json({
+      success: true,
+      data: posts.data,
+      meta: posts.meta,
+      message: "Posts fetched",
+      requestId: c.get("requestId") || "N/A",
+    });
   });

@@ -13,15 +13,10 @@ export const getPaginationMetadata = (
   limit: number
 ) => {
   const totalPages = Math.ceil(total / limit);
-  const hasNextPage = offset < totalPages;
-  const hasPrevPage = offset > 0;
-
   return {
-    currentPage: offset,
-    totalPages,
-    totalItems: total,
-    itemsPerPage: limit,
-    hasNextPage,
-    hasPrevPage,
+    total_items: total,
+    offset,
+    limit,
+    total_pages: totalPages,
   };
 };

@@ -5,12 +5,15 @@ import { superAdminMiddleware } from "../middlewares/superAdmin";
 import { z } from "zod";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
+import { getPaginationParams } from "../utils/paginate";
 
 export const userController = new Hono<{ Variables: Variables }>()
   .get("/", auth, superAdminMiddleware, async (c) => {
-    const users = await userService.getUsers();
+    const params = getPaginationParams(c);
+    const { data, meta } = await userService.getUsers(params);
     return c.json({
-      data: users,
+      data,
+      meta,
       success: true,
       message: "users fetched successfully",
       requestId: c.get("requestId") || "N/A",

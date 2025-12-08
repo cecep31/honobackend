@@ -6,6 +6,7 @@ import {
   users as usersModel,
 } from "../../database/schemas/postgre/schema";
 import type { UserCreate, UserSignup } from "../../types/user";
+import type { GetPaginationParams } from "../../types/paginate";
 
 export class UserRepository {
   async getUserByGithubId(github_id: number) {
@@ -107,15 +108,23 @@ export class UserRepository {
       where: isNull(usersModel.deleted_at),
     });
   }
-  async getUsersAll(limit: number, offset: number) {
-    return await db.query.users.findMany({
-      columns: {
-        password: false,
-      },
-      limit: limit,
-      offset: offset,
+
+  async getUsersPaginate(params: GetPaginationParams) {
+    const { limit, offset } = params;
+    const data = await db.query.users.findMany({
+      columns: { password: false },
       orderBy: [desc(usersModel.created_at)],
+      where: isNull(usersModel.deleted_at),
+      limit,
+      offset,
     });
+
+    const total = await db
+      .select({ count: count() })
+      .from(usersModel)
+      .where(isNull(usersModel.deleted_at));
+
+    return { data, total: total[0].count };
   }
 
   async deleteUserSoft(user_id: string) {
