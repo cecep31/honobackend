@@ -127,6 +127,8 @@ export const posts = pgTable(
     slug: varchar("slug", { length: 255 }),
     photo_url: text("photo_url"),
     published: boolean("published").default(true),
+    view_count: bigint("view_count", { mode: "number" }).default(0),
+    like_count: bigint("like_count", { mode: "number" }).default(0),
   },
   (table) => ({
     postscreated_byUsersIdFk: foreignKey({

@@ -81,6 +81,8 @@ export class PostService {
       created_at: post.created_at,
       updated_at: post.updated_at,
       published: post.published,
+      viewCount: post.view_count ?? 0,
+      likeCount: post.like_count ?? 0,
       creator: post.creator,
       tags: post.tags.map((tag) => tag.tag),
     }));
@@ -99,10 +101,10 @@ export class PostService {
 
   async getPostsRandom(limit = 6) {
     const data = await this.postrepository.getPostsRandom(limit);
-    const response = data.forEach((post) => {
+    data.forEach((post) => {
       post.body = post.body?.substring(0, 200) || "" + "...";
     });
-    return response;
+    return data;
   }
 
   async getPost(id_post: string) {

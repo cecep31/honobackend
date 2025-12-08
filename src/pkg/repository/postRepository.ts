@@ -199,6 +199,8 @@ export class PostRepository {
         slug: postsModel.slug,
         body: postsModel.body,
         created_at: postsModel.created_at,
+        view_count: postsModel.view_count,
+        like_count: postsModel.like_count,
       })
       .from(postsModel)
       .rightJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
@@ -213,6 +215,8 @@ export class PostRepository {
         slug: postsModel.slug,
         body: postsModel.body,
         created_at: postsModel.created_at,
+        view_count: postsModel.view_count,
+        like_count: postsModel.like_count,
         creator: {
           id: usersModel.id,
           username: usersModel.username,
