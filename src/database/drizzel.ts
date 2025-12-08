@@ -1,14 +1,14 @@
-import { drizzle } from "drizzle-orm/bun-sql";
-import { SQL } from "bun";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schemas/postgre/schema";
 import config from "../config";
 
-const client = new SQL({
-  url: config.database.url,
+const client = postgres(config.database.url, {
   max: config.database.max_connections,
-  idleTimeout: config.database.idle_timeout,
-  connectionTimeout: config.database.connect_timeout,
-  maxLifetime: config.database.max_lifetime,
+  idle_timeout: config.database.idle_timeout,
+  connect_timeout: config.database.connect_timeout,
+  max_lifetime: config.database.max_lifetime,
+  prepare: config.database.prepare_statements,
 });
 
-export const db = drizzle({ client, schema });
+export const db = drizzle(client, { schema });
