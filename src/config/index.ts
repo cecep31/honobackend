@@ -1,10 +1,10 @@
 export const originList = [
   "http://localhost:3000",
   "http://localhost:5173",
-  "https://pilput.dev",
-  "https://www.pilput.dev",
-  "https://app.pilput.dev",
-  "https://dash.pilput.dev",
+  "https://pilput.me",
+  "https://www.pilput.me",
+  "https://app.pilput.me",
+  "https://dash.pilput.me",
   "https://pilput.me",
 ];
 
@@ -27,6 +27,11 @@ const getConfig = {
   rateLimitConfig,
   database: {
     url: process.env["DATABASE_URL"] ?? "",
+    max_connections: process.env["DB_MAX_CONNECTIONS"] ? Number(process.env["DB_MAX_CONNECTIONS"]) : 50,
+    idle_timeout: process.env["DB_IDLE_TIMEOUT"] ? Number(process.env["DB_IDLE_TIMEOUT"]) : 30,
+    connect_timeout: process.env["DB_CONNECT_TIMEOUT"] ? Number(process.env["DB_CONNECT_TIMEOUT"]) : 5,
+    max_lifetime: process.env["DB_MAX_LIFETIME"] ? Number(process.env["DB_MAX_LIFETIME"]) : 1800,
+    prepare_statements: process.env["DB_PREPARE_STATEMENTS"] !== "false",
   },
   jwt: {
     secret: process.env["JWT_SECRET"] ?? "",
