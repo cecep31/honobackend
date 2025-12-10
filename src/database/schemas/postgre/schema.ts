@@ -3,7 +3,6 @@ import { relations } from "drizzle-orm/relations";
 import { sql } from "drizzle-orm"
 
 
-
 export const likes = pgTable("likes", {
 	id: serial().primaryKey().notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
