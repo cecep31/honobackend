@@ -35,7 +35,6 @@ const getConfig = {
     idle_timeout: getNumberEnv("DB_IDLE_TIMEOUT", 30),
     connect_timeout: getNumberEnv("DB_CONNECT_TIMEOUT", 5),
     max_lifetime: getNumberEnv("DB_MAX_LIFETIME", 1800),
-    prepare_statements: process.env["DB_PREPARE_STATEMENTS"] !== "false",
   },
   jwt: {
     secret: process.env["JWT_SECRET"] ?? "",

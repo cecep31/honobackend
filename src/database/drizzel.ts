@@ -8,7 +8,6 @@ const client = postgres(config.database.url, {
   idle_timeout: config.database.idle_timeout,
   connect_timeout: config.database.connect_timeout,
   max_lifetime: config.database.max_lifetime,
-  prepare: config.database.prepare_statements,
 });
 
 export const db = drizzle(client, { schema });
