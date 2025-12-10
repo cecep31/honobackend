@@ -16,8 +16,8 @@ export class PostRepository {
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       orderBy: desc(postsModel.created_at),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+        postsToTags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -34,8 +34,8 @@ export class PostRepository {
       where: isNull(postsModel.deleted_at),
       orderBy: desc(postsModel.created_at),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+        postsToTags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -55,8 +55,8 @@ export class PostRepository {
       ),
       orderBy: desc(postsModel.created_at),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+        postsToTags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -84,8 +84,8 @@ export class PostRepository {
         eq(postsModel.slug, slug)
       ),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+        postsToTags: { columns: {}, with: { tag: true } },
       },
     });
   }
@@ -101,7 +101,7 @@ export class PostRepository {
           first_name: usersModel.first_name,
           last_name: usersModel.last_name,
           image: usersModel.image,
-          issuperadmin: usersModel.issuperadmin,
+          issuperadmin: usersModel.is_super_admin,
         },
         tags: {
           id: tagsModel.id,
@@ -111,7 +111,7 @@ export class PostRepository {
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .leftJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
-      .leftJoin(tagsModel, eq(postsToTags.tagId, tagsModel.id))
+      .leftJoin(tagsModel, eq(postsToTags.tag_id, tagsModel.id))
       .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
     if (posts.length === 0) {
       return null;
@@ -132,8 +132,8 @@ export class PostRepository {
         eq(postsModel.published, true)
       ),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+        postsToTags: { columns: {}, with: { tag: true } },
       },
     });
   }
@@ -142,8 +142,8 @@ export class PostRepository {
     return await db.query.posts.findFirst({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.id, id)),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+        postsToTags: { columns: {}, with: { tag: true } },
       },
     });
   }
@@ -175,8 +175,8 @@ export class PostRepository {
         isNull(postsModel.deleted_at)
       ),
       with: {
-        creator: { columns: { password: false } },
-        tags: { columns: {}, with: { tag: true } },
+        user: { columns: { password: false } },
+          postsToTags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -204,7 +204,7 @@ export class PostRepository {
       })
       .from(postsModel)
       .rightJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
-      .where(eq(postsToTags.tagId, tag_id))
+      .where(eq(postsToTags.tag_id, tag_id))
       .orderBy(desc(postsModel.created_at));
   }
   async getPostsByUsername(username: string, limit = 10, offset = 0) {

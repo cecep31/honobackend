@@ -28,11 +28,11 @@ export interface UserCreateBody extends UserBase {
   last_name: string;
   username: string;
   image: string;
-  issuperadmin: boolean;
+  is_super_admin: boolean;
 }
 
 export interface UserCreate extends UserBase {
-  issuperAdmin: boolean;
+  is_super_admin: boolean;
   first_name: string;
   last_name: string;
   image: string;
@@ -43,7 +43,7 @@ export interface userLogin {
   username: string | null;
   email: string | null;
   password: string | null;
-  issuperadmin: boolean | null;
+  is_super_admin: boolean | null;
 }
 
 export interface GithubUser {

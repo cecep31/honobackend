@@ -47,7 +47,7 @@ export class AuthService {
     const payload = {
       user_id: user.id,
       email: user.email,
-      isSuperAdmin: user.issuperadmin,
+      isSuperAdmin: user.is_super_admin,
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
     };
 
@@ -72,7 +72,7 @@ export class AuthService {
     const payload = {
       user_id: user.id,
       email: user.email,
-      isSuperAdmin: user.issuperadmin,
+      isSuperAdmin: user.is_super_admin,
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
     };
 
@@ -90,7 +90,7 @@ export class AuthService {
     const payload = {
       id: user.id,
       email: user.email,
-      isSuperAdmin: user.issuperadmin,
+      isSuperAdmin: user.is_super_admin,
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
     };
 

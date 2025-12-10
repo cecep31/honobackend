@@ -12,7 +12,7 @@ export class UserRepository {
   async getUserByGithubId(github_id: number) {
     return db.query.users.findFirst({
       where: and(
-        eq(usersModel.githubId, github_id),
+        eq(usersModel.github_id, github_id),
         isNull(usersModel.deleted_at)
       ),
     });
@@ -30,17 +30,17 @@ export class UserRepository {
 
   async addUser(data: UserCreate) {
     const user = await db
-      .insert({ ...usersModel, id: randomUUIDv7() })
-      .values(data)
+      .insert(usersModel)
+      .values({ ...data, id: randomUUIDv7() })
       .returning({ id: usersModel.id });
     await db.insert(profiles).values({
-      userId: user[0].id,
+      user_id: user[0].id,
     });
     return user;
   }
   async createUser(data: UserSignup) {
-    const user = await db.insert(usersModel).values(data).returning();
-    await db.insert(profiles).values({ userId: user[0].id });
+    const user = await db.insert(usersModel).values({ ...data, id: randomUUIDv7() }).returning();
+    await db.insert(profiles).values({ user_id: user[0].id });
     return user[0];
   }
   async getUserWithPassword(id: string) {
@@ -57,7 +57,7 @@ export class UserRepository {
   async getUserProfile(id: string) {
     return await db.query.users.findFirst({
       columns: { password: false },
-      with: { profile: true },
+      with: { profiles: true },
       where: eq(usersModel.id, id),
     });
   }
@@ -88,7 +88,7 @@ export class UserRepository {
   async getUserByUsernameProfile(username: string) {
     return await db.query.users.findFirst({
       columns: { password: false },
-      with: { profile: true },
+      with: { profiles: true },
       where: eq(usersModel.username, username),
     });
   }
@@ -137,7 +137,7 @@ export class UserRepository {
 
   async deleteUserPermanent(user_id: string) {
     // First, delete the user's profile
-    await db.delete(profiles).where(eq(profiles.userId, user_id));
+    await db.delete(profiles).where(eq(profiles.user_id, user_id));
 
     // Then, delete the user
     return await db

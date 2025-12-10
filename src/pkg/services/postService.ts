@@ -83,8 +83,8 @@ export class PostService {
       published: post.published,
       viewCount: post.view_count ?? 0,
       likeCount: post.like_count ?? 0,
-      creator: post.creator,
-      tags: post.tags.map((tag) => tag.tag),
+      creator: post.user,
+      tags: post.postsToTags.map((tag) => tag.tag),
     }));
 
     const meta = getPaginationMetadata(total, offset, limit);

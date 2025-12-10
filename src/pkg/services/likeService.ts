@@ -9,7 +9,7 @@ export class LikeService {
       const checkLike = await db
         .select({ id: likes.id })
         .from(likes)
-        .where(and(eq(likes.created_by, authId), eq(likes.post_id, post_id)));
+        .where(and(eq(likes.user_id, authId), eq(likes.post_id, post_id)));
       if (checkLike.length > 0) {
         console.log("ada data");
         const deletresult = await db.delete(likes).returning();
@@ -18,7 +18,7 @@ export class LikeService {
         console.log("tidak ada data");
         const like = await db
           .insert(likes)
-          .values({ post_id: post_id, created_by: authId })
+          .values({ post_id: post_id, user_id: authId })
           .returning({
             id: likes.id,
           });

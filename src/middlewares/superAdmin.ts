@@ -9,7 +9,7 @@ export const superAdminMiddleware = createMiddleware(async (c, next) => {
   }
   const user = await userrepository.getUser(auth.user_id);
 
-  if (user?.issuperadmin) {
+  if (user?.is_super_admin) {
     await next();
   } else {
     throw new HTTPException(403, { message: "Forbidden" });

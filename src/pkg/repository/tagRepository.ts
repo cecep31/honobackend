@@ -34,7 +34,7 @@ export class TagRepository {
   async addTagToPost(post_id: string, tag_id: number) {
     return await db
       .insert(postsToTags)
-      .values({ tagId: tag_id, post_id: post_id })
+      .values({ tag_id: tag_id, post_id: post_id })
       .onConflictDoNothing();
   }
 }
