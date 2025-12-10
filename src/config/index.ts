@@ -7,12 +7,16 @@ export const originList = [
   "https://dash.pilput.me",
   "https://pilput.me",
 ];
+function getNumberEnv(key: string, defaultValue: number): number {
+  const value = process.env[key];
+  if (value === undefined || value === "") return defaultValue;
+  const num = Number(value);
+  return isNaN(num) ? defaultValue : num;
+}
 
 export const rateLimitConfig = {
   windowMs: 1 * 60 * 1000, // 1 minute
-  limit: process.env["RATE_LIMIT_MAX"]
-    ? Number(process.env["RATE_LIMIT_MAX"])
-    : 150, // Limit each IP to 300 requests per `window` (here, per 1 minute).
+  limit: getNumberEnv("RATE_LIMIT_MAX", 150),
 };
 
 const githubConfig = {
@@ -27,10 +31,10 @@ const getConfig = {
   rateLimitConfig,
   database: {
     url: process.env["DATABASE_URL"] ?? "",
-    max_connections: process.env["DB_MAX_CONNECTIONS"] ? Number(process.env["DB_MAX_CONNECTIONS"]) : 50,
-    idle_timeout: process.env["DB_IDLE_TIMEOUT"] ? Number(process.env["DB_IDLE_TIMEOUT"]) : 30,
-    connect_timeout: process.env["DB_CONNECT_TIMEOUT"] ? Number(process.env["DB_CONNECT_TIMEOUT"]) : 5,
-    max_lifetime: process.env["DB_MAX_LIFETIME"] ? Number(process.env["DB_MAX_LIFETIME"]) : 1800,
+    max_connections: getNumberEnv("DB_MAX_CONNECTIONS", 50),
+    idle_timeout: getNumberEnv("DB_IDLE_TIMEOUT", 30),
+    connect_timeout: getNumberEnv("DB_CONNECT_TIMEOUT", 5),
+    max_lifetime: getNumberEnv("DB_MAX_LIFETIME", 1800),
     prepare_statements: process.env["DB_PREPARE_STATEMENTS"] !== "false",
   },
   jwt: {
