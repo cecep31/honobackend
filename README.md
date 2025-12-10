@@ -1,16 +1,27 @@
-To install dependencies:
+# Hono Backend
+
+## Requirements
+
+- Node.js (with Bun runtime)
+- PostgreSQL
+- Bun package manager
+
+## Setup
+
 ```sh
 bun install
 ```
 
-To run:
+## Development
+
 ```sh
 bun run dev
 ```
 
-To build:
+## Build
+
 ```sh
 bun run build
 ```
 
-open http://localhost:3000
+Access at: http://localhost:3001
