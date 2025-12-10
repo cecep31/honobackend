@@ -1,6 +1,8 @@
 import { pgTable, uniqueIndex, foreignKey, serial, timestamp, uuid, text, bigint, varchar, integer, index, unique, boolean, check, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
+
+
 export const likes = pgTable("likes", {
 	id: serial().primaryKey().notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
