@@ -1,8 +1,20 @@
 import { app } from './src/server/app';
 import setupRouter from './src/router';
 import { setupMiddlewares } from './src/middlewares';
+import { getLogger } from './src/middlewares/logger';
 
 // Setup application
+const logger = getLogger();
+logger.log({
+  level: 'info',
+  message: 'Starting application...',
+  timestamp: new Date().toISOString(),
+  context: {
+    phase: 'application_startup',
+    environment: process.env.NODE_ENV || 'development'
+  }
+});
+
 setupMiddlewares();
 setupRouter();
 
