@@ -1,6 +1,8 @@
 import { ChatRepository } from "../repository/chatRepository";
 import type { CreateConversationBody, CreateMessageBody } from "../../types/chat";
 import { errorHttp } from "../../utils/error";
+import type { GetPaginationParams } from "../../types/paginate";
+import { getPaginationMetadata } from "../../utils/paginate";
 
 export class ChatService {
   constructor(private chatRepository: ChatRepository) {}
@@ -9,8 +11,14 @@ export class ChatService {
     return await this.chatRepository.createConversation(userId, body.title);
   }
 
-  async getConversations(userId: string) {
-    return await this.chatRepository.getConversations(userId);
+  async getConversations(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
+    const [conversations, total] = await Promise.all([
+      this.chatRepository.getConversations(userId, params),
+      this.chatRepository.getConversationsCount(userId)
+    ]);
+
+    const meta = getPaginationMetadata(total, params.offset, params.limit);
+    return { data: conversations, meta };
   }
 
   async getConversation(conversationId: string, userId: string) {

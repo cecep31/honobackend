@@ -1,6 +1,7 @@
 import { db } from "../../database/drizzel";
 import { chatConversations, chatMessages } from "../../database/schemas/postgre/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
+import type { GetPaginationParams } from "../../types/paginate";
 
 export class ChatRepository {
   async createConversation(userId: string, title: string) {
@@ -15,11 +16,21 @@ export class ChatRepository {
     return conversation;
   }
 
-  async getConversations(userId: string) {
+  async getConversations(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
     return await db.select()
       .from(chatConversations)
       .where(eq(chatConversations.user_id, userId))
-      .orderBy(desc(chatConversations.created_at));
+      .orderBy(desc(chatConversations.created_at))
+      .offset(params.offset)
+      .limit(params.limit);
+  }
+
+  async getConversationsCount(userId: string) {
+    const result = await db.select({ count: count() })
+      .from(chatConversations)
+      .where(eq(chatConversations.user_id, userId));
+
+    return result[0]?.count || 0;
   }
 
   async getConversation(conversationId: string, userId: string) {

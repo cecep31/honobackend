@@ -4,6 +4,7 @@ import { auth } from "../middlewares/auth";
 import { z } from "zod";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
+import { getPaginationParams } from "../utils/paginate";
 
 export const chatController = new Hono<{ Variables: Variables }>()
   // Conversation endpoints
@@ -34,10 +35,12 @@ export const chatController = new Hono<{ Variables: Variables }>()
     auth,
     async (c) => {
       const authUser = c.get("user");
-      const conversations = await chatService.getConversations(authUser.user_id);
+      const params = getPaginationParams(c);
+      const { data: conversations, meta } = await chatService.getConversations(authUser.user_id, params);
 
       return c.json({
         data: conversations,
+        meta,
         success: true,
         message: "Conversations fetched successfully",
         requestId: c.get("requestId") || "N/A",
