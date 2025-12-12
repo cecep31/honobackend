@@ -1,13 +1,13 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { userrepository } from "../pkg/repository";
+import { userRepository } from "../pkg/repository";
 
 export const superAdminMiddleware = createMiddleware(async (c, next) => {
   const auth = c.get("user");
   if (!auth) {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
-  const user = await userrepository.getUser(auth.user_id);
+  const user = await userRepository.getUser(auth.user_id);
 
   if (user?.is_super_admin) {
     await next();

@@ -3,7 +3,7 @@ import { auth } from "../middlewares/auth";
 import { LikeService } from "../pkg/services/likeService";
 import type { Variables } from "../types/context";
 
-const likeController = new Hono<{ Variables: Variables }>();
+export const likeController = new Hono<{ Variables: Variables }>();
 
 likeController.post("/:post_id", auth, async (c) => {
   const { post_id } = c.req.param();
@@ -15,4 +15,4 @@ likeController.get("/:post_id", auth, async (c) => {
   return c.json(await LikeService.getLikes(post_id));
 });
 
-export default likeController;
+

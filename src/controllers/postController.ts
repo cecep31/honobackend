@@ -8,7 +8,7 @@ import { getPaginationParams } from "../utils/paginate";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from '../types/context'
 
-const postController = new Hono<{ Variables: Variables }>();
+export const postController = new Hono<{ Variables: Variables }>();
 
 postController.get("/", async (c) => {
   try {
@@ -190,4 +190,4 @@ postController.patch(
   }
 );
 
-export default postController;
+

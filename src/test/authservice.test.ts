@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import AuthService from '../pkg/services/authService';
+import { AuthService } from '../pkg/services/authService';
+import { userRepository, sessionRepository } from '../pkg/repository';
 
 describe('AuthService', () => {
     const testEmail = 'guest@pilput.dev';
@@ -7,7 +8,7 @@ describe('AuthService', () => {
     let authService: AuthService;
 
     beforeEach(() => {
-        authService = new AuthService();
+        authService = new AuthService(userRepository, sessionRepository);
     });
 
     // afterEach(async () => {

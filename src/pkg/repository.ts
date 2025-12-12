@@ -6,6 +6,6 @@ import { ChatRepository } from "./repository/chatRepository";
 
 export const postrepository = new PostRepository();
 export const tagrepository = new TagRepository();
-export const userrepository = new UserRepository();
+export const userRepository = new UserRepository();
 export const sessionRepository = new SessionRepository();
 export const chatRepository = new ChatRepository();

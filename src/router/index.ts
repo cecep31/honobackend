@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { userController } from "../controllers/userController";
-import authController from "../controllers/authController";
-import postController from "../controllers/postController";
+import { authController } from "../controllers/authController";
+import { postController } from "../controllers/postController";
 import { tagController } from "../controllers/tagController";
-import likeController from "../controllers/likeCotroller";
+import { likeController } from "../controllers/likeController";
 import { writerController } from "../controllers/writerController";
 import { chatController } from "../controllers/chatController";
 import { app } from "../server/app";

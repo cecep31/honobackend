@@ -10,7 +10,7 @@ import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 
-const authController = new Hono<{ Variables: Variables }>();
+export const authController = new Hono<{ Variables: Variables }>();
 
 authController.get("/oauth/github", async (c) => {
   const authUrl = new URL("https://github.com/login/oauth/authorize");
@@ -168,4 +168,4 @@ authController.patch(
   }
 );
 
-export default authController;
+

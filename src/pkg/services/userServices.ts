@@ -5,37 +5,37 @@ import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 
 export class UserService {
-  constructor(private userrepository: UserRepository) {}
+  constructor(private userRepository: UserRepository) {}
 
   async getUsers(params: GetPaginationParams = { offset: 0, limit: 10 }) {
-    const { data, total } = await this.userrepository.getUsersPaginate(params);
+    const { data, total } = await this.userRepository.getUsersPaginate(params);
     const meta = getPaginationMetadata(total, params.offset, params.limit);
     return { data, meta };
   }
   gerUser(id: string) {
-    return this.userrepository.getUser(id);
+    return this.userRepository.getUser(id);
   }
   async gerUserMe(id: string, profile = false) {
     if (profile) {
-      return await this.userrepository.getUserProfile(id);
+      return await this.userRepository.getUserProfile(id);
     } else {
-      return await this.userrepository.getUser(id);
+      return await this.userRepository.getUser(id);
     }
   }
 
   async deleteUser(user_id: string) {
-    const look = await this.userrepository.getUser(user_id);
+    const look = await this.userRepository.getUser(user_id);
     if (!look) {
       throw errorHttp("User not found", 404);
     }
-    return await this.userrepository.deleteUserSoft(user_id);
+    return await this.userRepository.deleteUserSoft(user_id);
   }
   async addUser(body: UserCreateBody) {
     const hash_password = await Bun.password.hash(body.password, {
       algorithm: "bcrypt",
       cost: 12,
     });
-    const resultuser = await this.userrepository.addUser({
+    const resultuser = await this.userRepository.addUser({
       first_name: body.first_name,
       last_name: body.last_name,
       username: body.username,
