@@ -5,7 +5,7 @@ import type { userLogin, UserSignup } from "../../types/user";
 import config from "../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
-import { errorHttp } from "../../utils/error";
+import { errorHttp, Errors } from "../../utils/error";
 
 export class AuthService {
   constructor(
@@ -41,7 +41,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw errorHttp("Invalid credentials", 401);
+      throw Errors.InvalidCredentials();
     }
 
     const payload = {
@@ -66,7 +66,7 @@ export class AuthService {
   async signInWithGithub(github_id: number) {
     const user = await this.userRepository.getUserByGithubId(github_id);
     if (!user) {
-      throw errorHttp("User not found", 401);
+      throw Errors.NotFound("User");
     }
 
     const payload = {
@@ -118,7 +118,7 @@ export class AuthService {
       return await tokenResponse.data.access_token;
     } catch (error) {
       console.log("failet get token");
-      throw errorHttp("failed get token", 401);
+      throw Errors.ExternalServiceError("GitHub");
     }
   }
 

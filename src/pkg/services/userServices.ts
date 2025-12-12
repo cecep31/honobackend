@@ -1,6 +1,6 @@
 import { UserRepository } from "../repository/userRepository";
 import type { UserCreateBody } from "../../types/user";
-import { errorHttp } from "../../utils/error";
+import { Errors } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 
@@ -26,7 +26,7 @@ export class UserService {
   async deleteUser(user_id: string) {
     const look = await this.userRepository.getUser(user_id);
     if (!look) {
-      throw errorHttp("User not found", 404);
+      throw Errors.NotFound("User");
     }
     return await this.userRepository.deleteUserSoft(user_id);
   }
