@@ -12,13 +12,15 @@
     "start": "bun run index.ts",
     "build": "tsc --noEmit && bun build index.ts --minify --outdir dist --target bun",
     "build:compile": "tsc --noEmit && bun build index.ts --minify --outfile bin/honobackend --compile --target bun",
-    "start:prod": "bun run dist/index.js"
+    "start:prod": "bun run dist/index.js",
+    "test": "bun test",
+    "clean": "rm -rf dist bin"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.5",
     "axios": "^1.13.2",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.10.8",
+    "hono": "^4.11.0",
     "hono-rate-limiter": "^0.4.2",
     "postgres": "^3.4.7",
     "zod": "^4.1.13"
