@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql, asc, like, or } from "drizzle-orm";
 import { db } from "../../database/drizzel";
 import type { PostCreate } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
@@ -11,10 +11,52 @@ import {
 
 export class PostRepository {
   async getPostsPaginate(params: GetPaginationParams) {
-    const { offset, limit } = params;
+    const { offset, limit, search, orderBy, orderDirection } = params;
+    
+    // Build the where clause
+    let whereClause = and(isNull(postsModel.deleted_at), eq(postsModel.published, true));
+    
+    // Add search filter if provided
+    if (search) {
+      whereClause = and(
+        whereClause,
+        or(
+          like(postsModel.title, `%${search}%`),
+          like(postsModel.body, `%${search}%`)
+        )
+      );
+    }
+    
+    // Build the orderBy clause
+    let orderByClause = desc(postsModel.created_at); // default
+    if (orderBy) {
+      // Use a switch statement for type-safe column selection
+      switch (orderBy) {
+        case 'title':
+          orderByClause = orderDirection === 'asc' ? asc(postsModel.title) : desc(postsModel.title);
+          break;
+        case 'created_at':
+          orderByClause = orderDirection === 'asc' ? asc(postsModel.created_at) : desc(postsModel.created_at);
+          break;
+        case 'updated_at':
+          orderByClause = orderDirection === 'asc' ? asc(postsModel.updated_at) : desc(postsModel.updated_at);
+          break;
+        case 'view_count':
+          orderByClause = orderDirection === 'asc' ? asc(postsModel.view_count) : desc(postsModel.view_count);
+          break;
+        case 'like_count':
+          orderByClause = orderDirection === 'asc' ? asc(postsModel.like_count) : desc(postsModel.like_count);
+          break;
+        // Add more cases as needed
+        default:
+          // Default to created_at if invalid column
+          orderByClause = orderDirection === 'asc' ? asc(postsModel.created_at) : desc(postsModel.created_at);
+      }
+    }
+    
     const posts = await db.query.posts.findMany({
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
-      orderBy: desc(postsModel.created_at),
+      where: whereClause,
+      orderBy: orderByClause,
       with: {
         user: { columns: { password: false } },
         postsToTags: { columns: {}, with: { tag: true } },
@@ -22,10 +64,14 @@ export class PostRepository {
       limit: limit,
       offset: offset,
     });
-    const total = await db
+    
+    // Build the count query with the same filters
+    const countQuery = db
       .select({ count: count() })
       .from(postsModel)
-      .where(eq(postsModel.published, true));
+      .where(whereClause);
+    
+    const total = await countQuery;
     return { data: posts, total: total[0].count };
   }
 

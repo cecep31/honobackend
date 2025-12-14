@@ -4,7 +4,10 @@ import type { GetPaginationParams } from "../types/paginate";
 export const getPaginationParams = (c: Context): GetPaginationParams => {
   const offset = Number(c.req.query("offset")) || 0;
   const limit = Number(c.req.query("limit")) || 10;
-  return { offset, limit };
+  const search = c.req.query("search") || undefined;
+  const orderBy = c.req.query("orderBy") || undefined;
+  const orderDirection = c.req.query("orderDirection") === 'asc' ? 'asc' : 'desc';
+  return { offset, limit, search, orderBy, orderDirection };
 };
 
 export const getPaginationMetadata = (

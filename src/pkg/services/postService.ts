@@ -65,11 +65,8 @@ export class PostService {
     };
   }
 
-  async getPosts({ offset, limit }: GetPaginationParams) {
-    const { total, data } = await this.postrepository.getPostsPaginate({
-      offset,
-      limit,
-    });
+  async getPosts(params: GetPaginationParams) {
+    const { total, data } = await this.postrepository.getPostsPaginate(params);
 
     const response = data.map((post) => ({
       id: post.id,
@@ -87,7 +84,7 @@ export class PostService {
       tags: post.postsToTags.map((tag) => tag.tag),
     }));
 
-    const meta = getPaginationMetadata(total, offset, limit);
+    const meta = getPaginationMetadata(total, params.offset, params.limit);
     return { data: response, meta };
   }
 
