@@ -20,8 +20,8 @@
     "@hono/zod-validator": "^0.7.5",
     "axios": "^1.13.2",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.11.0",
-    "hono-rate-limiter": "^0.4.2",
+    "hono": "^4.11.1",
+    "hono-rate-limiter": "^0.5.0",
     "postgres": "^3.4.7",
     "zod": "^4.1.13"
   },
