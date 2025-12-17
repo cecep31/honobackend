@@ -6,6 +6,7 @@ import { tagController } from "../controllers/tagController";
 import { likeController } from "../controllers/likeController";
 import { writerController } from "../controllers/writerController";
 import { chatController } from "../controllers/chatController";
+import { holdingController } from "../controllers/holdingController";
 import { app } from "../server/app";
 
 const setupRouter = () => {
@@ -16,7 +17,8 @@ const setupRouter = () => {
     .route("/tags", tagController)
     .route("/likes", likeController)
     .route("/writers", writerController)
-    .route("/chat", chatController);
+    .route("/chat", chatController)
+    .route("/holdings", holdingController);
 
   app.route("/v1", v1);
 };
