@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, foreignKey, serial, timestamp, uuid, text, bigint, varchar, integer, index, unique, boolean, check, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, foreignKey, serial, timestamp, uuid, text, bigint, varchar, integer, index, unique, boolean, check, primaryKey, smallserial, bigserial, smallint, char, numeric } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm/relations";
 import { sql } from "drizzle-orm"
 
@@ -298,6 +298,48 @@ export const postsToTags = pgTable("posts_to_tags", {
 	primaryKey({ columns: [table.post_id, table.tag_id], name: "posts_to_tags_posts_id_tags_id_pk"}),
 ]);
 
+export const holdingTypes = pgTable("holding_types", {
+	id: smallserial().primaryKey().notNull(),
+	code: text().notNull(),
+	name: text().notNull(),
+	notes: text(),
+}, (table) => [
+	unique("holding_types_code_key").on(table.code),
+]);
+
+export const holdings = pgTable("holdings", {
+	id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
+	userId: uuid("user_id").notNull(),
+	name: text().notNull(),
+	platform: text().notNull(),
+	holdingTypeId: smallint("holding_type_id").notNull(),
+	currency: char({ length: 3 }).notNull(),
+	investedAmount: numeric("invested_amount", { precision: 18, scale:  2 }).default('0').notNull(),
+	currentValue: numeric("current_value", { precision: 18, scale:  2 }).default('0').notNull(),
+	units: numeric({ precision: 24, scale:  10 }),
+	avgBuyPrice: numeric("avg_buy_price", { precision: 18, scale:  8 }),
+	currentPrice: numeric("current_price", { precision: 18, scale:  8 }),
+	lastUpdated: timestamp("last_updated", { withTimezone: true, mode: 'string' }),
+	notes: text(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	month: integer().default(1).notNull(),
+	year: integer().default(2025).notNull(),
+}, (table) => [
+	index("idx_holdings_user").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+	uniqueIndex("uq_holdings_user_platform_name_currency").using("btree", table.userId.asc().nullsLast().op("bpchar_ops"), table.platform.asc().nullsLast().op("bpchar_ops"), table.name.asc().nullsLast().op("bpchar_ops"), table.currency.asc().nullsLast().op("bpchar_ops")),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "holdings_user_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.holdingTypeId],
+			foreignColumns: [holdingTypes.id],
+			name: "holdings_holding_type_id_fkey"
+		}),
+]);
+
 
 export const likesRelations = relations(likes, ({one}) => ({
 	user: one(users, {
@@ -438,4 +480,19 @@ export const postsToTagsRelations = relations(postsToTags, ({one}) => ({
 
 export const tagsRelations = relations(tags, ({many}) => ({
 	postsToTags: many(postsToTags),
+}));
+
+export const holdingsRelations = relations(holdings, ({one}) => ({
+	user: one(users, {
+		fields: [holdings.userId],
+		references: [users.id]
+	}),
+	holdingType: one(holdingTypes, {
+		fields: [holdings.holdingTypeId],
+		references: [holdingTypes.id]
+	}),
+}));
+
+export const holdingTypesRelations = relations(holdingTypes, ({many}) => ({
+	holdings: many(holdings),
 }));
