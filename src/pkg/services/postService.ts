@@ -1,5 +1,5 @@
 import { PostRepository } from "../repository/postRepository";
-import { TagRepository } from "../repository/tagRepository";
+import { TagService } from "./tagService";
 import type { PostCreateBody } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
@@ -9,7 +9,7 @@ import { errorHttp } from "../../utils/error";
 export class PostService {
   constructor(
     private postrepository: PostRepository,
-    private tagrepository: TagRepository
+    private tagService: TagService
   ) {}
 
   async UpdatePublishedByadmin(id: string, published: boolean) {
@@ -37,14 +37,14 @@ export class PostService {
 
       if (body.tags.length > 0) {
         for (const tag of body.tags) {
-          await this.tagrepository.addTag(tag);
+          await this.tagService.addTag(tag);
         }
       }
 
-      const getTags = await this.tagrepository.getTagsByNameArray(body.tags);
+      const getTags = await this.tagService.getTagsByNameArray(body.tags);
 
       for (const tag of getTags) {
-        await this.tagrepository.addTagToPost(post[0].id, tag.id);
+        await this.tagService.addTagToPost(post[0].id, tag.id);
       }
 
       return post[0];
@@ -89,7 +89,7 @@ export class PostService {
   }
 
   async getPostsByTag($tag: string) {
-    const tag = await this.tagrepository.getTag($tag);
+    const tag = await this.tagService.getTag($tag);
     if (!tag) {
       throw new HTTPException(404, { message: "Tag not Found" });
     }
