@@ -6,16 +6,32 @@ import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 
 export const holdingController = new Hono<{ Variables: Variables }>()
-  .get("/", auth, async (c) => {
-    const auth = c.get("user");
-    const holdings = await holdingService.getHoldingsByUserId(auth.user_id);
-    return c.json({
-      data: holdings,
-      success: true,
-      message: "holdings fetched successfully",
-      requestId: c.get("requestId") || "N/A",
-    });
-  })
+  .get(
+    "/",
+    auth,
+    validateRequest(
+      "query",
+      z.object({
+        month: z.string().regex(/^\d+$/).transform(Number).optional(),
+        year: z.string().regex(/^\d+$/).transform(Number).optional(),
+      })
+    ),
+    async (c) => {
+      const auth = c.get("user");
+      const { month, year } = c.req.valid("query");
+      const holdings = await holdingService.getHoldingsByUserId(
+        auth.user_id,
+        month,
+        year
+      );
+      return c.json({
+        data: holdings,
+        success: true,
+        message: "holdings fetched successfully",
+        requestId: c.get("requestId") || "N/A",
+      });
+    }
+  )
   .get("/types", auth, async (c) => {
     const types = await holdingService.getHoldingTypes();
     return c.json({

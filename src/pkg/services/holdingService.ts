@@ -25,9 +25,17 @@ export class HoldingService {
     return holding;
   }
 
-  async getHoldingsByUserId(userId: string) {
+  async getHoldingsByUserId(userId: string, month?: number, year?: number) {
+    const where = [eq(holdings.userId, userId)];
+    if (month) {
+      where.push(eq(holdings.month, month));
+    }
+    if (year) {
+      where.push(eq(holdings.year, year));
+    }
+
     return db.query.holdings.findMany({
-      where: eq(holdings.userId, userId),
+      where: (_, { and }) => and(...where),
       with: {
         holdingType: true,
       },
