@@ -10,7 +10,6 @@ import {
   sessionRepository,
   postrepository,
   tagrepository,
-  chatRepository,
 } from "./repository";
 
 export const postService = new PostService(postrepository, tagrepository);
@@ -18,5 +17,5 @@ export const authService = new AuthService(userRepository, sessionRepository);
 export const userService = new UserService(userRepository);
 export const tagService = new TagService(tagrepository);
 export const writerService = new WriterService(userRepository);
-export const chatService = new ChatService(chatRepository);
+export const chatService = new ChatService();
 export const holdingService = new HoldingService();

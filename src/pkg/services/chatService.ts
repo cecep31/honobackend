@@ -1,20 +1,36 @@
-import { ChatRepository } from "../repository/chatRepository";
+import { db } from "../../database/drizzel";
+import { chatConversations, chatMessages } from "../../database/schemas/postgre/schema";
 import type { CreateConversationBody, CreateMessageBody } from "../../types/chat";
 import { errorHttp } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
+import { eq, and, desc, count } from "drizzle-orm";
 
 export class ChatService {
-  constructor(private chatRepository: ChatRepository) {}
-
   async createConversation(userId: string, body: CreateConversationBody) {
-    return await this.chatRepository.createConversation(userId, body.title);
+    const [conversation] = await db.insert(chatConversations).values({
+      id: crypto.randomUUID(),
+      title: body.title,
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).returning();
+
+    return conversation;
   }
 
   async getConversations(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
     const [conversations, total] = await Promise.all([
-      this.chatRepository.getConversations(userId, params),
-      this.chatRepository.getConversationsCount(userId)
+      db.select()
+        .from(chatConversations)
+        .where(eq(chatConversations.user_id, userId))
+        .orderBy(desc(chatConversations.created_at))
+        .offset(params.offset)
+        .limit(params.limit),
+      db.select({ count: count() })
+        .from(chatConversations)
+        .where(eq(chatConversations.user_id, userId))
+        .then(result => result[0]?.count || 0)
     ]);
 
     const meta = getPaginationMetadata(total, params.offset, params.limit);
@@ -22,7 +38,15 @@ export class ChatService {
   }
 
   async getConversation(conversationId: string, userId: string) {
-    const conversation = await this.chatRepository.getConversation(conversationId, userId);
+    const conversation = await db.select()
+      .from(chatConversations)
+      .where(and(
+        eq(chatConversations.id, conversationId),
+        eq(chatConversations.user_id, userId)
+      ))
+      .limit(1)
+      .then(rows => rows[0] || null);
+
     if (!conversation) {
       throw errorHttp("Conversation not found", 404);
     }
@@ -30,41 +54,90 @@ export class ChatService {
   }
 
   async deleteConversation(conversationId: string, userId: string) {
-    const conversation = await this.chatRepository.getConversation(conversationId, userId);
+    const conversation = await db.select()
+      .from(chatConversations)
+      .where(and(
+        eq(chatConversations.id, conversationId),
+        eq(chatConversations.user_id, userId)
+      ))
+      .limit(1)
+      .then(rows => rows[0] || null);
+
     if (!conversation) {
       throw errorHttp("Conversation not found", 404);
     }
-    return await this.chatRepository.deleteConversation(conversationId, userId);
+
+    return await db.delete(chatConversations)
+      .where(and(
+        eq(chatConversations.id, conversationId),
+        eq(chatConversations.user_id, userId)
+      ))
+      .returning();
   }
 
   async createMessage(userId: string, body: CreateMessageBody) {
     // Check if conversation exists and belongs to user
-    const conversation = await this.chatRepository.getConversation(body.conversation_id, userId);
+    const conversation = await db.select()
+      .from(chatConversations)
+      .where(and(
+        eq(chatConversations.id, body.conversation_id),
+        eq(chatConversations.user_id, userId)
+      ))
+      .limit(1)
+      .then(rows => rows[0] || null);
+
     if (!conversation) {
       throw errorHttp("Conversation not found or doesn't belong to user", 404);
     }
 
-    return await this.chatRepository.createMessage(
-      body.conversation_id,
-      userId,
-      body.content,
-      body.role,
-      body.model
-    );
+    const [message] = await db.insert(chatMessages).values({
+      id: crypto.randomUUID(),
+      conversation_id: body.conversation_id,
+      user_id: userId,
+      content: body.content,
+      role: body.role,
+      model: body.model,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).returning();
+
+    return message;
   }
 
   async getMessages(conversationId: string, userId: string) {
     // Check if conversation exists and belongs to user
-    const conversation = await this.chatRepository.getConversation(conversationId, userId);
+    const conversation = await db.select()
+      .from(chatConversations)
+      .where(and(
+        eq(chatConversations.id, conversationId),
+        eq(chatConversations.user_id, userId)
+      ))
+      .limit(1)
+      .then(rows => rows[0] || null);
+
     if (!conversation) {
       throw errorHttp("Conversation not found or doesn't belong to user", 404);
     }
 
-    return await this.chatRepository.getMessages(conversationId, userId);
+    return await db.select()
+      .from(chatMessages)
+      .where(and(
+        eq(chatMessages.conversation_id, conversationId),
+        eq(chatMessages.user_id, userId)
+      ))
+      .orderBy(desc(chatMessages.created_at));
   }
 
   async getMessage(messageId: string, userId: string) {
-    const message = await this.chatRepository.getMessage(messageId, userId);
+    const message = await db.select()
+      .from(chatMessages)
+      .where(and(
+        eq(chatMessages.id, messageId),
+        eq(chatMessages.user_id, userId)
+      ))
+      .limit(1)
+      .then(rows => rows[0] || null);
+
     if (!message) {
       throw errorHttp("Message not found or doesn't belong to user", 404);
     }
@@ -72,10 +145,24 @@ export class ChatService {
   }
 
   async deleteMessage(messageId: string, userId: string) {
-    const message = await this.chatRepository.getMessage(messageId, userId);
+    const message = await db.select()
+      .from(chatMessages)
+      .where(and(
+        eq(chatMessages.id, messageId),
+        eq(chatMessages.user_id, userId)
+      ))
+      .limit(1)
+      .then(rows => rows[0] || null);
+
     if (!message) {
       throw errorHttp("Message not found or doesn't belong to user", 404);
     }
-    return await this.chatRepository.deleteMessage(messageId, userId);
+
+    return await db.delete(chatMessages)
+      .where(and(
+        eq(chatMessages.id, messageId),
+        eq(chatMessages.user_id, userId)
+      ))
+      .returning();
   }
 }
