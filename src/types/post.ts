@@ -1,4 +1,4 @@
-import type { Tag } from "../domain/tag";
+import type { Tag } from "./tag";
 import type { User } from "./user";
 
 export interface PostBase {
