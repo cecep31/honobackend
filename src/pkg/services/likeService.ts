@@ -1,5 +1,5 @@
 import { likes } from "../../database/schemas/postgre/schema";
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { and, eq } from "drizzle-orm";
 import { errorHttp } from "../../utils/error";
 

@@ -36,7 +36,7 @@ src/
 │   └── repository/        # Data access layer
 ├── domain/                # Domain models/types
 ├── database/
-│   ├── drizzel.ts         # Database connection setup
+│   ├── drizzle.ts         # Database connection setup
 │   └── schemas/postgre/   # Drizzle schema definitions
 ├── types/                 # TypeScript type definitions
 ├── config/                # Configuration (secrets, GitHub, etc.)

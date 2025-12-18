@@ -1,4 +1,4 @@
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { desc, eq } from "drizzle-orm";
 import { holdings, holdingTypes } from "../../database/schemas/postgre/schema";
 import type { HoldingCreate, HoldingUpdate } from "../../types/holding";

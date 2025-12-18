@@ -1,4 +1,4 @@
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { chatConversations, chatMessages } from "../../database/schemas/postgre/schema";
 import type { CreateConversationBody, CreateMessageBody } from "../../types/chat";
 import { errorHttp } from "../../utils/error";

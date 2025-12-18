@@ -29,7 +29,7 @@ The application is structured using a Layered Architecture pattern:
 *   `src/server/app.ts`: Main Hono application instance and global error handling.
 *   `src/router/index.ts`: API route registration (versioned under `/v1`).
 *   `src/middlewares/`: Custom middleware (Auth, Logger, Rate Limiter, Validation).
-*   `src/database/drizzel.ts`: Database connection configuration (Note: filename typo `drizzel` vs `drizzle`).
+*   `src/database/drizzle.ts`: Database connection configuration.
 *   `src/database/schemas/postgre/schema.ts`: Drizzle schema definitions.
 
 ## Development Workflow

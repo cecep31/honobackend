@@ -1,6 +1,6 @@
 
 import { describe, it, expect, beforeEach, afterEach  } from 'bun:test'
-import { UserService } from '../pkg/services/userServices'
+import { UserService } from '../pkg/services/userService'
 import { userRepository } from '../pkg/repository'
 
 describe('userservice', () => {

@@ -1,5 +1,5 @@
 import { and, count, desc, eq, isNull, sql, asc, like, or } from "drizzle-orm";
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import {
   users as usersModel,
   posts as postsModel,

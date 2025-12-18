@@ -1,7 +1,7 @@
 import { AuthService } from "./services/authService";
 import { PostService } from "./services/postService";
 import { TagService } from "./services/tagService";
-import { UserService } from "./services/userServices";
+import { UserService } from "./services/userService";
 import { WriterService } from "./services/writerService";
 import { ChatService } from "./services/chatService";
 import { HoldingService } from "./services/holdingService";

@@ -1,5 +1,5 @@
 import { eq, inArray } from "drizzle-orm";
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { postsToTags, tags as tagsModel } from "../../database/schemas/postgre/schema";
 
 export class TagService {

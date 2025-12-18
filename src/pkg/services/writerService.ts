@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { errorHttp } from "../../utils/error";
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { users as usersModel } from "../../database/schemas/postgre/schema";
 
 export class WriterService {

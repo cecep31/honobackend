@@ -1,5 +1,5 @@
 import { randomUUIDv7 } from "bun";
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { and, count, desc, eq, isNull } from "drizzle-orm";
 import {
   profiles,

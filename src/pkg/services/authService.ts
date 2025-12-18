@@ -1,11 +1,11 @@
 import { decode, sign, verify } from "hono/jwt";
-import type { UserService } from "./userServices";
+import type { UserService } from "./userService";
 import type { userLogin, UserSignup } from "../../types/user";
 import config from "../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
 import { errorHttp, Errors } from "../../utils/error";
-import { db } from "../../database/drizzel";
+import { db } from "../../database/drizzle";
 import { sessions as sessionModel } from "../../database/schemas/postgre/schema";
 
 export class AuthService {
