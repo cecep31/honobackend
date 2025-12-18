@@ -1,16 +1,16 @@
 import { decode, sign, verify } from "hono/jwt";
-import type { UserRepository } from "../repository/userRepository";
-import type { SessionRepository } from "../repository/sessionRepository";
+import type { UserService } from "./userServices";
 import type { userLogin, UserSignup } from "../../types/user";
 import config from "../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
 import { errorHttp, Errors } from "../../utils/error";
+import { db } from "../../database/drizzel";
+import { sessions as sessionModel } from "../../database/schemas/postgre/schema";
 
 export class AuthService {
   constructor(
-    private userRepository: UserRepository,
-    private sessionRepository: SessionRepository
+    private userService: UserService
   ) {}
 
   private isEmail(email: string): boolean {
@@ -25,9 +25,9 @@ export class AuthService {
     let user: userLogin | undefined;
 
     if (this.isEmail(username)) {
-      user = await this.userRepository.getUserByEmailRaw(username);
+      user = await this.userService.getUserByEmailRaw(username);
     } else {
-      user = await this.userRepository.getUserByUsernameRaw(username);
+      user = await this.userService.getUserByUsernameRaw(username);
     }
 
     if (!user) {
@@ -51,20 +51,22 @@ export class AuthService {
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
     };
 
-    const session = await this.sessionRepository.insertSession({
+    const session = await db.insert(sessionModel).values({
       user_id: user.id ?? "",
       refresh_token: randomUUIDv7().toString(),
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
       user_agent: user_agent,
+    }).returning({
+      refresh_token: sessionModel.refresh_token,
     });
 
     const token = await sign(payload, config.jwt.secret);
 
-    return { access_token: token, refresh_token: session.refresh_token };
+    return { access_token: token, refresh_token: session[0].refresh_token };
   }
 
   async signInWithGithub(github_id: number) {
-    const user = await this.userRepository.getUserByGithubId(github_id);
+    const user = await this.userService.getUserByGithubId(github_id);
     if (!user) {
       throw Errors.NotFound("User");
     }
@@ -86,7 +88,7 @@ export class AuthService {
       cost: 12,
     });
     data.password = hashedPassword;
-    const user = await this.userRepository.createUser(data);
+    const user = await this.userService.createUser(data);
     const payload = {
       id: user.id,
       email: user.email,
@@ -123,7 +125,7 @@ export class AuthService {
   }
 
   async checkUsername(username: string) {
-    const user = await this.userRepository.getUserCountByUsername(username);
+    const user = await this.userService.getUserCountByUsername(username);
     if (user > 0) {
       return true;
     }
@@ -149,7 +151,7 @@ export class AuthService {
     newPassword: string,
     userId: string
   ) {
-    const user = await this.userRepository.getUserWithPassword(userId);
+    const user = await this.userService.getUserWithPassword(userId);
 
     if (
       !(await Bun.password.verify(
@@ -165,6 +167,6 @@ export class AuthService {
       algorithm: "bcrypt",
     });
 
-    return this.userRepository.updatePassword(userId, hashedPassword);
+    return this.userService.updatePassword(userId, hashedPassword);
   }
 }

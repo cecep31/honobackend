@@ -61,7 +61,7 @@ export const userController = new Hono<{ Variables: Variables }>()
         email: z.string().email(),
         password: z.string().min(8),
         image: z.string().optional().default("/images/default.jpg"),
-        issuperadmin: z.boolean().optional().default(false),
+        is_super_admin: z.boolean().optional().default(false),
       })
     ),
     async (c) => {
