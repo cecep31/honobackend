@@ -5,6 +5,7 @@ import { z } from "zod";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 import { getPaginationParams } from "../utils/paginate";
+import getConfig from "../config";
 
 export const chatController = new Hono<{ Variables: Variables }>()
   // Conversation endpoints
@@ -148,6 +149,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
         conversation_id: params.conversationId,
       });
 
+      // Get the actual model that will be used
+      const config = getConfig;
+      const actualModel = model || config.openrouter.defaultModel;
+
       if (!streamGenerator) {
         return c.json(
           {
@@ -180,7 +185,11 @@ export const chatController = new Hono<{ Variables: Variables }>()
             }
 
             // Save the complete AI message
-            const aiMessage = await chatService.saveStreamingMessage(conversationId, userId, fullContent, model, usage || undefined);
+            const aiMessage = await chatService.saveStreamingMessage(conversationId, userId, fullContent, actualModel, usage || {
+              prompt_tokens: 0,
+              completion_tokens: 0,
+              total_tokens: 0
+            });
 
             // Send completion signal with the saved message
             controller.enqueue(`data: ${JSON.stringify({ type: "ai_complete", data: aiMessage })}\n\n`);

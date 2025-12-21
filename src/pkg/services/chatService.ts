@@ -5,109 +5,9 @@ import { errorHttp } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 import { eq, and, desc, count } from "drizzle-orm";
-import getConfig from "../../config";
-
-interface OpenRouterResponse {
-  choices: Array<{
-    message: {
-      role: string;
-      content: string;
-    };
-  }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
+import { openrouterService } from "../../services/openrouterService";
 
 export class ChatService {
-  private async callOpenRouter(messages: { role: string; content: string }[], model: string = "anthropic/claude-3-haiku"): Promise<OpenRouterResponse> {
-    const config = getConfig;
-    const response = await fetch(`${config.openrouter.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${config.openrouter.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
-    }
-
-    const data = await response.json() as OpenRouterResponse;
-    return data;
-  }
-
-  private async *callOpenRouterStream(messages: { role: string; content: string }[], model: string = "anthropic/claude-3-haiku") {
-    const config = getConfig;
-    const response = await fetch(`${config.openrouter.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${config.openrouter.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error("No response body");
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") {
-              return usage;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.usage) {
-                usage = parsed.usage;
-              }
-              const delta = parsed.choices?.[0]?.delta?.content;
-              if (delta) {
-                yield delta;
-              }
-            } catch (e) {
-              // Ignore parsing errors
-            }
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock();
-    }
-    return usage;
-  }
-
   async createConversation(userId: string, body: CreateConversationBody) {
     const [conversation] = await db.insert(chatConversations).values({
       id: crypto.randomUUID(),
@@ -218,7 +118,7 @@ export class ChatService {
       }));
 
       try {
-        const aiResponse = await this.callOpenRouter(contextMessages, body.model || "anthropic/claude-3-haiku");
+        const aiResponse = await openrouterService.generateResponse(contextMessages, body.model);
 
         const aiMessage = aiResponse.choices[0].message;
         const usage = aiResponse.usage;
@@ -229,7 +129,7 @@ export class ChatService {
           user_id: userId,
           content: aiMessage.content,
           role: aiMessage.role,
-          model: body.model || "anthropic/claude-3-haiku",
+          model: body.model || "",
           prompt_tokens: usage.prompt_tokens,
           completion_tokens: usage.completion_tokens,
           total_tokens: usage.total_tokens,
@@ -289,10 +189,10 @@ export class ChatService {
 
       return {
         userMessage,
-        streamGenerator: this.callOpenRouterStream(contextMessages, body.model || "anthropic/claude-3-haiku"),
+        streamGenerator: openrouterService.generateStream(contextMessages, body.model),
         conversationId: body.conversation_id,
         userId,
-        model: body.model || "anthropic/claude-3-haiku",
+        model: body.model || "",
       };
     }
 
