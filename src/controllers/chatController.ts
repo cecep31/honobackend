@@ -21,32 +21,37 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const authUser = c.get("user");
       const body = c.req.valid("json");
 
-      const conversation = await chatService.createConversation(authUser.user_id, body);
-      return c.json({
-        data: conversation,
-        success: true,
-        message: "Conversation created successfully",
-        requestId: c.get("requestId") || "N/A",
-      }, 201);
+      const conversation = await chatService.createConversation(
+        authUser.user_id,
+        body
+      );
+      return c.json(
+        {
+          data: conversation,
+          success: true,
+          message: "Conversation created successfully",
+          requestId: c.get("requestId") || "N/A",
+        },
+        201
+      );
     }
   )
-  .get(
-    "/conversations",
-    auth,
-    async (c) => {
-      const authUser = c.get("user");
-      const params = getPaginationParams(c);
-      const { data: conversations, meta } = await chatService.getConversations(authUser.user_id, params);
+  .get("/conversations", auth, async (c) => {
+    const authUser = c.get("user");
+    const params = getPaginationParams(c);
+    const { data: conversations, meta } = await chatService.getConversations(
+      authUser.user_id,
+      params
+    );
 
-      return c.json({
-        data: conversations,
-        meta,
-        success: true,
-        message: "Conversations fetched successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
-    }
-  )
+    return c.json({
+      data: conversations,
+      meta,
+      success: true,
+      message: "Conversations fetched successfully",
+      requestId: c.get("requestId") || "N/A",
+    });
+  })
   .get(
     "/conversations/:id",
     auth,
@@ -55,7 +60,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const authUser = c.get("user");
       const params = c.req.valid("param");
 
-      const conversation = await chatService.getConversation(params.id, authUser.user_id);
+      const conversation = await chatService.getConversation(
+        params.id,
+        authUser.user_id
+      );
       return c.json({
         data: conversation,
         success: true,
@@ -72,7 +80,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const authUser = c.get("user");
       const params = c.req.valid("param");
 
-      const conversation = await chatService.deleteConversation(params.id, authUser.user_id);
+      const conversation = await chatService.deleteConversation(
+        params.id,
+        authUser.user_id
+      );
       return c.json({
         data: conversation,
         success: true,
@@ -84,12 +95,12 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
   // Message endpoints
   .post(
-    "/messages",
+    "/conversations/:conversationId/messages",
     auth,
+    validateRequest("param", z.object({ conversationId: z.string().uuid() })),
     validateRequest(
       "json",
       z.object({
-        conversation_id: z.string().uuid(),
         content: z.string().min(1),
         role: z.string().min(1),
         model: z.string().optional(),
@@ -97,15 +108,22 @@ export const chatController = new Hono<{ Variables: Variables }>()
     ),
     async (c) => {
       const authUser = c.get("user");
+      const params = c.req.valid("param");
       const body = c.req.valid("json");
 
-      const message = await chatService.createMessage(authUser.user_id, body);
-      return c.json({
-        data: message,
-        success: true,
-        message: "Message created successfully",
-        requestId: c.get("requestId") || "N/A",
-      }, 201);
+      const message = await chatService.createMessage(authUser.user_id, {
+        ...body,
+        conversation_id: params.conversationId,
+      });
+      return c.json(
+        {
+          data: message,
+          success: true,
+          message: "Message created successfully",
+          requestId: c.get("requestId") || "N/A",
+        },
+        201
+      );
     }
   )
   .get(
@@ -116,7 +134,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const authUser = c.get("user");
       const params = c.req.valid("param");
 
-      const messages = await chatService.getMessages(params.conversationId, authUser.user_id);
+      const messages = await chatService.getMessages(
+        params.conversationId,
+        authUser.user_id
+      );
       return c.json({
         data: messages,
         success: true,
@@ -150,7 +171,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const authUser = c.get("user");
       const params = c.req.valid("param");
 
-      const message = await chatService.deleteMessage(params.id, authUser.user_id);
+      const message = await chatService.deleteMessage(
+        params.id,
+        authUser.user_id
+      );
       return c.json({
         data: message,
         success: true,
