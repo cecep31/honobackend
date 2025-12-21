@@ -20,7 +20,7 @@ interface OpenRouterMessage {
 }
 
 export class OpenRouterService {
-  private async callAPI(messages: OpenRouterMessage[], model: string = "anthropic/claude-3-haiku", stream: boolean = false) {
+  private async callAPI(messages: OpenRouterMessage[], model: string, stream: boolean = false, temperature: number = 0.7) {
     const config = getConfig;
     const response = await fetch(`${config.openrouter.baseUrl}/chat/completions`, {
       method: "POST",
@@ -32,6 +32,7 @@ export class OpenRouterService {
         model,
         messages,
         stream,
+        temperature,
       }),
     });
 
@@ -42,18 +43,18 @@ export class OpenRouterService {
     return response;
   }
 
-  async generateResponse(messages: OpenRouterMessage[], model?: string): Promise<OpenRouterResponse> {
+  async generateResponse(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7): Promise<OpenRouterResponse> {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(messages, finalModel, false);
+    const response = await this.callAPI(messages, finalModel, false, temperature);
     const data = await response.json() as OpenRouterResponse;
     return data;
   }
 
-  async *generateStream(messages: OpenRouterMessage[], model?: string) {
+  async *generateStream(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7) {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(messages, finalModel, true);
+    const response = await this.callAPI(messages, finalModel, true, temperature);
 
     if (!response.ok) {
       throw new Error(`OpenRouter API error: ${response.statusText}`);

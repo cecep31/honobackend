@@ -103,8 +103,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
       "json",
       z.object({
         content: z.string().min(1),
-        role: z.string().min(1),
         model: z.string().optional(),
+        temperature: z.number().min(0).max(2).default(0.7),
       })
     ),
     async (c) => {
@@ -114,6 +114,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
       const messages = await chatService.createMessage(authUser.user_id, {
         ...body,
+        role: "user", // Set role to user automatically
         conversation_id: params.conversationId,
       });
       return c.json(
@@ -135,8 +136,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
       "json",
       z.object({
         content: z.string().min(1),
-        role: z.string().min(1),
         model: z.string().optional(),
+        temperature: z.number().min(0).max(2).default(0.7),
       })
     ),
     async (c) => {
@@ -146,6 +147,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
       const { userMessage, streamGenerator, conversationId, userId, model } = await chatService.createStreamingMessage(authUser.user_id, {
         ...body,
+        role: "user", // Set role to user automatically
         conversation_id: params.conversationId,
       });
 

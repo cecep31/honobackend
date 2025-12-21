@@ -118,7 +118,7 @@ export class ChatService {
       }));
 
       try {
-        const aiResponse = await openrouterService.generateResponse(contextMessages, body.model);
+        const aiResponse = await openrouterService.generateResponse(contextMessages, body.model, body.temperature);
 
         const aiMessage = aiResponse.choices[0].message;
         const usage = aiResponse.usage;
@@ -189,7 +189,7 @@ export class ChatService {
 
       return {
         userMessage,
-        streamGenerator: openrouterService.generateStream(contextMessages, body.model),
+        streamGenerator: openrouterService.generateStream(contextMessages, body.model, body.temperature),
         conversationId: body.conversation_id,
         userId,
         model: body.model || "",

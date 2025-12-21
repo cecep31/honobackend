@@ -30,4 +30,5 @@ export interface CreateMessageBody {
   content: string;
   role: string;
   model?: string;
+  temperature?: number;
 }
