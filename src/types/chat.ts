@@ -28,7 +28,7 @@ export interface CreateConversationBody {
 export interface CreateMessageBody {
   conversation_id: string;
   content: string;
-  role: string;
+  role?: string;
   model?: string;
   temperature?: number;
 }

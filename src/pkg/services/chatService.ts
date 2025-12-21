@@ -5,7 +5,7 @@ import { errorHttp } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 import { eq, and, desc, count } from "drizzle-orm";
-import { openrouterService } from "../../services/openrouterService";
+import { openrouterService } from "./openrouterService";
 
 export class ChatService {
   async createConversation(userId: string, body: CreateConversationBody) {
@@ -96,7 +96,7 @@ export class ChatService {
       conversation_id: body.conversation_id,
       user_id: userId,
       content: body.content,
-      role: body.role,
+      role: body.role || "user",
       model: body.model,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -168,7 +168,7 @@ export class ChatService {
       conversation_id: body.conversation_id,
       user_id: userId,
       content: body.content,
-      role: body.role,
+      role: body.role || "user",
       model: body.model,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
