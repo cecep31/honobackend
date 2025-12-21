@@ -48,6 +48,10 @@ const getConfig = {
     secretAccessKey: process.env["S3_SECRET_ACCESS_KEY"] ?? "",
     bucketName: process.env["S3_BUCKET_NAME"] ?? "",
   },
+  openrouter: {
+    apiKey: process.env["OPENROUTER_API_KEY"] ?? "",
+    baseUrl: process.env["OPENROUTER_BASE_URL"] ?? "https://openrouter.ai/api/v1",
+  },
 };
 
 export default getConfig;
