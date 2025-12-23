@@ -6,6 +6,7 @@ export const originList = [
   "https://app.pilput.me",
   "https://dash.pilput.me",
   "https://pilput.me",
+  "https://pilput.net"
 ];
 function getNumberEnv(key: string, defaultValue: number): number {
   const value = process.env[key];
