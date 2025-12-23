@@ -1,4 +1,6 @@
 node_modules
+dist
+bin
 Dockerfile*
 docker-compose*
 .dockerignore
