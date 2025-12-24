@@ -11,11 +11,12 @@ export class LikeService {
         .from(likes)
         .where(and(eq(likes.user_id, authId), eq(likes.post_id, post_id)));
       if (checkLike.length > 0) {
-        console.log("ada data");
-        const deletresult = await db.delete(likes).returning();
+        const deletresult = await db
+          .delete(likes)
+          .where(and(eq(likes.user_id, authId), eq(likes.post_id, post_id)))
+          .returning();
         return deletresult[0];
       } else {
-        console.log("tidak ada data");
         const like = await db
           .insert(likes)
           .values({ post_id: post_id, user_id: authId })
@@ -25,7 +26,6 @@ export class LikeService {
         return like[0];
       }
     } catch (error) {
-      console.log(error);
       throw errorHttp("internal server error", 500);
     }
   }
