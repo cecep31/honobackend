@@ -7,6 +7,7 @@ import { likeController } from "../controllers/likeController";
 import { writerController } from "../controllers/writerController";
 import { chatController } from "../controllers/chatController";
 import { holdingController } from "../controllers/holdingController";
+import { bookmarkController } from "../controllers/bookmarkController";
 import { app } from "../server/app";
 
 const setupRouter = () => {
@@ -18,7 +19,8 @@ const setupRouter = () => {
     .route("/likes", likeController)
     .route("/writers", writerController)
     .route("/chat", chatController)
-    .route("/holdings", holdingController);
+    .route("/holdings", holdingController)
+    .route("/bookmarks", bookmarkController);
 
   app.route("/v1", v1);
 };
