@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, sql, asc, like, or } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql, asc, ilike, or } from "drizzle-orm";
 import { db } from "../../database/drizzle";
 import {
   users as usersModel,
@@ -144,8 +144,8 @@ export class PostService {
       whereClause = and(
         whereClause,
         or(
-          like(postsModel.title, `%${search}%`),
-          like(postsModel.body, `%${search}%`)
+          ilike(postsModel.title, `%${search}%`),
+          ilike(postsModel.body, `%${search}%`)
         )
       );
     }
