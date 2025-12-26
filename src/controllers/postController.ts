@@ -6,7 +6,7 @@ import type { jwtPayload } from "../types/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
 import { getPaginationParams } from "../utils/paginate";
 import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from '../types/context'
+import type { Variables } from "../types/context";
 
 export const postController = new Hono<{ Variables: Variables }>();
 
@@ -189,5 +189,3 @@ postController.patch(
     return c.json(post);
   }
 );
-
-
