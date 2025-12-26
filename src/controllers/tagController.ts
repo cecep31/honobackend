@@ -6,8 +6,11 @@ export const tagController = new Hono();
 tagController.get("/", async (c) => {
   try {
     const tags = await tagService.getTags();
-    return c.json(tags);
+    return c.json({
+      success: true,
+      data: tags,
+    });
   } catch (error) {
-    return c.json({ error: "Failed to fetch tags" }, 500);
+    return c.json({ success: false, error: "Failed to fetch tags" }, 500);
   }
 });
