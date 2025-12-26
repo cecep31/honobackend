@@ -1,12 +1,17 @@
 import { Hono } from "hono";
 import { postService } from "../pkg/service";
-import { z } from "zod";
 import { auth } from "../middlewares/auth";
 import type { jwtPayload } from "../types/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
 import { getPaginationParams } from "../utils/paginate";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
+import {
+  createPostSchema,
+  postByUsernameSlugSchema,
+  postIdSchema,
+  updatePublishedSchema,
+} from "../validations/post";
 
 export const postController = new Hono<{ Variables: Variables }>();
 
@@ -85,13 +90,7 @@ postController.get("/slug/:slug", async (c) => {
 
 postController.get(
   "u/:username/:slug",
-  validateRequest(
-    "param",
-    z.object({
-      username: z.string().min(5).max(20),
-      slug: z.string().min(5).max(255),
-    })
-  ),
+  validateRequest("param", postByUsernameSlugSchema),
   async (c) => {
     const params = c.req.valid("param");
     const post = await postService.getPostByUsernameSlug(
@@ -138,7 +137,7 @@ postController.get("/all", auth, superAdminMiddleware, async (c) => {
 //get post by id
 postController.get(
   "/:id",
-  validateRequest("param", z.object({ id: z.string().uuid() })),
+  validateRequest("param", postIdSchema),
   async (c) => {
     const id = c.req.param("id");
     const post = await postService.getPost(id);
@@ -151,17 +150,7 @@ postController.get(
 postController.post(
   "/",
   auth,
-  validateRequest(
-    "json",
-    z.object({
-      title: z.string().min(5).max(255),
-      body: z.string().min(20).max(10000),
-      slug: z.string().min(5).max(255),
-      tags: z.array(z.string()).optional().default([]),
-      photo_url: z.string().optional().default("/images/default.jpg"),
-      published: z.boolean().optional().default(true),
-    })
-  ),
+  validateRequest("json", createPostSchema),
   async (c) => {
     const auth = c.get("user");
     const body = c.req.valid("json");
@@ -179,8 +168,8 @@ postController.delete("/:id", auth, async (c) => {
 postController.patch(
   "/:id/published",
   auth,
-  validateRequest("json", z.object({ published: z.boolean() })),
-  validateRequest("param", z.object({ id: z.string().uuid() })),
+  validateRequest("json", updatePublishedSchema),
+  validateRequest("param", postIdSchema),
   async (c) => {
     const body = c.req.valid("json");
     const id = c.req.param("id");

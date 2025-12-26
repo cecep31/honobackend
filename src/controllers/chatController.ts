@@ -1,23 +1,23 @@
 import { Hono } from "hono";
 import { chatService } from "../pkg/service";
 import { auth } from "../middlewares/auth";
-import { z } from "zod";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 import { getPaginationParams } from "../utils/paginate";
 import getConfig from "../config";
+import {
+  conversationIdSchema,
+  conversationParamSchema,
+  createConversationSchema,
+  createMessageSchema,
+} from "../validations/chat";
 
 export const chatController = new Hono<{ Variables: Variables }>()
   // Conversation endpoints
   .post(
     "/conversations",
     auth,
-    validateRequest(
-      "json",
-      z.object({
-        title: z.string().min(1).max(255),
-      })
-    ),
+    validateRequest("json", createConversationSchema),
     async (c) => {
       const authUser = c.get("user");
       const body = c.req.valid("json");
@@ -56,7 +56,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .get(
     "/conversations/:id",
     auth,
-    validateRequest("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", conversationIdSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");
@@ -76,7 +76,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .delete(
     "/conversations/:id",
     auth,
-    validateRequest("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", conversationIdSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");
@@ -98,16 +98,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .post(
     "/conversations/:conversationId/messages",
     auth,
-    validateRequest("param", z.object({ conversationId: z.string().uuid() })),
-    validateRequest(
-      "json",
-      z.object({
-        content: z.string().min(1),
-        role: z.string().optional().default("user"),
-        model: z.string().optional(),
-        temperature: z.number().min(0).max(2).default(0.7),
-      })
-    ),
+    validateRequest("param", conversationParamSchema),
+    validateRequest("json", createMessageSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");
@@ -132,16 +124,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .post(
     "/conversations/:conversationId/messages/stream",
     auth,
-    validateRequest("param", z.object({ conversationId: z.string().uuid() })),
-    validateRequest(
-      "json",
-      z.object({
-        content: z.string().min(1),
-        role: z.string().optional().default("user"),
-        model: z.string().optional(),
-        temperature: z.number().min(0).max(2).default(0.7),
-      })
-    ),
+    validateRequest("param", conversationParamSchema),
+    validateRequest("json", createMessageSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");
@@ -250,7 +234,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .get(
     "/conversations/:conversationId/messages",
     auth,
-    validateRequest("param", z.object({ conversationId: z.string().uuid() })),
+    validateRequest("param", conversationParamSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");
@@ -270,7 +254,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .get(
     "/messages/:id",
     auth,
-    validateRequest("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", conversationIdSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");
@@ -287,7 +271,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .delete(
     "/messages/:id",
     auth,
-    validateRequest("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", conversationIdSchema),
     async (c) => {
       const authUser = c.get("user");
       const params = c.req.valid("param");

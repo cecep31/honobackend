@@ -8,7 +8,7 @@ export class HoldingService {
   async createHolding(userId: string, data: HoldingCreate) {
     return db
       .insert(holdings)
-      .values({ ...data, userId })
+      .values({ ...data, user_id: userId })
       .returning();
   }
 
@@ -26,7 +26,7 @@ export class HoldingService {
   }
 
   async getHoldingsByUserId(userId: string, month?: number, year?: number) {
-    const where = [eq(holdings.userId, userId)];
+    const where = [eq(holdings.user_id, userId)];
     if (month) {
       where.push(eq(holdings.month, month));
     }
@@ -39,7 +39,7 @@ export class HoldingService {
       with: {
         holdingType: true,
       },
-      orderBy: [desc(holdings.createdAt)],
+      orderBy: [desc(holdings.created_at)],
     });
   }
 
@@ -50,7 +50,7 @@ export class HoldingService {
     }
     return db
       .update(holdings)
-      .set({ ...data, updatedAt: new Date().toISOString() })
+      .set({ ...data, updated_at: new Date().toISOString() })
       .where(eq(holdings.id, BigInt(id)))
       .returning();
   }

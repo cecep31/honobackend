@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { userService } from "../pkg/service";
 import { auth } from "../middlewares/auth";
 import { superAdminMiddleware } from "../middlewares/superAdmin";
-import { z } from "zod";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 import { getPaginationParams } from "../utils/paginate";
+import { createUserSchema, userIdSchema } from "../validations/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
   .get("/", auth, superAdminMiddleware, async (c) => {
@@ -33,7 +33,7 @@ export const userController = new Hono<{ Variables: Variables }>()
   .get(
     "/:id",
     auth,
-    validateRequest("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", userIdSchema),
     async (c) => {
       const params = c.req.valid("param");
       const user = await userService.gerUser(params.id);
@@ -59,18 +59,7 @@ export const userController = new Hono<{ Variables: Variables }>()
     "/",
     auth,
     superAdminMiddleware,
-    validateRequest(
-      "json",
-      z.object({
-        first_name: z.string(),
-        last_name: z.string(),
-        username: z.string().min(5),
-        email: z.string().email(),
-        password: z.string().min(8),
-        image: z.string().optional().default("/images/default.jpg"),
-        is_super_admin: z.boolean().optional().default(false),
-      })
-    ),
+    validateRequest("json", createUserSchema),
     async (c) => {
       const body = c.req.valid("json");
       const user = await userService.addUser(body);
@@ -89,7 +78,7 @@ export const userController = new Hono<{ Variables: Variables }>()
     "/:id",
     auth,
     superAdminMiddleware,
-    validateRequest("param", z.object({ id: z.string().uuid() })),
+    validateRequest("param", userIdSchema),
     async (c) => {
       const id = c.req.valid("param").id;
       const user = await userService.deleteUser(id);

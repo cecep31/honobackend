@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { authService } from "../pkg/service";
-import { z } from "zod";
 import { auth } from "../middlewares/auth";
 import config from "../config";
 import axios from "axios";
@@ -9,6 +8,12 @@ import { setCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
+import {
+  loginSchema,
+  registerSchema,
+  updatePasswordSchema,
+  usernameSchema,
+} from "../validations/auth";
 
 export const authController = new Hono<{ Variables: Variables }>();
 
@@ -66,13 +71,7 @@ authController.post(
     standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
     keyGenerator: (_c) => "<unique_key>", // Method to generate custom identifiers for clients.
   }),
-  validateRequest(
-    "json",
-    z.object({
-      email: z.string().min(5),
-      password: z.string().min(6),
-    })
-  ),
+  validateRequest("json", loginSchema),
   async (c) => {
     const body = c.req.valid("json");
     const { email, password } = body;
@@ -94,21 +93,7 @@ authController.post(
 
 authController.post(
   "register",
-  validateRequest(
-    "json",
-    z.object({
-      username: z
-        .string()
-        .min(3, "Username must be at least 3 characters long")
-        .max(20, "Username must not exceed 20 characters")
-        .regex(
-          /^[a-zA-Z0-9_]+$/,
-          "Username can only contain letters, numbers, and underscores"
-        ),
-      email: z.string().email(),
-      password: z.string().min(6),
-    })
-  ),
+  validateRequest("json", registerSchema),
   async (c) => {
     const body = c.req.valid("json");
     const token = await authService.signUp(body);
@@ -125,7 +110,7 @@ authController.post(
 
 authController.get(
   "/username/:username",
-  validateRequest("param", z.object({ username: z.string().min(5) })),
+  validateRequest("param", usernameSchema),
   async (c) => {
     const username = c.req.valid("param").username;
     return c.json({
@@ -138,19 +123,7 @@ authController.get(
 authController.patch(
   "/password",
   auth,
-  validateRequest(
-    "json",
-    z
-      .object({
-        old_password: z.string(),
-        new_password: z.string(),
-        confirm_password: z.string(),
-      })
-      .refine((data) => data.new_password === data.confirm_password, {
-        message: "password not match",
-        path: ["confirm_password"],
-      })
-  ),
+  validateRequest("json", updatePasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
     const user = c.get("user");

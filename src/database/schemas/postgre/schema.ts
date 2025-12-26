@@ -309,32 +309,32 @@ export const holdingTypes = pgTable("holding_types", {
 
 export const holdings = pgTable("holdings", {
 	id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
-	userId: uuid("user_id").notNull(),
+	user_id: uuid("user_id").notNull(),
 	name: text().notNull(),
 	platform: text().notNull(),
-	holdingTypeId: smallint("holding_type_id").notNull(),
+	holding_type_id: smallint("holding_type_id").notNull(),
 	currency: char({ length: 3 }).notNull(),
-	investedAmount: numeric("invested_amount", { precision: 18, scale:  2 }).default('0').notNull(),
-	currentValue: numeric("current_value", { precision: 18, scale:  2 }).default('0').notNull(),
+	invested_amount: numeric("invested_amount", { precision: 18, scale:  2 }).default('0').notNull(),
+	current_value: numeric("current_value", { precision: 18, scale:  2 }).default('0').notNull(),
 	units: numeric({ precision: 24, scale:  10 }),
-	avgBuyPrice: numeric("avg_buy_price", { precision: 18, scale:  8 }),
-	currentPrice: numeric("current_price", { precision: 18, scale:  8 }),
-	lastUpdated: timestamp("last_updated", { withTimezone: true, mode: 'string' }),
+	avg_buy_price: numeric("avg_buy_price", { precision: 18, scale:  8 }),
+	current_price: numeric("current_price", { precision: 18, scale:  8 }),
+	last_updated: timestamp("last_updated", { withTimezone: true, mode: 'string' }),
 	notes: text(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	month: integer().default(1).notNull(),
 	year: integer().default(2025).notNull(),
 }, (table) => [
-	index("idx_holdings_user").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
-	uniqueIndex("uq_holdings_user_platform_name_currency").using("btree", table.userId.asc().nullsLast().op("bpchar_ops"), table.platform.asc().nullsLast().op("bpchar_ops"), table.name.asc().nullsLast().op("bpchar_ops"), table.currency.asc().nullsLast().op("bpchar_ops")),
+	index("idx_holdings_user").using("btree", table.user_id.asc().nullsLast().op("uuid_ops")),
+	uniqueIndex("uq_holdings_user_platform_name_currency").using("btree", table.user_id.asc().nullsLast().op("bpchar_ops"), table.platform.asc().nullsLast().op("bpchar_ops"), table.name.asc().nullsLast().op("bpchar_ops"), table.currency.asc().nullsLast().op("bpchar_ops")),
 	foreignKey({
-			columns: [table.userId],
+			columns: [table.user_id],
 			foreignColumns: [users.id],
 			name: "holdings_user_id_fkey"
 		}),
 	foreignKey({
-			columns: [table.holdingTypeId],
+			columns: [table.holding_type_id],
 			foreignColumns: [holdingTypes.id],
 			name: "holdings_holding_type_id_fkey"
 		}),
@@ -484,11 +484,11 @@ export const tagsRelations = relations(tags, ({many}) => ({
 
 export const holdingsRelations = relations(holdings, ({one}) => ({
 	user: one(users, {
-		fields: [holdings.userId],
+		fields: [holdings.user_id],
 		references: [users.id]
 	}),
 	holdingType: one(holdingTypes, {
-		fields: [holdings.holdingTypeId],
+		fields: [holdings.holding_type_id],
 		references: [holdingTypes.id]
 	}),
 }));
