@@ -3,7 +3,6 @@ import { verify } from "hono/jwt";
 import config from "../config";
 
 export const auth = createMiddleware(async (c, next) => {
-
   try {
     const authorization = c.req.header("Authorization");
 
@@ -22,7 +21,7 @@ export const auth = createMiddleware(async (c, next) => {
     const token = authorization.replace("Bearer ", "");
 
     if (!token) {
-      c.res.headers.set("WWW-Authenticate", "Bearer error=\"invalid_token\"");
+      c.res.headers.set("WWW-Authenticate", 'Bearer error="invalid_token"');
       return c.json(
         {
           success: false,
@@ -38,7 +37,7 @@ export const auth = createMiddleware(async (c, next) => {
 
     await next();
   } catch (error) {
-    c.res.headers.set("WWW-Authenticate", "Bearer error=\"invalid_token\"");
+    c.res.headers.set("WWW-Authenticate", 'Bearer error="invalid_token"');
     return c.json(
       {
         success: false,
@@ -47,7 +46,5 @@ export const auth = createMiddleware(async (c, next) => {
       },
       401
     );
-
-
   }
 });

@@ -11,13 +11,13 @@ export const errorHandler = () => {
   return async (err: unknown, c: Context) => {
     const requestId = c.get("requestId") || "unknown";
     const isDevelopment = process.env.NODE_ENV === "development";
-    
+
     // Log the error with context
     logError(err, c, requestId, getLogger());
 
     // Create standardized error response
     const errorResponse = createErrorResponse(err, requestId, isDevelopment);
-    
+
     // Determine status code
     let statusCode = 500;
     if (err instanceof ApiError) {
@@ -40,7 +40,7 @@ function logError(err: unknown, c: Context, requestId: string, logger: any) {
     method: c.req.method,
     path: c.req.path,
     timestamp: new Date().toISOString(),
-    userAgent: c.req.header("User-Agent") || "unknown"
+    userAgent: c.req.header("User-Agent") || "unknown",
   };
 
   if (err instanceof ApiError) {
@@ -50,27 +50,27 @@ function logError(err: unknown, c: Context, requestId: string, logger: any) {
       errorCode: err.errorCode,
       message: err.message,
       details: err.details,
-      isOperational: err.isOperational
+      isOperational: err.isOperational,
     });
   } else if (err instanceof HTTPException) {
     logger.log({
       ...errorContext,
       errorType: "HTTPException",
       statusCode: err.status,
-      message: err.message
+      message: err.message,
     });
   } else if (err instanceof Error) {
     logger.log({
       ...errorContext,
       errorType: "Error",
       message: err.message,
-      stack: err.stack
+      stack: err.stack,
     });
   } else {
     logger.log({
       ...errorContext,
       errorType: "Unknown",
-      error: err
+      error: err,
     });
   }
 }
@@ -101,29 +101,29 @@ export function validateRequest(
   return async (c: Context, next: Next) => {
     try {
       const result = await schema.parseAsync(
-        source === "json" ? await c.req.json() :
-        source === "query" ? c.req.query() :
-        source === "param" ? c.req.param() :
-        c.req.header()
+        source === "json"
+          ? await c.req.json()
+          : source === "query"
+          ? c.req.query()
+          : source === "param"
+          ? c.req.param()
+          : c.req.header()
       );
       c.set("validatedData", result);
       await next();
     } catch (error) {
       if (error instanceof Error) {
-      const validationError = error as Error;
-      throw new ApiError(
-        `Validation failed: ${validationError.message}`,
-        400,
-        errorCode as any,
-        { field: validationError.message }
-      );
+        const validationError = error as Error;
+        throw new ApiError(
+          `Validation failed: ${validationError.message}`,
+          400,
+          errorCode as any,
+          { field: validationError.message }
+        );
       }
-      throw new ApiError(
-        "Validation failed",
-        400,
-        errorCode as any,
-        { error: String(error) }
-      );
+      throw new ApiError("Validation failed", 400, errorCode as any, {
+        error: String(error),
+      });
     }
   };
 }

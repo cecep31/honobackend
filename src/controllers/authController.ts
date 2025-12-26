@@ -167,5 +167,3 @@ authController.patch(
     });
   }
 );
-
-

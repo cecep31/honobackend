@@ -147,11 +147,12 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const params = c.req.valid("param");
       const body = c.req.valid("json");
 
-      const { userMessage, streamGenerator, conversationId, userId, model } = await chatService.createStreamingMessage(authUser.user_id, {
-        ...body,
-        role: body.role || "user", // Use provided role or default to "user"
-        conversation_id: params.conversationId,
-      });
+      const { userMessage, streamGenerator, conversationId, userId, model } =
+        await chatService.createStreamingMessage(authUser.user_id, {
+          ...body,
+          role: body.role || "user", // Use provided role or default to "user"
+          conversation_id: params.conversationId,
+        });
 
       // Get the actual model that will be used
       const config = getConfig;
@@ -175,43 +176,73 @@ export const chatController = new Hono<{ Variables: Variables }>()
         async start(controller) {
           try {
             // Send user message first
-            controller.enqueue(`data: ${JSON.stringify({ type: "user_message", data: userMessage })}\n\n`);
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "user_message",
+                data: userMessage,
+              })}\n\n`
+            );
 
             // Stream AI response
-            let usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
+            let usage: {
+              prompt_tokens: number;
+              completion_tokens: number;
+              total_tokens: number;
+            } | null = null;
             for await (const chunk of streamGenerator) {
-              if (typeof chunk === 'string') {
+              if (typeof chunk === "string") {
                 fullContent += chunk;
-                controller.enqueue(`data: ${JSON.stringify({ type: "ai_chunk", data: chunk })}\n\n`);
+                controller.enqueue(
+                  `data: ${JSON.stringify({
+                    type: "ai_chunk",
+                    data: chunk,
+                  })}\n\n`
+                );
               } else {
                 usage = chunk;
               }
             }
 
             // Save the complete AI message
-            const aiMessage = await chatService.saveStreamingMessage(conversationId, userId, fullContent, actualModel, usage || {
-              prompt_tokens: 0,
-              completion_tokens: 0,
-              total_tokens: 0
-            });
+            const aiMessage = await chatService.saveStreamingMessage(
+              conversationId,
+              userId,
+              fullContent,
+              actualModel,
+              usage || {
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+              }
+            );
 
             // Send completion signal with the saved message
-            controller.enqueue(`data: ${JSON.stringify({ type: "ai_complete", data: aiMessage })}\n\n`);
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "ai_complete",
+                data: aiMessage,
+              })}\n\n`
+            );
             controller.enqueue("data: [DONE]\n\n");
             controller.close();
           } catch (error) {
             console.error("Streaming error:", error);
-            controller.enqueue(`data: ${JSON.stringify({ type: "error", data: "Failed to generate AI response" })}\n\n`);
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "error",
+                data: "Failed to generate AI response",
+              })}\n\n`
+            );
             controller.close();
           }
-        }
+        },
       });
 
       return new Response(stream, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
+          Connection: "keep-alive",
         },
       });
     }

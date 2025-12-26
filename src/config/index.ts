@@ -6,7 +6,7 @@ export const originList = [
   "https://app.pilput.me",
   "https://dash.pilput.me",
   "https://pilput.me",
-  "https://pilput.net"
+  "https://pilput.net",
 ];
 function getNumberEnv(key: string, defaultValue: number): number {
   const value = process.env[key];
@@ -23,9 +23,10 @@ export const rateLimitConfig = {
 const githubConfig = {
   CLIENT_ID: process.env["GITHUB_CLIENT_ID"] ?? "",
   CLIENT_SECRET: process.env["GITHUB_CLIENT_SECRET"] ?? "",
-  REDIRECT_URI: process.env["GITHUB_REDIRECT_URI"] ?? "https://hono.pilput.dev/auth/oauth/github/callback"
+  REDIRECT_URI:
+    process.env["GITHUB_REDIRECT_URI"] ??
+    "https://hono.pilput.dev/auth/oauth/github/callback",
 };
-
 
 const getConfig = {
   rateLimiter: process.env["RATE_LIMITER"] === "true",
@@ -41,7 +42,7 @@ const getConfig = {
     secret: process.env["JWT_SECRET"] ?? "",
     expiresIn: process.env["JWT_EXPIRES_IN"] ?? "1d",
   },
-  github : githubConfig,
+  github: githubConfig,
   s3: {
     endpoint: process.env["S3_ENDPOINT"] ?? "",
     region: process.env["S3_REGION"] ?? "",
@@ -51,8 +52,10 @@ const getConfig = {
   },
   openrouter: {
     apiKey: process.env["OPENROUTER_API_KEY"] ?? "",
-    baseUrl: process.env["OPENROUTER_BASE_URL"] ?? "https://openrouter.ai/api/v1",
-    defaultModel: process.env["OPENROUTER_DEFAULT_MODEL"] ?? "openai/gpt-oss-20b:free",
+    baseUrl:
+      process.env["OPENROUTER_BASE_URL"] ?? "https://openrouter.ai/api/v1",
+    defaultModel:
+      process.env["OPENROUTER_DEFAULT_MODEL"] ?? "openai/gpt-oss-20b:free",
   },
 };
 

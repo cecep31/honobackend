@@ -38,7 +38,14 @@ export const userController = new Hono<{ Variables: Variables }>()
       const params = c.req.valid("param");
       const user = await userService.gerUser(params.id);
       if (!user) {
-        return c.json({ message: "user not found", success: false, requestId: c.get("requestId") || "N/A" }, 404);
+        return c.json(
+          {
+            message: "user not found",
+            success: false,
+            requestId: c.get("requestId") || "N/A",
+          },
+          404
+        );
       }
       return c.json({
         data: user,
@@ -67,12 +74,15 @@ export const userController = new Hono<{ Variables: Variables }>()
     async (c) => {
       const body = c.req.valid("json");
       const user = await userService.addUser(body);
-      return c.json({
-        data: user,
-        success: true,
-        message: "user created successfully",
-        requestId: c.get("requestId") || "N/A",
-      }, 201);
+      return c.json(
+        {
+          data: user,
+          success: true,
+          message: "user created successfully",
+          requestId: c.get("requestId") || "N/A",
+        },
+        201
+      );
     }
   )
   .delete(

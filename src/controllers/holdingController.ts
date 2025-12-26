@@ -81,12 +81,15 @@ export const holdingController = new Hono<{ Variables: Variables }>()
       const auth = c.get("user");
       const body = c.req.valid("json");
       const holding = await holdingService.createHolding(auth.user_id, body);
-      return c.json({
-        data: holding,
-        success: true,
-        message: "holding created successfully",
-        requestId: c.get("requestId") || "N/A",
-      }, 201);
+      return c.json(
+        {
+          data: holding,
+          success: true,
+          message: "holding created successfully",
+          requestId: c.get("requestId") || "N/A",
+        },
+        201
+      );
     }
   )
   .put(
@@ -114,7 +117,10 @@ export const holdingController = new Hono<{ Variables: Variables }>()
     async (c) => {
       const params = c.req.valid("param");
       const body = c.req.valid("json");
-      const holding = await holdingService.updateHolding(Number(params.id), body);
+      const holding = await holdingService.updateHolding(
+        Number(params.id),
+        body
+      );
       return c.json({
         data: holding,
         success: true,

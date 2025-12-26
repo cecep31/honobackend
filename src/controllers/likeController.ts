@@ -14,5 +14,3 @@ likeController.get("/:post_id", auth, async (c) => {
   const post_id = c.req.param("post_id");
   return c.json(await LikeService.getLikes(post_id));
 });
-
-
