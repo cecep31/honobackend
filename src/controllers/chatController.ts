@@ -10,6 +10,7 @@ import {
   conversationIdSchema,
   conversationParamSchema,
   createConversationSchema,
+  createConversationStreamSchema,
   createMessageSchema,
 } from "../validations/chat";
 
@@ -28,6 +29,115 @@ export const chatController = new Hono<{ Variables: Variables }>()
         body
       );
       return sendSuccess(c, conversation, "Conversation created successfully", 201);
+    }
+  )
+  .post(
+    "/conversations/stream",
+    auth,
+    validateRequest("json", createConversationStreamSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const body = c.req.valid("json");
+
+      const abortController = new AbortController();
+
+      const { userMessage, streamGenerator, conversationId, userId, model } =
+        await chatService.createConversationStream(authUser.user_id, body, abortController.signal);
+
+      // Get the actual model that will be used
+      const config = getConfig;
+      const actualModel = model || config.openrouter.defaultModel;
+
+      if (!streamGenerator) {
+        return sendSuccess(c, [userMessage], "Message created successfully", 201);
+      }
+
+      let fullContent = "";
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Send user message and conversation info first
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "conversation_created",
+                data: {
+                  conversationId,
+                  userMessage,
+                },
+              })}\n\n`
+            );
+
+            // Stream AI response
+            let usage: {
+              prompt_tokens: number;
+              completion_tokens: number;
+              total_tokens: number;
+            } | null = null;
+            for await (const chunk of streamGenerator) {
+              if (typeof chunk === "string") {
+                fullContent += chunk;
+                controller.enqueue(
+                  `data: ${JSON.stringify({
+                    type: "ai_chunk",
+                    data: chunk,
+                  })}\n\n`
+                );
+              } else {
+                usage = chunk;
+              }
+            }
+
+            // Save the complete AI message
+            const aiMessage = await chatService.saveStreamingMessage(
+              conversationId,
+              userId,
+              fullContent,
+              actualModel,
+              usage || {
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+              }
+            );
+
+            // Send completion signal with the saved message
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "ai_complete",
+                data: aiMessage,
+              })}\n\n`
+            );
+            controller.enqueue("data: [DONE]\n\n");
+            controller.close();
+          } catch (error) {
+            if ((error as Error).name === 'AbortError') {
+              console.log('Stream aborted by client');
+              return;
+            }
+            console.error("Streaming error:", error);
+            controller.enqueue(
+              `data: ${JSON.stringify({
+                type: "error",
+                data: "Failed to generate AI response",
+              })}\n\n`
+            );
+            controller.close();
+          }
+        },
+        cancel() {
+          console.log('Client disconnected, cancelling AI stream');
+          abortController.abort();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
     }
   )
   .get("/conversations", auth, async (c) => {

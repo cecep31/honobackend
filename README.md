@@ -9,6 +9,7 @@ A high-performance backend API built with **Hono** running on the **Bun** runtim
 - **Social Features:** Bookmarks and Chat (via OpenRouter).
 - **Service-Oriented Architecture:** Business logic and data access integrated in the service layer.
 - **Validation:** Type-safe request validation with Zod.
+- **Documentation:** API documentation in the `docs/` folder.
 
 ## Requirements
 

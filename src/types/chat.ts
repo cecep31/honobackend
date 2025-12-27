@@ -32,3 +32,10 @@ export interface CreateMessageBody {
   model?: string;
   temperature?: number;
 }
+
+export interface CreateConversationStreamBody {
+  title?: string;
+  content: string;
+  model?: string;
+  temperature?: number;
+}

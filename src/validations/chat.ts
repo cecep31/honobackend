@@ -18,3 +18,10 @@ export const createMessageSchema = z.object({
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).default(0.7),
 });
+
+export const createConversationStreamSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  content: z.string().min(1),
+  model: z.string().optional(),
+  temperature: z.number().min(0).max(2).default(0.7),
+});

@@ -22,6 +22,43 @@ export class ChatService {
     return conversation;
   }
 
+  async createConversationStream(userId: string, body: { title?: string; content: string; model?: string; temperature?: number }, signal?: AbortSignal) {
+    // 1. Create conversation
+    const [conversation] = await db.insert(chatConversations).values({
+      id: crypto.randomUUID(),
+      title: body.title || body.content.slice(0, 50),
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).returning();
+
+    // 2. Save user message
+    const [userMessage] = await db.insert(chatMessages).values({
+      id: crypto.randomUUID(),
+      conversation_id: conversation.id,
+      user_id: userId,
+      content: body.content,
+      role: "user",
+      model: body.model,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).returning();
+
+    // 3. Prepare for streaming AI response
+    const contextMessages = [{
+      role: "user",
+      content: body.content,
+    }];
+
+    return {
+      userMessage,
+      streamGenerator: this.openrouterService.generateStream(contextMessages, body.model, body.temperature, signal),
+      conversationId: conversation.id,
+      userId,
+      model: body.model || "",
+    };
+  }
+
   async getConversations(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
     const [conversations, total] = await Promise.all([
       db.select()
