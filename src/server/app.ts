@@ -3,8 +3,9 @@ import { timeout } from "hono/timeout";
 import { errorHandler } from "../middlewares/errorHandler";
 import { setupMiddlewares } from "../middlewares";
 import setupRouter from "../router";
+import type { Variables } from "../types/context";
 
-export const app = new Hono();
+export const app = new Hono<{ Variables: Variables }>();
 
 // Initialize application
 app.use(timeout(30000));
