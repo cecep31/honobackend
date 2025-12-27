@@ -26,7 +26,17 @@ export class TagService {
       .onConflictDoNothing();
   }
 
+  async addTagsBatch(names: string[]) {
+    if (names.length === 0) return [];
+    return await db
+      .insert(tagsModel)
+      .values(names.map(name => ({ name })))
+      .onConflictDoNothing()
+      .returning();
+  }
+
   async getTagsByNameArray(name: string[]) {
+    if (name.length === 0) return [];
     return await db.query.tags.findMany({
       where: inArray(tagsModel.name, name),
     });
@@ -36,6 +46,14 @@ export class TagService {
     return await db
       .insert(postsToTags)
       .values({ tag_id: tag_id, post_id: post_id })
+      .onConflictDoNothing();
+  }
+
+  async addTagsToPostBatch(post_id: string, tag_ids: number[]) {
+    if (tag_ids.length === 0) return [];
+    return await db
+      .insert(postsToTags)
+      .values(tag_ids.map(tag_id => ({ post_id, tag_id })))
       .onConflictDoNothing();
   }
 }

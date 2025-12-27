@@ -1,6 +1,4 @@
 import { app } from './src/server/app';
-import setupRouter from './src/router';
-import { setupMiddlewares } from './src/middlewares';
 import { getLogger } from './src/middlewares/logger';
 
 // Setup application
@@ -14,9 +12,6 @@ logger.log({
     environment: process.env.NODE_ENV || 'development'
   }
 });
-
-setupMiddlewares();
-setupRouter();
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -34,7 +29,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const shutdown = async (signal: string) => {
   console.log(`Received ${signal}. Shutting down server gracefully...`);
   
-  // Add any cleanup tasks here (e.g., closing database connections if the library supported it)
+  // Add any cleanup tasks here
   // For now, we just give a small delay for any pending logs or requests
   setTimeout(() => {
     console.log('Server shutdown complete.');

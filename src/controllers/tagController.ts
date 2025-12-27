@@ -1,16 +1,11 @@
 import { Hono } from "hono";
 import { tagService } from "../pkg/service";
+import type { Variables } from "../types/context";
+import { sendSuccess } from "../utils/response";
 
-export const tagController = new Hono();
+export const tagController = new Hono<{ Variables: Variables }>();
 
 tagController.get("/", async (c) => {
-  try {
-    const tags = await tagService.getTags();
-    return c.json({
-      success: true,
-      data: tags,
-    });
-  } catch (error) {
-    return c.json({ success: false, error: "Failed to fetch tags" }, 500);
-  }
+  const tags = await tagService.getTags();
+  return sendSuccess(c, tags, "Tags fetched successfully");
 });

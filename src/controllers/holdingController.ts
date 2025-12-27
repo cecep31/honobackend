@@ -3,6 +3,7 @@ import { holdingService } from "../pkg/service";
 import { auth } from "../middlewares/auth";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
+import { sendSuccess } from "../utils/response";
 import {
   createHoldingSchema,
   getHoldingsQuerySchema,
@@ -12,28 +13,18 @@ import {
 
 export const holdingController = new Hono<{ Variables: Variables }>()
   .get("/", auth, validateRequest("query", getHoldingsQuerySchema), async (c) => {
-    const auth = c.get("user");
+    const authUser = c.get("user");
     const { month, year } = c.req.valid("query");
     const holdings = await holdingService.getHoldingsByUserId(
-      auth.user_id,
+      authUser.user_id,
       month,
       year
     );
-    return c.json({
-      data: holdings,
-      success: true,
-      message: "holdings fetched successfully",
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, holdings, "Holdings fetched successfully");
   })
   .get("/types", auth, async (c) => {
     const types = await holdingService.getHoldingTypes();
-    return c.json({
-      data: types,
-      success: true,
-      message: "holding types fetched successfully",
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, types, "Holding types fetched successfully");
   })
   .get(
     "/:id",
@@ -42,12 +33,7 @@ export const holdingController = new Hono<{ Variables: Variables }>()
     async (c) => {
       const params = c.req.valid("param");
       const holding = await holdingService.getHoldingById(Number(params.id));
-      return c.json({
-        data: holding,
-        success: true,
-        message: "holding fetched successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, holding, "Holding fetched successfully");
     }
   )
   .post(
@@ -55,18 +41,10 @@ export const holdingController = new Hono<{ Variables: Variables }>()
     auth,
     validateRequest("json", createHoldingSchema),
     async (c) => {
-      const auth = c.get("user");
+      const authUser = c.get("user");
       const body = c.req.valid("json");
-      const holding = await holdingService.createHolding(auth.user_id, body);
-      return c.json(
-        {
-          data: holding,
-          success: true,
-          message: "holding created successfully",
-          requestId: c.get("requestId") || "N/A",
-        },
-        201
-      );
+      const holding = await holdingService.createHolding(authUser.user_id, body);
+      return sendSuccess(c, holding, "Holding created successfully", 201);
     }
   )
   .put(
@@ -81,12 +59,7 @@ export const holdingController = new Hono<{ Variables: Variables }>()
         Number(params.id),
         body
       );
-      return c.json({
-        data: holding,
-        success: true,
-        message: "holding updated successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, holding, "Holding updated successfully");
     }
   )
   .delete(
@@ -96,11 +69,6 @@ export const holdingController = new Hono<{ Variables: Variables }>()
     async (c) => {
       const params = c.req.valid("param");
       const holding = await holdingService.deleteHolding(Number(params.id));
-      return c.json({
-        data: holding,
-        success: true,
-        message: "holding deleted successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, holding, "Holding deleted successfully");
     }
   );

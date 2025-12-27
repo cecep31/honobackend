@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, sql, asc, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql, asc, ilike, or, inArray } from "drizzle-orm";
 import { db } from "../../database/drizzle";
 import {
   users as usersModel,
@@ -66,36 +66,52 @@ export class PostService {
   }
 
   async addPost(auth_id: string, body: PostCreateBody) {
-    try {
-      const post = await db
-        .insert(postsModel)
-        .values({
+    return await db.transaction(async (tx) => {
+      try {
+        const [post] = await tx
+          .insert(postsModel)
+          .values({
             body: body.body,
             title: body.title,
             slug: body.slug,
             photo_url: body.photo_url,
             created_by: auth_id,
             published: body.published,
-        })
-        .returning({ id: postsModel.id });
+          })
+          .returning({ id: postsModel.id });
 
-      if (body.tags.length > 0) {
-        for (const tag of body.tags) {
-          await this.tagService.addTag(tag);
+        if (body.tags && body.tags.length > 0) {
+          // Batch insert tags (ignoring duplicates)
+          await tx
+            .insert(tagsModel)
+            .values(body.tags.map((name) => ({ name })))
+            .onConflictDoNothing();
+
+          // Get all tag IDs for these tags
+          const tags = await tx.query.tags.findMany({
+            where: inArray(tagsModel.name, body.tags),
+          });
+
+          // Batch link tags to post
+          if (tags.length > 0) {
+            await tx
+              .insert(postsToTags)
+              .values(
+                tags.map((tag) => ({
+                  post_id: post.id,
+                  tag_id: tag.id,
+                }))
+              )
+              .onConflictDoNothing();
+          }
         }
+
+        return post;
+      } catch (error) {
+        console.error("Error adding post:", error);
+        throw errorHttp("Failed to create post", 500, "DB_001");
       }
-
-      const getTags = await this.tagService.getTagsByNameArray(body.tags);
-
-      for (const tag of getTags) {
-        await this.tagService.addTagToPost(post[0].id, tag.id);
-      }
-
-      return post[0];
-    } catch (error) {
-      console.log(error);
-      throw errorHttp("internal server error", 500);
-    }
+    });
   }
 
   async getPostByUsernameSlug(username: string, slug: string) {
@@ -195,7 +211,9 @@ export class PostService {
       id: post.id,
       title: post.title,
       body:
-        post.body?.slice(0, 200) + (post.body?.length ?? 0 > 200 ? "..." : ""),
+        post.body && post.body.length > 200
+          ? post.body.slice(0, 200) + "..."
+          : post.body,
       slug: post.slug,
       photo_url: post.photo_url,
       created_at: post.created_at,
@@ -255,7 +273,10 @@ export class PostService {
       .limit(limit);
 
     data.forEach((post) => {
-      post.body = post.body?.substring(0, 200) || "" + "...";
+      post.body =
+        post.body && post.body.length > 200
+          ? post.body.substring(0, 200) + "..."
+          : post.body;
     });
     return data;
   }
@@ -321,7 +342,10 @@ export class PostService {
       
     const data = posts;
     data.forEach((post) => {
-      post.body = post.body?.substring(0, 200) || "" + "...";
+      post.body =
+        post.body && post.body.length > 200
+          ? post.body.substring(0, 200) + "..."
+          : post.body;
     });
     const meta = getPaginationMetadata(total[0].count, params.offset, params.limit);
     return { data, meta };

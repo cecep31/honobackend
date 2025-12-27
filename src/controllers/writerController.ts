@@ -1,36 +1,20 @@
 import { Hono } from "hono";
 import { writerService, postService } from "../pkg/service";
+import type { Variables } from "../types/context";
+import { sendSuccess } from "../utils/response";
+import { Errors } from "../utils/error";
 
-export const writerController = new Hono()
+export const writerController = new Hono<{ Variables: Variables }>()
   .get("/:username", async (c) => {
     const username = c.req.param("username");
     const user = await writerService.getWriterByUsername(username);
     if (!user) {
-      return c.json(
-        {
-          success: false,
-          message: "user not found",
-          requestId: c.get("requestId") || "N/A",
-        },
-        404
-      );
+      throw Errors.NotFound("Writer");
     }
-
-    return c.json({
-      success: true,
-      data: user,
-      message: "User fetched",
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, user, "Writer profile fetched successfully");
   })
   .get("/:username/posts", async (c) => {
     const username = c.req.param("username");
-    const posts = await postService.getPostsByUsername(username);
-    return c.json({
-      success: true,
-      data: posts.data,
-      meta: posts.meta,
-      message: "Posts fetched",
-      requestId: c.get("requestId") || "N/A",
-    });
+    const { data, meta } = await postService.getPostsByUsername(username);
+    return sendSuccess(c, data, "Writer posts fetched successfully", 200, meta);
   });

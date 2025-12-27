@@ -8,6 +8,8 @@ import { setCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
+import { sendSuccess } from "../utils/response";
+import { Errors } from "../utils/error";
 import {
   loginSchema,
   registerSchema,
@@ -29,7 +31,7 @@ authController.get("/oauth/github", async (c) => {
 authController.get("/oauth/github/callback", async (c) => {
   const code = c.req.query("code");
   if (!code) {
-    return c.text("code not found", 403);
+    throw Errors.InvalidInput("code", "code not found");
   }
   const token = await authService.getGithubToken(code);
 
@@ -50,15 +52,8 @@ authController.get("/oauth/github/callback", async (c) => {
     });
     return c.redirect("https://pilput.dev");
   } catch (error) {
-    console.log(error);
-    return c.json(
-      {
-        message: "Failed to get user",
-        success: false,
-        requestId: c.get("requestId") || "N/A",
-      },
-      401
-    );
+    console.error("Github OAuth error:", error);
+    throw Errors.Unauthorized();
   }
 });
 
@@ -80,14 +75,7 @@ authController.post(
       password,
       c.req.header("User-Agent") ?? ""
     );
-    return c.json({
-      data: {
-        ...token,
-      },
-      message: "Login successful",
-      success: true,
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, token, "Login successful");
   }
 );
 
@@ -97,14 +85,7 @@ authController.post(
   async (c) => {
     const body = c.req.valid("json");
     const token = await authService.signUp(body);
-    return c.json({
-      data: {
-        ...token,
-      },
-      message: "User created successfully",
-      success: true,
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, token, "User created successfully", 201);
   }
 );
 
@@ -113,10 +94,8 @@ authController.get(
   validateRequest("param", usernameSchema),
   async (c) => {
     const username = c.req.valid("param").username;
-    return c.json({
-      exsist: await authService.checkUsername(username),
-      requestId: c.get("requestId") || "N/A",
-    });
+    const exists = await authService.checkUsername(username);
+    return sendSuccess(c, { exists }, "Username check completed");
   }
 );
 
@@ -132,11 +111,6 @@ authController.patch(
       body.new_password,
       user.user_id
     );
-    return c.json({
-      success: true,
-      message: "Password updated successfully",
-      data: result,
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, result, "Password updated successfully");
   }
 );

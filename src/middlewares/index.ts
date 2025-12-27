@@ -1,11 +1,12 @@
-import { app } from "../server/app";
+import type { Hono } from "hono";
 import { cors } from "hono/cors";
 import { rateLimiter } from "hono-rate-limiter";
 import { requestId } from "hono/request-id";
 import { pilputLogger } from "./logger";
 import config, { originList, rateLimitConfig } from "../config";
+import type { Variables } from "../types/context";
 
-export function setupMiddlewares() {
+export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
   app
     .use(requestId())
     .use(pilputLogger)

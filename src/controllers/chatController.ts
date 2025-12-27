@@ -4,6 +4,7 @@ import { auth } from "../middlewares/auth";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 import { getPaginationParams } from "../utils/paginate";
+import { sendSuccess } from "../utils/response";
 import getConfig from "../config";
 import {
   conversationIdSchema,
@@ -26,15 +27,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
         authUser.user_id,
         body
       );
-      return c.json(
-        {
-          data: conversation,
-          success: true,
-          message: "Conversation created successfully",
-          requestId: c.get("requestId") || "N/A",
-        },
-        201
-      );
+      return sendSuccess(c, conversation, "Conversation created successfully", 201);
     }
   )
   .get("/conversations", auth, async (c) => {
@@ -45,13 +38,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
       params
     );
 
-    return c.json({
-      data: conversations,
-      meta,
-      success: true,
-      message: "Conversations fetched successfully",
-      requestId: c.get("requestId") || "N/A",
-    });
+    return sendSuccess(c, conversations, "Conversations fetched successfully", 200, meta);
   })
   .get(
     "/conversations/:id",
@@ -65,12 +52,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
         params.id,
         authUser.user_id
       );
-      return c.json({
-        data: conversation,
-        success: true,
-        message: "Conversation fetched successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, conversation, "Conversation fetched successfully");
     }
   )
   .delete(
@@ -85,12 +67,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
         params.id,
         authUser.user_id
       );
-      return c.json({
-        data: conversation,
-        success: true,
-        message: "Conversation deleted successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, conversation, "Conversation deleted successfully");
     }
   )
 
@@ -110,15 +87,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
         role: body.role || "user", // Use provided role or default to "user"
         conversation_id: params.conversationId,
       });
-      return c.json(
-        {
-          data: messages,
-          success: true,
-          message: "Messages created successfully",
-          requestId: c.get("requestId") || "N/A",
-        },
-        201
-      );
+      return sendSuccess(c, messages, "Messages created successfully", 201);
     }
   )
   .post(
@@ -145,15 +114,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const actualModel = model || config.openrouter.defaultModel;
 
       if (!streamGenerator) {
-        return c.json(
-          {
-            data: [userMessage],
-            success: true,
-            message: "Message created successfully",
-            requestId: c.get("requestId") || "N/A",
-          },
-          201
-        );
+        return sendSuccess(c, [userMessage], "Message created successfully", 201);
       }
 
       let fullContent = "";
@@ -253,12 +214,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
         params.conversationId,
         authUser.user_id
       );
-      return c.json({
-        data: messages,
-        success: true,
-        message: "Messages fetched successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, messages, "Messages fetched successfully");
     }
   )
   .get(
@@ -270,12 +226,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const params = c.req.valid("param");
 
       const message = await chatService.getMessage(params.id, authUser.user_id);
-      return c.json({
-        data: message,
-        success: true,
-        message: "Message fetched successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, message, "Message fetched successfully");
     }
   )
   .delete(
@@ -290,11 +241,6 @@ export const chatController = new Hono<{ Variables: Variables }>()
         params.id,
         authUser.user_id
       );
-      return c.json({
-        data: message,
-        success: true,
-        message: "Message deleted successfully",
-        requestId: c.get("requestId") || "N/A",
-      });
+      return sendSuccess(c, message, "Message deleted successfully");
     }
   );

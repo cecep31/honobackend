@@ -8,10 +8,10 @@ import { writerController } from "../controllers/writerController";
 import { chatController } from "../controllers/chatController";
 import { holdingController } from "../controllers/holdingController";
 import { bookmarkController } from "../controllers/bookmarkController";
-import { app } from "../server/app";
+import type { Variables } from "../types/context";
 
-const setupRouter = () => {
-  const v1 = new Hono()
+const setupRouter = (app: Hono<{ Variables: Variables }>) => {
+  const v1 = new Hono<{ Variables: Variables }>()
     .route("/auth", authController)
     .route("/users", userController)
     .route("/posts", postController)

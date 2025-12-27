@@ -9,35 +9,25 @@ import { LikeService } from "./services/likeService";
 import { BookmarkService } from "./services/bookmarkService";
 import { OpenRouterService } from "./services/openrouterService";
 
-// Centralized service hub with lazy loading
-// This ensures services are only instantiated when needed
+// Helper for lazy service instantiation
+function createLazyService<T extends object>(factory: () => T): T {
+  let instance: T | null = null;
+  return new Proxy({} as T, {
+    get: (_, prop) => {
+      if (!instance) instance = factory();
+      const value = Reflect.get(instance, prop);
+      return typeof value === "function" ? value.bind(instance) : value;
+    },
+  });
+}
 
-let _tagService: TagService | null = null;
-export const tagService = _tagService ??= new TagService();
-
-let _userService: UserService | null = null;
-export const userService = _userService ??= new UserService();
-
-let _authService: AuthService | null = null;
-export const authService = _authService ??= new AuthService(userService);
-
-let _postService: PostService | null = null;
-export const postService = _postService ??= new PostService(tagService);
-
-let _writerService: WriterService | null = null;
-export const writerService = _writerService ??= new WriterService();
-
-let _openrouterService: OpenRouterService | null = null;
-export const openrouterService = _openrouterService ??= new OpenRouterService();
-
-let _chatService: ChatService | null = null;
-export const chatService = _chatService ??= new ChatService(openrouterService);
-
-let _holdingService: HoldingService | null = null;
-export const holdingService = _holdingService ??= new HoldingService();
-
-let _likeService: LikeService | null = null;
-export const likeService = _likeService ??= new LikeService();
-
-let _bookmarkService: BookmarkService | null = null;
-export const bookmarkService = _bookmarkService ??= new BookmarkService();
+export const tagService = createLazyService(() => new TagService());
+export const userService = createLazyService(() => new UserService());
+export const authService = createLazyService(() => new AuthService(userService));
+export const postService = createLazyService(() => new PostService(tagService));
+export const writerService = createLazyService(() => new WriterService());
+export const openrouterService = createLazyService(() => new OpenRouterService());
+export const chatService = createLazyService(() => new ChatService(openrouterService));
+export const holdingService = createLazyService(() => new HoldingService());
+export const likeService = createLazyService(() => new LikeService());
+export const bookmarkService = createLazyService(() => new BookmarkService());
