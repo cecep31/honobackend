@@ -55,7 +55,7 @@ const getConfig = {
     baseUrl:
       process.env["OPENROUTER_BASE_URL"] ?? "https://openrouter.ai/api/v1",
     defaultModel:
-      process.env["OPENROUTER_DEFAULT_MODEL"] ?? "openai/gpt-oss-20b:free",
+      process.env["OPENROUTER_DEFAULT_MODEL"] ?? "google/gemma-2-9b-it:free",
   },
 };
 

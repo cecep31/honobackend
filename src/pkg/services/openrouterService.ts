@@ -20,13 +20,26 @@ interface OpenRouterMessage {
 }
 
 export class OpenRouterService {
-  private async callAPI(messages: OpenRouterMessage[], model: string, stream: boolean = false, temperature: number = 0.7, signal?: AbortSignal) {
+  private async callAPI(
+    messages: OpenRouterMessage[],
+    model: string,
+    stream: boolean = false,
+    temperature: number = 0.7,
+    signal?: AbortSignal
+  ) {
     const config = getConfig;
-    const response = await fetch(`${config.openrouter.baseUrl}/chat/completions`, {
+    const url = `${config.openrouter.baseUrl.replace(
+      /\/$/,
+      ""
+    )}/chat/completions`;
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${config.openrouter.apiKey}`,
+        Authorization: `Bearer ${config.openrouter.apiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://pilput.me", // Optional, for OpenRouter rankings
+        "X-Title": "pilput", // Optional
       },
       body: JSON.stringify({
         model,
@@ -38,28 +51,53 @@ export class OpenRouterService {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
+      const errorText = await response.text().catch(() => "");
+      console.error(
+        `OpenRouter API Error (${response.status} ${response.statusText}):`,
+        errorText
+      );
+      throw new Error(
+        `OpenRouter API error: ${response.statusText} ${errorText}`
+      );
     }
 
     return response;
   }
 
-  async generateResponse(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7, signal?: AbortSignal): Promise<OpenRouterResponse> {
+  async generateResponse(
+    messages: OpenRouterMessage[],
+    model?: string,
+    temperature: number = 0.7,
+    signal?: AbortSignal
+  ): Promise<OpenRouterResponse> {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(messages, finalModel, false, temperature, signal);
-    const data = await response.json() as OpenRouterResponse;
+    const response = await this.callAPI(
+      messages,
+      finalModel,
+      false,
+      temperature,
+      signal
+    );
+    const data = (await response.json()) as OpenRouterResponse;
     return data;
   }
 
-  async *generateStream(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7, signal?: AbortSignal) {
+  async *generateStream(
+    messages: OpenRouterMessage[],
+    model?: string,
+    temperature: number = 0.7,
+    signal?: AbortSignal
+  ) {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(messages, finalModel, true, temperature, signal);
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
-    }
+    const response = await this.callAPI(
+      messages,
+      finalModel,
+      true,
+      temperature,
+      signal
+    );
 
     const reader = response.body?.getReader();
     if (!reader) {
@@ -68,7 +106,11 @@ export class OpenRouterService {
 
     const decoder = new TextDecoder();
     let buffer = "";
-    let usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
+    let usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    } | null = null;
 
     try {
       while (true) {
