@@ -131,12 +131,14 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const params = c.req.valid("param");
       const body = c.req.valid("json");
 
+      const abortController = new AbortController();
+
       const { userMessage, streamGenerator, conversationId, userId, model } =
         await chatService.createStreamingMessage(authUser.user_id, {
           ...body,
           role: body.role || "user", // Use provided role or default to "user"
           conversation_id: params.conversationId,
-        });
+        }, abortController.signal);
 
       // Get the actual model that will be used
       const config = getConfig;
@@ -210,6 +212,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
             controller.enqueue("data: [DONE]\n\n");
             controller.close();
           } catch (error) {
+            if ((error as Error).name === 'AbortError') {
+              console.log('Stream aborted by client');
+              return;
+            }
             console.error("Streaming error:", error);
             controller.enqueue(
               `data: ${JSON.stringify({
@@ -220,6 +226,10 @@ export const chatController = new Hono<{ Variables: Variables }>()
             controller.close();
           }
         },
+        cancel() {
+          console.log('Client disconnected, cancelling AI stream');
+          abortController.abort();
+        }
       });
 
       return new Response(stream, {

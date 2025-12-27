@@ -20,7 +20,7 @@ interface OpenRouterMessage {
 }
 
 export class OpenRouterService {
-  private async callAPI(messages: OpenRouterMessage[], model: string, stream: boolean = false, temperature: number = 0.7) {
+  private async callAPI(messages: OpenRouterMessage[], model: string, stream: boolean = false, temperature: number = 0.7, signal?: AbortSignal) {
     const config = getConfig;
     const response = await fetch(`${config.openrouter.baseUrl}/chat/completions`, {
       method: "POST",
@@ -34,6 +34,7 @@ export class OpenRouterService {
         stream,
         temperature,
       }),
+      signal,
     });
 
     if (!response.ok) {
@@ -43,18 +44,18 @@ export class OpenRouterService {
     return response;
   }
 
-  async generateResponse(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7): Promise<OpenRouterResponse> {
+  async generateResponse(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7, signal?: AbortSignal): Promise<OpenRouterResponse> {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(messages, finalModel, false, temperature);
+    const response = await this.callAPI(messages, finalModel, false, temperature, signal);
     const data = await response.json() as OpenRouterResponse;
     return data;
   }
 
-  async *generateStream(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7) {
+  async *generateStream(messages: OpenRouterMessage[], model?: string, temperature: number = 0.7, signal?: AbortSignal) {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(messages, finalModel, true, temperature);
+    const response = await this.callAPI(messages, finalModel, true, temperature, signal);
 
     if (!response.ok) {
       throw new Error(`OpenRouter API error: ${response.statusText}`);
@@ -105,5 +106,3 @@ export class OpenRouterService {
     return usage;
   }
 }
-
-export const openrouterService = new OpenRouterService();

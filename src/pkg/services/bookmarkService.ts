@@ -5,7 +5,7 @@ import { errorHttp } from "../../utils/error";
 import { randomUUIDv7 } from "bun";
 
 export class BookmarkService {
-  static async toggleBookmark(post_id: string, user_id: string) {
+  async toggleBookmark(post_id: string, user_id: string) {
     try {
       const checkBookmark = await db
         .select({ id: postBookmarks.id })
@@ -36,7 +36,7 @@ export class BookmarkService {
     }
   }
 
-  static async getBookmarksByUser(user_id: string) {
+  async getBookmarksByUser(user_id: string) {
     try {
       const bookmarks = await db.query.postBookmarks.findMany({
          where: eq(postBookmarks.user_id, user_id),

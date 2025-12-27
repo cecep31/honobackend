@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { errorHttp } from "../../utils/error";
 
 export class LikeService {
-  static async updateLike(post_id: string, authId: string) {
+  async updateLike(post_id: string, authId: string) {
     try {
       const checkLike = await db
         .select({ id: likes.id })
@@ -30,7 +30,7 @@ export class LikeService {
     }
   }
 
-  static async getLikes(post_id: string) {
+  async getLikes(post_id: string) {
     const like = await db
       .select({
         id: likes.id,

@@ -5,9 +5,11 @@ import { errorHttp } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 import { eq, and, desc, count } from "drizzle-orm";
-import { openrouterService } from "./openrouterService";
+import type { OpenRouterService } from "./openrouterService";
 
 export class ChatService {
+  constructor(private openrouterService: OpenRouterService) {}
+
   async createConversation(userId: string, body: CreateConversationBody) {
     const [conversation] = await db.insert(chatConversations).values({
       id: crypto.randomUUID(),
@@ -118,7 +120,7 @@ export class ChatService {
       }));
 
       try {
-        const aiResponse = await openrouterService.generateResponse(contextMessages, body.model, body.temperature);
+        const aiResponse = await this.openrouterService.generateResponse(contextMessages, body.model, body.temperature);
 
         const aiMessage = aiResponse.choices[0].message;
         const usage = aiResponse.usage;
@@ -147,7 +149,7 @@ export class ChatService {
     return messages;
   }
 
-  async createStreamingMessage(userId: string, body: CreateMessageBody) {
+  async createStreamingMessage(userId: string, body: CreateMessageBody, signal?: AbortSignal) {
     // Check if conversation exists and belongs to user
     const conversation = await db.select()
       .from(chatConversations)
@@ -189,7 +191,7 @@ export class ChatService {
 
       return {
         userMessage,
-        streamGenerator: openrouterService.generateStream(contextMessages, body.model, body.temperature),
+        streamGenerator: this.openrouterService.generateStream(contextMessages, body.model, body.temperature, signal),
         conversationId: body.conversation_id,
         userId,
         model: body.model || "",

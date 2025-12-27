@@ -31,14 +31,19 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Graceful shutdown handler
-const shutdown = async () => {
-  console.log('Shutting down server...');
-  // Add any cleanup tasks here
-  process.exit(0);
+const shutdown = async (signal: string) => {
+  console.log(`Received ${signal}. Shutting down server gracefully...`);
+  
+  // Add any cleanup tasks here (e.g., closing database connections if the library supported it)
+  // For now, we just give a small delay for any pending logs or requests
+  setTimeout(() => {
+    console.log('Server shutdown complete.');
+    process.exit(0);
+  }, 500);
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Server configuration
 export default {
