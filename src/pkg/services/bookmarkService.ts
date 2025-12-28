@@ -1,7 +1,7 @@
 import { postBookmarks } from "../../database/schemas/postgre/schema";
 import { db } from "../../database/drizzle";
 import { and, eq } from "drizzle-orm";
-import { errorHttp } from "../../utils/error";
+import { Errors } from "../../utils/error";
 import { randomUUIDv7 } from "bun";
 
 export class BookmarkService {
@@ -31,8 +31,8 @@ export class BookmarkService {
         return { action: 'added', ...bookmark[0] };
       }
     } catch (error) {
-      console.log(error);
-      throw errorHttp("internal server error", 500);
+      console.error("Toggle bookmark error:", error);
+      throw Errors.InternalServerError();
     }
   }
 
@@ -52,8 +52,8 @@ export class BookmarkService {
       });
       return bookmarks;
     } catch (error) {
-      console.log(error);
-      throw errorHttp("internal server error", 500);
+      console.error("Get bookmarks error:", error);
+      throw Errors.InternalServerError();
     }
   }
 }

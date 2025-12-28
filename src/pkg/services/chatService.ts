@@ -1,7 +1,7 @@
 import { db } from "../../database/drizzle";
 import { chatConversations, chatMessages } from "../../database/schemas/postgre/schema";
 import type { CreateConversationBody, CreateMessageBody } from "../../types/chat";
-import { errorHttp } from "../../utils/error";
+import { Errors } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 import { eq, and, desc, count } from "drizzle-orm";
@@ -88,7 +88,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!conversation) {
-      throw errorHttp("Conversation not found", 404);
+      throw Errors.NotFound("Conversation");
     }
     return conversation;
   }
@@ -104,7 +104,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!conversation) {
-      throw errorHttp("Conversation not found", 404);
+      throw Errors.NotFound("Conversation");
     }
 
     return await db.delete(chatConversations)
@@ -127,7 +127,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!conversation) {
-      throw errorHttp("Conversation not found or doesn't belong to user", 404);
+      throw Errors.NotFound("Conversation");
     }
 
     const [message] = await db.insert(chatMessages).values({
@@ -198,7 +198,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!conversation) {
-      throw errorHttp("Conversation not found or doesn't belong to user", 404);
+      throw Errors.NotFound("Conversation");
     }
 
     // Save user message first
@@ -268,7 +268,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!conversation) {
-      throw errorHttp("Conversation not found or doesn't belong to user", 404);
+      throw Errors.NotFound("Conversation");
     }
 
     return await db.select()
@@ -291,7 +291,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!message) {
-      throw errorHttp("Message not found or doesn't belong to user", 404);
+      throw Errors.NotFound("Message");
     }
     return message;
   }
@@ -307,7 +307,7 @@ export class ChatService {
       .then(rows => rows[0] || null);
 
     if (!message) {
-      throw errorHttp("Message not found or doesn't belong to user", 404);
+      throw Errors.NotFound("Message");
     }
 
     return await db.delete(chatMessages)

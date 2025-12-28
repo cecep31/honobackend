@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { errorHttp } from "../../utils/error";
+import { Errors } from "../../utils/error";
 import { db } from "../../database/drizzle";
 import { users as usersModel } from "../../database/schemas/postgre/schema";
 
@@ -10,7 +10,7 @@ export class WriterService {
       return usernameRegex.test(username);
     }
     if (!validateUsername(username)) {
-      throw errorHttp("Username not valid", 404);
+      throw Errors.InvalidInput("username", "Username format is not valid");
     }
     return await db.query.users.findFirst({
       columns: { password: false },

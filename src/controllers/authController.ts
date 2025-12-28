@@ -64,7 +64,11 @@ authController.post(
     windowMs: 15 * 60 * 1000, // 15 minutes
     limit: 7, // Limit each IP to 7 requests per `window` (here, per 15 minutes).
     standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-    keyGenerator: (_c) => "<unique_key>", // Method to generate custom identifiers for clients.
+    keyGenerator: (c) =>
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip") ||
+      "unknown",
   }),
   validateRequest("json", loginSchema),
   async (c) => {

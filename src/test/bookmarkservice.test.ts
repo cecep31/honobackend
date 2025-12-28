@@ -32,7 +32,10 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('BookmarkService', () => {
+    let bookmarkService: BookmarkService;
+
     beforeEach(() => {
+        bookmarkService = new BookmarkService();
         mockReturning.mockReset();
         mockValues.mockClear();
         mockInsert.mockClear();
@@ -54,7 +57,7 @@ describe('BookmarkService', () => {
         // Mock insert returning new bookmark
         mockReturning.mockResolvedValue([{ id: 'new-bookmark-id', post_id: postId, user_id: userId }]);
 
-        const result = await BookmarkService.toggleBookmark(postId, userId);
+        const result = await bookmarkService.toggleBookmark(postId, userId);
 
         expect(result.action).toBe('added');
         expect(result.id).toBe('new-bookmark-id');
@@ -71,7 +74,7 @@ describe('BookmarkService', () => {
         // Mock delete returning deleted bookmark
         mockReturning.mockResolvedValue([{ id: 'existing-id', post_id: postId, user_id: userId }]);
 
-        const result = await BookmarkService.toggleBookmark(postId, userId);
+        const result = await bookmarkService.toggleBookmark(postId, userId);
 
         expect(result.action).toBe('removed');
         expect(result.id).toBe('existing-id');
@@ -84,7 +87,7 @@ describe('BookmarkService', () => {
         
         mockFindMany.mockResolvedValue(mockBookmarks);
         
-        const result = await BookmarkService.getBookmarksByUser(userId);
+        const result = await bookmarkService.getBookmarksByUser(userId);
         
         expect(result).toBe(mockBookmarks);
         expect(mockFindMany).toHaveBeenCalled();

@@ -30,14 +30,14 @@ export class UserService {
     return { data, meta };
   }
   
-  async gerUser(id: string) {
+  async getUser(id: string) {
     return db.query.users.findFirst({
       columns: { password: false },
       where: eq(usersModel.id, id),
     });
   }
   
-  async gerUserMe(id: string, profile = false) {
+  async getUserMe(id: string, profile = false) {
     if (profile) {
       return await db.query.users.findFirst({
         columns: { password: false },
@@ -53,7 +53,7 @@ export class UserService {
   }
 
   async deleteUser(user_id: string) {
-    const look = await this.gerUser(user_id);
+    const look = await this.getUser(user_id);
     if (!look) {
       throw Errors.NotFound("User");
     }

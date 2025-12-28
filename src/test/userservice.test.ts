@@ -54,11 +54,11 @@ describe('UserService', () => {
         expect(mockSelect).toHaveBeenCalled();
     });
 
-    it('gerUser returns a user', async () => {
+    it('getUser returns a user', async () => {
         const mockUser = { id: '1', username: 'user1' };
         mockFindFirst.mockResolvedValue(mockUser);
 
-        const result = await userService.gerUser('1');
+        const result = await userService.getUser('1');
 
         expect(result).toEqual(mockUser);
         expect(mockFindFirst).toHaveBeenCalled();

@@ -10,8 +10,7 @@ import { TagService } from "./tagService";
 import type { PostCreateBody } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
-import { HTTPException } from "hono/http-exception";
-import { errorHttp } from "../../utils/error";
+import { Errors } from "../../utils/error";
 
 export class PostService {
   constructor(
@@ -109,7 +108,7 @@ export class PostService {
         return post;
       } catch (error) {
         console.error("Error adding post:", error);
-        throw errorHttp("Failed to create post", 500, "DB_001");
+        throw Errors.DatabaseError({ message: "Failed to create post", error });
       }
     });
   }
@@ -232,7 +231,7 @@ export class PostService {
   async getPostsByTag($tag: string) {
     const tag = await this.tagService.getTag($tag);
     if (!tag) {
-      throw new HTTPException(404, { message: "Tag not Found" });
+      throw Errors.NotFound("Tag");
     }
     return await db
       .select({
@@ -313,7 +312,7 @@ export class PostService {
       .returning({ id: postsModel.id });
       
     if (!deletedPost[0]) {
-      throw new HTTPException(404, { message: "Post not found" });
+      throw Errors.NotFound("Post");
     }
     return deletedPost;
   }

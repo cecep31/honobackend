@@ -18,7 +18,7 @@ export const userController = new Hono<{ Variables: Variables }>()
   .get("/me", auth, async (c) => {
     const authUser = c.get("user");
     const profile = Boolean(c.req.query("profile"));
-    const user = await userService.gerUserMe(authUser.user_id, profile);
+    const user = await userService.getUserMe(authUser.user_id, profile);
     return sendSuccess(c, user, "User profile fetched successfully");
   })
   .get(
@@ -27,7 +27,7 @@ export const userController = new Hono<{ Variables: Variables }>()
     validateRequest("param", userIdSchema),
     async (c) => {
       const params = c.req.valid("param");
-      const user = await userService.gerUser(params.id);
+      const user = await userService.getUser(params.id);
       if (!user) {
         throw Errors.NotFound("User");
       }

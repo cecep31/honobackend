@@ -24,7 +24,10 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('LikeService', () => {
+    let likeService: LikeService;
+
     beforeEach(() => {
+        likeService = new LikeService();
         mockReturning.mockReset();
         mockValues.mockClear();
         mockInsert.mockClear();
@@ -46,7 +49,7 @@ describe('LikeService', () => {
             // Mock insert returning new like
             mockReturning.mockResolvedValue([{ id: 'new-like-id' }]);
 
-            const result = await LikeService.updateLike(postId, userId);
+            const result = await likeService.updateLike(postId, userId);
 
             expect(result.id).toBe('new-like-id');
             expect(mockSelect).toHaveBeenCalled();
@@ -63,7 +66,7 @@ describe('LikeService', () => {
             // Mock delete returning deleted like
             mockReturning.mockResolvedValue([{ id: 'existing-id' }]);
 
-            const result = await LikeService.updateLike(postId, userId);
+            const result = await likeService.updateLike(postId, userId);
 
             expect(result.id).toBe('existing-id');
             expect(mockSelect).toHaveBeenCalled();
@@ -77,10 +80,10 @@ describe('LikeService', () => {
             mockWhereSelect.mockRejectedValue(new Error('DB Error'));
 
             try {
-                await LikeService.updateLike(postId, userId);
+                await likeService.updateLike(postId, userId);
             } catch (error: any) {
                 expect(error.statusCode).toBe(500);
-                expect(error.message).toBe('internal server error');
+                expect(error.message).toBe('Internal server error');
             }
         });
     });
@@ -95,7 +98,7 @@ describe('LikeService', () => {
 
             mockWhereSelect.mockResolvedValue(mockLikes);
 
-            const result = await LikeService.getLikes(postId);
+            const result = await likeService.getLikes(postId);
 
             expect(result).toEqual(mockLikes);
             expect(mockSelect).toHaveBeenCalled();

@@ -46,6 +46,22 @@ const mockFrom = mock(() => ({
 const mockSelect = mock(() => ({ from: mockFrom }));
 
 
+const mockOnConflictDoNothing = mock(() => ({ returning: mockReturning }));
+const mockValuesWithConflict = mock(() => ({ onConflictDoNothing: mockOnConflictDoNothing, returning: mockReturning }));
+const mockInsertWithConflict = mock(() => ({ values: mockValuesWithConflict }));
+
+const mockTransaction = mock(async (callback: any) => {
+    return await callback({
+        insert: mockInsertWithConflict,
+        query: {
+            tags: {
+                findMany: mock(() => [])
+            }
+        },
+        select: mockSelect
+    });
+});
+
 mock.module('../database/drizzle', () => {
     return {
         db: {
@@ -58,6 +74,7 @@ mock.module('../database/drizzle', () => {
             insert: mockInsert,
             update: mockUpdate,
             select: mockSelect,
+            transaction: mockTransaction
         }
     }
 });
@@ -89,14 +106,11 @@ describe('PostService', () => {
         const auth_id = 'user1';
         
         mockReturning.mockResolvedValue([{ id: 'post1' }]);
-        (mockTagService.getTagsByNameArray as any).mockResolvedValue([{ id: 1, name: 'tag1' }, { id: 2, name: 'tag2' }]);
         
         const result = await postService.addPost(auth_id, body);
         
         expect(result).toEqual({ id: 'post1' });
-        expect(mockInsert).toHaveBeenCalled();
-        expect(mockTagService.addTag).toHaveBeenCalledTimes(2);
-        expect(mockTagService.addTagToPost).toHaveBeenCalledTimes(2);
+        expect(mockInsertWithConflict).toHaveBeenCalled();
     });
 
     it('getPosts returns paginated posts', async () => {

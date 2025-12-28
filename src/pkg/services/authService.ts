@@ -4,7 +4,7 @@ import type { userLogin, UserSignup } from "../../types/user";
 import config from "../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
-import { errorHttp, Errors } from "../../utils/error";
+import { Errors } from "../../utils/error";
 import { db } from "../../database/drizzle";
 import { sessions as sessionModel } from "../../database/schemas/postgre/schema";
 
@@ -31,7 +31,7 @@ export class AuthService {
     }
 
     if (!user) {
-      throw errorHttp("Invalid credentials", 401);
+      throw Errors.InvalidCredentials();
     }
 
     const isPasswordValid = await Bun.password.verify(
@@ -90,7 +90,7 @@ export class AuthService {
     data.password = hashedPassword;
     const user = await this.userService.createUser(data);
     const payload = {
-      id: user.id,
+      user_id: user.id,
       email: user.email,
       isSuperAdmin: user.is_super_admin,
       exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
@@ -133,16 +133,11 @@ export class AuthService {
   }
   async refreshToken(refreshToken: string) {
     try {
-      try {
-        const payloadverify = await verify(refreshToken, config.jwt.secret);
-        console.log(payloadverify);
-      } catch (error) {
-        throw errorHttp("Invalid token", 401);
-      }
+      await verify(refreshToken, config.jwt.secret);
       const { payload } = decode(refreshToken);
-      console.log(payload);
+      return payload;
     } catch (error) {
-      throw errorHttp("Invalid token", 401);
+      throw Errors.Unauthorized();
     }
   }
 
@@ -160,7 +155,7 @@ export class AuthService {
         "bcrypt"
       ))
     ) {
-      throw errorHttp("Invalid credentials", 401);
+      throw Errors.InvalidCredentials();
     }
 
     const hashedPassword = Bun.password.hashSync(newPassword, {

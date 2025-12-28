@@ -1,7 +1,7 @@
 import { likes } from "../../database/schemas/postgre/schema";
 import { db } from "../../database/drizzle";
 import { and, eq } from "drizzle-orm";
-import { errorHttp } from "../../utils/error";
+import { Errors } from "../../utils/error";
 
 export class LikeService {
   async updateLike(post_id: string, authId: string) {
@@ -26,7 +26,8 @@ export class LikeService {
         return like[0];
       }
     } catch (error) {
-      throw errorHttp("internal server error", 500);
+      console.error("Update like error:", error);
+      throw Errors.InternalServerError();
     }
   }
 
