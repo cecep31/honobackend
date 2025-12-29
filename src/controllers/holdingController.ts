@@ -15,11 +15,13 @@ import {
 export const holdingController = new Hono<{ Variables: Variables }>()
   .get("/", auth, validateRequest("query", getHoldingsQuerySchema), async (c) => {
     const authUser = c.get("user");
-    const { month, year } = c.req.valid("query");
+    const { month, year, sortBy, order } = c.req.valid("query");
     const holdings = await holdingService.getHoldingsByUserId(
       authUser.user_id,
       month,
-      year
+      year,
+      sortBy,
+      order
     );
     return sendSuccess(c, holdings, "Holdings fetched successfully");
   })

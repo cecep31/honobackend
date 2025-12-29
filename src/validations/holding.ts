@@ -3,6 +3,8 @@ import { z } from "zod";
 export const getHoldingsQuerySchema = z.object({
   month: z.string().regex(/^\d+$/).transform(Number).optional(),
   year: z.string().regex(/^\d+$/).transform(Number).optional(),
+  sortBy: z.enum(["created_at", "updated_at", "name", "invested_amount", "current_value", "month", "year"]).optional().default("created_at"),
+  order: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export const holdingIdSchema = z.object({

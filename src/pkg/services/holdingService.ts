@@ -1,5 +1,5 @@
 import { db } from "../../database/drizzle";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { holdings, holding_types } from "../../database/schemas/postgre/schema";
 import type { DuplicateHoldingPayload, HoldingCreate, HoldingUpdate } from "../../types/holding";
 import { Errors } from "../../utils/error";
@@ -25,7 +25,13 @@ export class HoldingService {
     return holding;
   }
 
-  async getHoldingsByUserId(userId: string, month?: number, year?: number) {
+  async getHoldingsByUserId(
+    userId: string,
+    month?: number,
+    year?: number,
+    sortBy: string = "created_at",
+    order: "asc" | "desc" = "desc"
+  ) {
     const where = [eq(holdings.user_id, userId)];
     if (month) {
       where.push(eq(holdings.month, month));
@@ -34,12 +40,46 @@ export class HoldingService {
       where.push(eq(holdings.year, year));
     }
 
+    let orderByClause;
+    switch (sortBy) {
+      case "name":
+        orderByClause = order === "asc" ? asc(holdings.name) : desc(holdings.name);
+        break;
+      case "invested_amount":
+        orderByClause =
+          order === "asc"
+            ? asc(holdings.invested_amount)
+            : desc(holdings.invested_amount);
+        break;
+      case "current_value":
+        orderByClause =
+          order === "asc"
+            ? asc(holdings.current_value)
+            : desc(holdings.current_value);
+        break;
+      case "month":
+        orderByClause = order === "asc" ? asc(holdings.month) : desc(holdings.month);
+        break;
+      case "year":
+        orderByClause = order === "asc" ? asc(holdings.year) : desc(holdings.year);
+        break;
+      case "updated_at":
+        orderByClause =
+          order === "asc" ? asc(holdings.updated_at) : desc(holdings.updated_at);
+        break;
+      case "created_at":
+      default:
+        orderByClause =
+          order === "asc" ? asc(holdings.created_at) : desc(holdings.created_at);
+        break;
+    }
+
     return db.query.holdings.findMany({
       where: (_, { and }) => and(...where),
       with: {
         holding_type: true,
       },
-      orderBy: [desc(holdings.created_at)],
+      orderBy: [orderByClause],
     });
   }
 
