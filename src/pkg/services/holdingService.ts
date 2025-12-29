@@ -1,7 +1,7 @@
 import { db } from "../../database/drizzle";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { holdings, holding_types } from "../../database/schemas/postgre/schema";
-import type { HoldingCreate, HoldingUpdate } from "../../types/holding";
+import type { DuplicateHoldingPayload, HoldingCreate, HoldingUpdate } from "../../types/holding";
 import { Errors } from "../../utils/error";
 
 export class HoldingService {
@@ -75,5 +75,60 @@ export class HoldingService {
       throw Errors.NotFound("Holding Type");
     }
     return holdingType;
+  }
+
+  async duplicateHoldingsByMonth(userId: string, data: DuplicateHoldingPayload) {
+    const { fromMonth, fromYear, toMonth, toYear, overwrite } = data;
+
+    // 1. Get source holdings
+    const sourceHoldings = await db.query.holdings.findMany({
+      where: and(
+        eq(holdings.user_id, userId),
+        eq(holdings.month, fromMonth),
+        eq(holdings.year, fromYear)
+      ),
+    });
+
+    if (sourceHoldings.length === 0) {
+      throw Errors.InvalidInput("source holdings", "No holdings found for the source period");
+    }
+
+    return await db.transaction(async (tx) => {
+      // 2. If overwrite is true, delete existing target holdings
+      if (overwrite) {
+        await tx
+          .delete(holdings)
+          .where(
+            and(
+              eq(holdings.user_id, userId),
+              eq(holdings.month, toMonth),
+              eq(holdings.year, toYear)
+            )
+          );
+      }
+
+      // 3. Prepare new holdings (excluding 'id', 'created_at', 'updated_at')
+      const newHoldings = sourceHoldings.map((h) => ({
+        user_id: h.user_id,
+        name: h.name,
+        platform: h.platform,
+        holding_type_id: h.holding_type_id,
+        currency: h.currency,
+        invested_amount: h.invested_amount,
+        current_value: h.current_value,
+        units: h.units,
+        avg_buy_price: h.avg_buy_price,
+        current_price: h.current_price,
+        last_updated: h.last_updated,
+        notes: h.notes,
+        month: toMonth,
+        year: toYear,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+
+      // 4. Insert new holdings
+      return tx.insert(holdings).values(newHoldings).returning();
+    });
   }
 }

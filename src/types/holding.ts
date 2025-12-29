@@ -52,6 +52,14 @@ export type HoldingUpdate = {
   year?: number;
 };
 
+export type DuplicateHoldingPayload = {
+  fromMonth: number;
+  fromYear: number;
+  toMonth: number;
+  toYear: number;
+  overwrite?: boolean;
+};
+
 export const holdingCreateSchema = z.object({
   name: z.string(),
   platform: z.string(),

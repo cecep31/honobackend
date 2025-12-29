@@ -40,3 +40,13 @@ export const updateHoldingSchema = z.object({
   month: z.number().optional(),
   year: z.number().optional(),
 });
+
+export const duplicateHoldingSchema = z.object({
+  fromMonth: z.number().int().min(1).max(12),
+  fromYear: z.number().int().min(1900).max(2100),
+  toMonth: z.number().int().min(1).max(12),
+  toYear: z.number().int().min(1900).max(2100),
+  overwrite: z.boolean().optional().default(false),
+});
+
+export type DuplicateHoldingPayload = z.infer<typeof duplicateHoldingSchema>;

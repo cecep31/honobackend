@@ -6,6 +6,7 @@ import type { Variables } from "../types/context";
 import { sendSuccess } from "../utils/response";
 import {
   createHoldingSchema,
+  duplicateHoldingSchema,
   getHoldingsQuerySchema,
   holdingIdSchema,
   updateHoldingSchema,
@@ -45,6 +46,20 @@ export const holdingController = new Hono<{ Variables: Variables }>()
       const body = c.req.valid("json");
       const holding = await holdingService.createHolding(authUser.user_id, body);
       return sendSuccess(c, holding, "Holding created successfully", 201);
+    }
+  )
+  .post(
+    "/duplicate",
+    auth,
+    validateRequest("json", duplicateHoldingSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const body = c.req.valid("json");
+      const holdings = await holdingService.duplicateHoldingsByMonth(
+        authUser.user_id,
+        body
+      );
+      return sendSuccess(c, holdings, "Holdings duplicated successfully", 201);
     }
   )
   .put(
