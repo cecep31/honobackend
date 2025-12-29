@@ -1,6 +1,6 @@
 import { db } from "../../database/drizzle";
 import { desc, eq } from "drizzle-orm";
-import { holdings, holdingTypes } from "../../database/schemas/postgre/schema";
+import { holdings, holding_types } from "../../database/schemas/postgre/schema";
 import type { HoldingCreate, HoldingUpdate } from "../../types/holding";
 import { Errors } from "../../utils/error";
 
@@ -64,12 +64,12 @@ export class HoldingService {
   }
 
   async getHoldingTypes() {
-    return db.query.holdingTypes.findMany();
+    return db.query.holding_types.findMany();
   }
 
   async getHoldingTypeById(id: number) {
-    const holdingType = await db.query.holdingTypes.findFirst({
-      where: eq(holdingTypes.id, id),
+    const holdingType = await db.query.holding_types.findFirst({
+      where: eq(holding_types.id, id),
     });
     if (!holdingType) {
       throw Errors.NotFound("Holding Type");

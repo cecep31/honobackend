@@ -1,5 +1,5 @@
 import { db } from "../../database/drizzle";
-import { chatConversations, chatMessages } from "../../database/schemas/postgre/schema";
+import { chat_conversations, chat_messages } from "../../database/schemas/postgre/schema";
 import type { CreateConversationBody, CreateMessageBody } from "../../types/chat";
 import { Errors } from "../../utils/error";
 import type { GetPaginationParams } from "../../types/paginate";
@@ -11,7 +11,7 @@ export class ChatService {
   constructor(private openrouterService: OpenRouterService) {}
 
   async createConversation(userId: string, body: CreateConversationBody) {
-    const [conversation] = await db.insert(chatConversations).values({
+    const [conversation] = await db.insert(chat_conversations).values({
       id: crypto.randomUUID(),
       title: body.title,
       user_id: userId,
@@ -24,7 +24,7 @@ export class ChatService {
 
   async createConversationStream(userId: string, body: { title?: string; content: string; model?: string; temperature?: number }, signal?: AbortSignal) {
     // 1. Create conversation
-    const [conversation] = await db.insert(chatConversations).values({
+    const [conversation] = await db.insert(chat_conversations).values({
       id: crypto.randomUUID(),
       title: body.title || body.content.slice(0, 50),
       user_id: userId,
@@ -33,7 +33,7 @@ export class ChatService {
     }).returning();
 
     // 2. Save user message
-    const [userMessage] = await db.insert(chatMessages).values({
+    const [userMessage] = await db.insert(chat_messages).values({
       id: crypto.randomUUID(),
       conversation_id: conversation.id,
       user_id: userId,
@@ -62,14 +62,14 @@ export class ChatService {
   async getConversations(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
     const [conversations, total] = await Promise.all([
       db.select()
-        .from(chatConversations)
-        .where(eq(chatConversations.user_id, userId))
-        .orderBy(desc(chatConversations.created_at))
+      .from(chat_conversations)
+      .where(eq(chat_conversations.user_id, userId))
+        .orderBy(desc(chat_conversations.created_at))
         .offset(params.offset)
         .limit(params.limit),
       db.select({ count: count() })
-        .from(chatConversations)
-        .where(eq(chatConversations.user_id, userId))
+      .from(chat_conversations)
+      .where(eq(chat_conversations.user_id, userId))
         .then(result => result[0]?.count || 0)
     ]);
 
@@ -79,10 +79,10 @@ export class ChatService {
 
   async getConversation(conversationId: string, userId: string) {
     const conversation = await db.select()
-      .from(chatConversations)
+      .from(chat_conversations)
       .where(and(
-        eq(chatConversations.id, conversationId),
-        eq(chatConversations.user_id, userId)
+        eq(chat_conversations.id, conversationId),
+        eq(chat_conversations.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -95,10 +95,10 @@ export class ChatService {
 
   async deleteConversation(conversationId: string, userId: string) {
     const conversation = await db.select()
-      .from(chatConversations)
+      .from(chat_conversations)
       .where(and(
-        eq(chatConversations.id, conversationId),
-        eq(chatConversations.user_id, userId)
+        eq(chat_conversations.id, conversationId),
+        eq(chat_conversations.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -107,10 +107,10 @@ export class ChatService {
       throw Errors.NotFound("Conversation");
     }
 
-    return await db.delete(chatConversations)
+    return await db.delete(chat_conversations)
       .where(and(
-        eq(chatConversations.id, conversationId),
-        eq(chatConversations.user_id, userId)
+        eq(chat_conversations.id, conversationId),
+        eq(chat_conversations.user_id, userId)
       ))
       .returning();
   }
@@ -118,10 +118,10 @@ export class ChatService {
   async createMessage(userId: string, body: CreateMessageBody) {
     // Check if conversation exists and belongs to user
     const conversation = await db.select()
-      .from(chatConversations)
+      .from(chat_conversations)
       .where(and(
-        eq(chatConversations.id, body.conversation_id),
-        eq(chatConversations.user_id, userId)
+        eq(chat_conversations.id, body.conversation_id),
+        eq(chat_conversations.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -130,7 +130,7 @@ export class ChatService {
       throw Errors.NotFound("Conversation");
     }
 
-    const [message] = await db.insert(chatMessages).values({
+    const [message] = await db.insert(chat_messages).values({
       id: crypto.randomUUID(),
       conversation_id: body.conversation_id,
       user_id: userId,
@@ -147,9 +147,9 @@ export class ChatService {
     if (body.role === "user") {
       // Get previous messages for context
       const previousMessages = await db.select()
-        .from(chatMessages)
-        .where(eq(chatMessages.conversation_id, body.conversation_id))
-        .orderBy(chatMessages.created_at);
+        .from(chat_messages)
+        .where(eq(chat_messages.conversation_id, body.conversation_id))
+        .orderBy(chat_messages.created_at);
 
       const contextMessages = previousMessages.map(msg => ({
         role: msg.role,
@@ -162,7 +162,7 @@ export class ChatService {
         const aiMessage = aiResponse.choices[0].message;
         const usage = aiResponse.usage;
 
-        const [aiMsg] = await db.insert(chatMessages).values({
+        const [aiMsg] = await db.insert(chat_messages).values({
           id: crypto.randomUUID(),
           conversation_id: body.conversation_id,
           user_id: userId,
@@ -189,10 +189,10 @@ export class ChatService {
   async createStreamingMessage(userId: string, body: CreateMessageBody, signal?: AbortSignal) {
     // Check if conversation exists and belongs to user
     const conversation = await db.select()
-      .from(chatConversations)
+      .from(chat_conversations)
       .where(and(
-        eq(chatConversations.id, body.conversation_id),
-        eq(chatConversations.user_id, userId)
+        eq(chat_conversations.id, body.conversation_id),
+        eq(chat_conversations.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -202,7 +202,7 @@ export class ChatService {
     }
 
     // Save user message first
-    const [userMessage] = await db.insert(chatMessages).values({
+    const [userMessage] = await db.insert(chat_messages).values({
       id: crypto.randomUUID(),
       conversation_id: body.conversation_id,
       user_id: userId,
@@ -217,9 +217,9 @@ export class ChatService {
     if (body.role === "user") {
       // Get previous messages for context
       const previousMessages = await db.select()
-        .from(chatMessages)
-        .where(eq(chatMessages.conversation_id, body.conversation_id))
-        .orderBy(chatMessages.created_at);
+        .from(chat_messages)
+        .where(eq(chat_messages.conversation_id, body.conversation_id))
+        .orderBy(chat_messages.created_at);
 
       const contextMessages = previousMessages.map(msg => ({
         role: msg.role,
@@ -239,7 +239,7 @@ export class ChatService {
   }
 
   async saveStreamingMessage(conversationId: string, userId: string, content: string, model: string, usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {
-    const [aiMsg] = await db.insert(chatMessages).values({
+    const [aiMsg] = await db.insert(chat_messages).values({
       id: crypto.randomUUID(),
       conversation_id: conversationId,
       user_id: userId,
@@ -259,10 +259,10 @@ export class ChatService {
   async getMessages(conversationId: string, userId: string) {
     // Check if conversation exists and belongs to user
     const conversation = await db.select()
-      .from(chatConversations)
+      .from(chat_conversations)
       .where(and(
-        eq(chatConversations.id, conversationId),
-        eq(chatConversations.user_id, userId)
+        eq(chat_conversations.id, conversationId),
+        eq(chat_conversations.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -272,20 +272,20 @@ export class ChatService {
     }
 
     return await db.select()
-      .from(chatMessages)
+      .from(chat_messages)
       .where(and(
-        eq(chatMessages.conversation_id, conversationId),
-        eq(chatMessages.user_id, userId)
+        eq(chat_messages.conversation_id, conversationId),
+        eq(chat_messages.user_id, userId)
       ))
-      .orderBy(desc(chatMessages.created_at));
+      .orderBy(desc(chat_messages.created_at));
   }
 
   async getMessage(messageId: string, userId: string) {
     const message = await db.select()
-      .from(chatMessages)
+      .from(chat_messages)
       .where(and(
-        eq(chatMessages.id, messageId),
-        eq(chatMessages.user_id, userId)
+        eq(chat_messages.id, messageId),
+        eq(chat_messages.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -298,10 +298,10 @@ export class ChatService {
 
   async deleteMessage(messageId: string, userId: string) {
     const message = await db.select()
-      .from(chatMessages)
+      .from(chat_messages)
       .where(and(
-        eq(chatMessages.id, messageId),
-        eq(chatMessages.user_id, userId)
+        eq(chat_messages.id, messageId),
+        eq(chat_messages.user_id, userId)
       ))
       .limit(1)
       .then(rows => rows[0] || null);
@@ -310,10 +310,10 @@ export class ChatService {
       throw Errors.NotFound("Message");
     }
 
-    return await db.delete(chatMessages)
+    return await db.delete(chat_messages)
       .where(and(
-        eq(chatMessages.id, messageId),
-        eq(chatMessages.user_id, userId)
+        eq(chat_messages.id, messageId),
+        eq(chat_messages.user_id, userId)
       ))
       .returning();
   }

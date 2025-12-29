@@ -3,7 +3,7 @@ import { db } from "../../database/drizzle";
 import {
   users as usersModel,
   posts as postsModel,
-  postsToTags,
+  posts_to_tags,
   tags as tagsModel,
 } from "../../database/schemas/postgre/schema";
 import { TagService } from "./tagService";
@@ -94,7 +94,7 @@ export class PostService {
           // Batch link tags to post
           if (tags.length > 0) {
             await tx
-              .insert(postsToTags)
+              .insert(posts_to_tags)
               .values(
                 tags.map((tag) => ({
                   post_id: post.id,
@@ -133,8 +133,8 @@ export class PostService {
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .leftJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
-      .leftJoin(tagsModel, eq(postsToTags.tag_id, tagsModel.id))
+      .leftJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+      .leftJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
       .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
     
     if (posts.length === 0) {
@@ -244,8 +244,8 @@ export class PostService {
         like_count: postsModel.like_count,
       })
       .from(postsModel)
-      .rightJoin(postsToTags, eq(postsModel.id, postsToTags.post_id))
-      .where(eq(postsToTags.tag_id, tag.id))
+      .rightJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+      .where(eq(posts_to_tags.tag_id, tag.id))
       .orderBy(desc(postsModel.created_at));
   }
 

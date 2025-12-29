@@ -17,7 +17,7 @@ export const likes = pgTable("likes", {
 		}).onDelete("cascade"),
 ]);
 
-export const postComments = pgTable("post_comments", {
+export const post_comments = pgTable("post_comments", {
 	id: uuid().primaryKey().notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
@@ -40,7 +40,7 @@ export const postComments = pgTable("post_comments", {
 		}).onDelete("cascade"),
 ]);
 
-export const chatConversations = pgTable("chat_conversations", {
+export const chat_conversations = pgTable("chat_conversations", {
 	id: uuid().primaryKey().notNull(),
 	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).notNull(),
@@ -49,7 +49,7 @@ export const chatConversations = pgTable("chat_conversations", {
 	user_id: uuid("user_id").notNull(),
 });
 
-export const chatMessages = pgTable("chat_messages", {
+export const chat_messages = pgTable("chat_messages", {
 	id: uuid().primaryKey().notNull(),
 	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updated_at: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).notNull(),
@@ -64,7 +64,7 @@ export const chatMessages = pgTable("chat_messages", {
 }, (table) => [
 	foreignKey({
 			columns: [table.conversation_id],
-			foreignColumns: [chatConversations.id],
+			foreignColumns: [chat_conversations.id],
 			name: "chat_messages_conversation_id_chat_conversations_id_fk"
 		}).onDelete("cascade"),
 ]);
@@ -178,7 +178,7 @@ export const users = pgTable("users", {
 	unique("users_github_id_unique").on(table.github_id),
 ]);
 
-export const postViews = pgTable("post_views", {
+export const post_views = pgTable("post_views", {
 	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	post_id: uuid("post_id").notNull(),
 	user_id: uuid("user_id"),
@@ -205,7 +205,7 @@ export const postViews = pgTable("post_views", {
 		}).onDelete("cascade"),
 ]);
 
-export const userFollows = pgTable("user_follows", {
+export const user_follows = pgTable("user_follows", {
 	id: uuid().primaryKey().notNull(),
 	follower_id: uuid("follower_id").notNull(),
 	following_id: uuid("following_id").notNull(),
@@ -231,7 +231,7 @@ export const userFollows = pgTable("user_follows", {
 	check("chk_user_follows_no_self_follow", sql`follower_id <> following_id`),
 ]);
 
-export const postLikes = pgTable("post_likes", {
+export const post_likes = pgTable("post_likes", {
 	id: uuid().primaryKey().notNull(),
 	post_id: uuid("post_id").notNull(),
 	user_id: uuid("user_id").notNull(),
@@ -256,7 +256,7 @@ export const postLikes = pgTable("post_likes", {
 		}).onDelete("cascade"),
 ]);
 
-export const postBookmarks = pgTable("post_bookmarks", {
+export const post_bookmarks = pgTable("post_bookmarks", {
 	id: uuid().primaryKey().notNull(),
 	post_id: uuid("post_id").notNull(),
 	user_id: uuid("user_id").notNull(),
@@ -281,7 +281,7 @@ export const postBookmarks = pgTable("post_bookmarks", {
 		}).onDelete("cascade"),
 ]);
 
-export const postsToTags = pgTable("posts_to_tags", {
+export const posts_to_tags = pgTable("posts_to_tags", {
 	post_id: uuid("post_id").notNull(),
 	tag_id: integer("tag_id").notNull(),
 }, (table) => [
@@ -298,7 +298,7 @@ export const postsToTags = pgTable("posts_to_tags", {
 	primaryKey({ columns: [table.post_id, table.tag_id], name: "posts_to_tags_posts_id_tags_id_pk"}),
 ]);
 
-export const holdingTypes = pgTable("holding_types", {
+export const holding_types = pgTable("holding_types", {
 	id: smallserial().primaryKey().notNull(),
 	code: text().notNull(),
 	name: text().notNull(),
@@ -335,7 +335,7 @@ export const holdings = pgTable("holdings", {
 		}),
 	foreignKey({
 			columns: [table.holding_type_id],
-			foreignColumns: [holdingTypes.id],
+			foreignColumns: [holding_types.id],
 			name: "holdings_holding_type_id_fkey"
 		}),
 ]);
@@ -350,54 +350,54 @@ export const likesRelations = relations(likes, ({one}) => ({
 
 export const usersRelations = relations(users, ({many}) => ({
 	likes: many(likes),
-	post_comments: many(postComments),
+	post_comments: many(post_comments),
 	posts: many(posts),
 	sessions: many(sessions),
 	profiles: many(profiles),
 	files: many(files),
-	post_views: many(postViews),
-	user_follows_follower_id: many(userFollows, {
+	post_views: many(post_views),
+	user_follows_follower_id: many(user_follows, {
 		relationName: "userFollows_followerId_users_id"
 	}),
-	user_follows_following_id: many(userFollows, {
+	user_follows_following_id: many(user_follows, {
 		relationName: "userFollows_followingId_users_id"
 	}),
-	post_likes: many(postLikes),
-	post_bookmarks: many(postBookmarks),
+	post_likes: many(post_likes),
+	post_bookmarks: many(post_bookmarks),
 }));
 
-export const postCommentsRelations = relations(postComments, ({one}) => ({
+export const post_comments_relations = relations(post_comments, ({one}) => ({
 	user: one(users, {
-		fields: [postComments.created_by],
+		fields: [post_comments.created_by],
 		references: [users.id]
 	}),
 	post: one(posts, {
-		fields: [postComments.post_id],
+		fields: [post_comments.post_id],
 		references: [posts.id]
 	}),
 }));
 
 export const postsRelations = relations(posts, ({one, many}) => ({
-	post_comments: many(postComments),
+	post_comments: many(post_comments),
 	user: one(users, {
 		fields: [posts.created_by],
 		references: [users.id]
 	}),
-	post_views: many(postViews),
-	post_likes: many(postLikes),
-	post_bookmarks: many(postBookmarks),
-	posts_to_tags: many(postsToTags),
+	post_views: many(post_views),
+	post_likes: many(post_likes),
+	post_bookmarks: many(post_bookmarks),
+	posts_to_tags: many(posts_to_tags),
 }));
 
-export const chatMessagesRelations = relations(chatMessages, ({one}) => ({
-	chatConversation: one(chatConversations, {
-		fields: [chatMessages.conversation_id],
-		references: [chatConversations.id]
+export const chat_messages_relations = relations(chat_messages, ({one}) => ({
+	chatConversation: one(chat_conversations, {
+		fields: [chat_messages.conversation_id],
+		references: [chat_conversations.id]
 	}),
 }));
 
-export const chatConversationsRelations = relations(chatConversations, ({many}) => ({
-	chatMessages: many(chatMessages),
+export const chat_conversations_relations = relations(chat_conversations, ({many}) => ({
+	chatMessages: many(chat_messages),
 }));
 
 export const sessionsRelations = relations(sessions, ({one}) => ({
@@ -421,65 +421,65 @@ export const filesRelations = relations(files, ({one}) => ({
 	}),
 }));
 
-export const postViewsRelations = relations(postViews, ({one}) => ({
+export const post_views_relations = relations(post_views, ({one}) => ({
 	user: one(users, {
-		fields: [postViews.user_id],
+		fields: [post_views.user_id],
 		references: [users.id]
 	}),
 	post: one(posts, {
-		fields: [postViews.post_id],
+		fields: [post_views.post_id],
 		references: [posts.id]
 	}),
 }));
 
-export const userFollowsRelations = relations(userFollows, ({one}) => ({
+export const user_follows_relations = relations(user_follows, ({one}) => ({
 	user_follower_id: one(users, {
-		fields: [userFollows.follower_id],
+		fields: [user_follows.follower_id],
 		references: [users.id],
 		relationName: "userFollows_followerId_users_id"
 	}),
 	user_following_id: one(users, {
-		fields: [userFollows.following_id],
+		fields: [user_follows.following_id],
 		references: [users.id],
 		relationName: "userFollows_followingId_users_id"
 	}),
 }));
 
-export const postLikesRelations = relations(postLikes, ({one}) => ({
+export const post_likes_relations = relations(post_likes, ({one}) => ({
 	post: one(posts, {
-		fields: [postLikes.post_id],
+		fields: [post_likes.post_id],
 		references: [posts.id]
 	}),
 	user: one(users, {
-		fields: [postLikes.user_id],
+		fields: [post_likes.user_id],
 		references: [users.id]
 	}),
 }));
 
-export const postBookmarksRelations = relations(postBookmarks, ({one}) => ({
+export const post_bookmarks_relations = relations(post_bookmarks, ({one}) => ({
 	post: one(posts, {
-		fields: [postBookmarks.post_id],
+		fields: [post_bookmarks.post_id],
 		references: [posts.id]
 	}),
 	user: one(users, {
-		fields: [postBookmarks.user_id],
+		fields: [post_bookmarks.user_id],
 		references: [users.id]
 	}),
 }));
 
-export const postsToTagsRelations = relations(postsToTags, ({one}) => ({
+export const posts_to_tags_relations = relations(posts_to_tags, ({one}) => ({
 	tag: one(tags, {
-		fields: [postsToTags.tag_id],
+		fields: [posts_to_tags.tag_id],
 		references: [tags.id]
 	}),
 	post: one(posts, {
-		fields: [postsToTags.post_id],
+		fields: [posts_to_tags.post_id],
 		references: [posts.id]
 	}),
 }));
 
 export const tagsRelations = relations(tags, ({many}) => ({
-	posts_to_tags: many(postsToTags),
+	posts_to_tags: many(posts_to_tags),
 }));
 
 export const holdingsRelations = relations(holdings, ({one}) => ({
@@ -487,12 +487,12 @@ export const holdingsRelations = relations(holdings, ({one}) => ({
 		fields: [holdings.user_id],
 		references: [users.id]
 	}),
-	holding_type: one(holdingTypes, {
+	holding_type: one(holding_types, {
 		fields: [holdings.holding_type_id],
-		references: [holdingTypes.id]
+		references: [holding_types.id]
 	}),
 }));
 
-export const holdingTypesRelations = relations(holdingTypes, ({many}) => ({
+export const holding_types_relations = relations(holding_types, ({many}) => ({
 	holdings: many(holdings),
 }));
