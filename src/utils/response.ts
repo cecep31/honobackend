@@ -6,7 +6,7 @@ interface SuccessResponse<T> {
   data: T;
   message: string;
   meta?: any;
-  requestId: string;
+  request_id: string;
   timestamp: string;
 }
 
@@ -26,9 +26,9 @@ export function sendSuccess<T>(
     data,
     message,
     meta,
-    requestId,
+    request_id: requestId,
     timestamp: new Date().toISOString(),
   };
+
   return c.json(response, status);
 }
-

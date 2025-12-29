@@ -34,7 +34,7 @@ export class PostService {
       orderBy: desc(postsModel.created_at),
       with: {
         user: { columns: { password: false } },
-        postsToTags: { columns: {}, with: { tag: true } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -52,7 +52,7 @@ export class PostService {
       orderBy: desc(postsModel.created_at),
       with: {
         user: { columns: { password: false } },
-        postsToTags: { columns: {}, with: { tag: true } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -124,7 +124,7 @@ export class PostService {
           first_name: usersModel.first_name,
           last_name: usersModel.last_name,
           image: usersModel.image,
-          issuperadmin: usersModel.is_super_admin,
+          is_super_admin: usersModel.is_super_admin,
         },
         tags: {
           id: tagsModel.id,
@@ -193,7 +193,7 @@ export class PostService {
       orderBy: orderByClause,
       with: {
         user: { columns: { password: false } },
-        postsToTags: { columns: {}, with: { tag: true } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -218,10 +218,10 @@ export class PostService {
       created_at: post.created_at,
       updated_at: post.updated_at,
       published: post.published,
-      viewCount: post.view_count ?? 0,
-      likeCount: post.like_count ?? 0,
+      view_count: post.view_count ?? 0,
+      like_count: post.like_count ?? 0,
       creator: post.user,
-      tags: post.postsToTags.map((tag) => tag.tag),
+      tags: post.posts_to_tags.map((tag) => tag.tag),
     }));
 
     const meta = getPaginationMetadata(total, params.offset, params.limit);
@@ -285,7 +285,7 @@ export class PostService {
       where: and(isNull(postsModel.deleted_at), eq(postsModel.id, id_post)),
       with: {
         user: { columns: { password: false } },
-        postsToTags: { columns: {}, with: { tag: true } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
       },
     });
   }
@@ -299,7 +299,7 @@ export class PostService {
       ),
       with: {
         user: { columns: { password: false } },
-        postsToTags: { columns: {}, with: { tag: true } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
       },
     });
   }
@@ -326,7 +326,7 @@ export class PostService {
       ),
       with: {
         user: { columns: { password: false } },
-          postsToTags: { columns: {}, with: { tag: true } },
+          posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,

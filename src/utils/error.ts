@@ -48,7 +48,7 @@ export interface ApiErrorResponse {
     details?: string;
     stack?: string;
   };
-  requestId: string;
+  request_id: string;
   timestamp: string;
 }
 
@@ -87,7 +87,7 @@ export function createErrorResponse(
         details: error.details,
         ...(isDevelopment && { stack: error.stack })
       },
-      requestId,
+      request_id: requestId,
       timestamp
     };
   }
@@ -97,7 +97,7 @@ export function createErrorResponse(
       success: false,
       message: error.message,
       error: isDevelopment ? { details: error.message } : undefined,
-      requestId,
+      request_id: requestId,
       timestamp
     };
   }
@@ -108,7 +108,7 @@ export function createErrorResponse(
     success: false,
     message: errorMessage,
     error: isDevelopment ? { details: errorMessage } : undefined,
-    requestId,
+    request_id: requestId,
     timestamp
   };
 }

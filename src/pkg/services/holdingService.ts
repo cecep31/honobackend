@@ -16,7 +16,7 @@ export class HoldingService {
     const holding = await db.query.holdings.findFirst({
       where: eq(holdings.id, BigInt(id)),
       with: {
-        holdingType: true,
+        holding_type: true,
       },
     });
     if (!holding) {
@@ -37,7 +37,7 @@ export class HoldingService {
     return db.query.holdings.findMany({
       where: (_, { and }) => and(...where),
       with: {
-        holdingType: true,
+        holding_type: true,
       },
       orderBy: [desc(holdings.created_at)],
     });

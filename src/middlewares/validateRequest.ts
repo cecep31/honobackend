@@ -1,11 +1,12 @@
 import { validator } from "hono/validator";
 import type { z } from "zod";
+import { Errors } from "../utils/error";
 
 export function validateRequest(
   typereq: "json" | "query" | "param" | "cookie" | "header",
   schema: z.Schema<any>
 ) {
-  return validator(typereq, (value, c) => {
+  return validator(typereq, (value) => {
     const parsed = schema.safeParse(value);
 
     if (!parsed.success) {
@@ -15,16 +16,7 @@ export function validateRequest(
           field: issue.path.join("."),
         };
       });
-      return c.json(
-        {
-          success: false,
-          error: erros,
-          message: "Invalid input",
-          data: null,
-          requestId: c.get("requestId") ?? "unknown",
-        },
-        400
-      );
+      throw Errors.ValidationFailed(erros);
     }
     return parsed.data;
   });

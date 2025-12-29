@@ -5,7 +5,7 @@ export interface User {
   email: string;
   password: string;
   image: string;
-  isSuperAdmin: boolean;
+  is_super_admin: boolean;
 }
 
 export interface PostUser {

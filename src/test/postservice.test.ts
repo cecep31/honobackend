@@ -118,7 +118,7 @@ describe('PostService', () => {
             id: '1', 
             title: 'Test', 
             body: 'Body', 
-            postsToTags: [],
+            posts_to_tags: [],
             user: { id: 'u1' } 
         }];
         mockFindMany.mockResolvedValue(mockPosts);

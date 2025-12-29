@@ -350,20 +350,20 @@ export const likesRelations = relations(likes, ({one}) => ({
 
 export const usersRelations = relations(users, ({many}) => ({
 	likes: many(likes),
-	postComments: many(postComments),
+	post_comments: many(postComments),
 	posts: many(posts),
 	sessions: many(sessions),
 	profiles: many(profiles),
 	files: many(files),
-	postViews: many(postViews),
-	userFollows_followerId: many(userFollows, {
+	post_views: many(postViews),
+	user_follows_follower_id: many(userFollows, {
 		relationName: "userFollows_followerId_users_id"
 	}),
-	userFollows_followingId: many(userFollows, {
+	user_follows_following_id: many(userFollows, {
 		relationName: "userFollows_followingId_users_id"
 	}),
-	postLikes: many(postLikes),
-	postBookmarks: many(postBookmarks),
+	post_likes: many(postLikes),
+	post_bookmarks: many(postBookmarks),
 }));
 
 export const postCommentsRelations = relations(postComments, ({one}) => ({
@@ -378,15 +378,15 @@ export const postCommentsRelations = relations(postComments, ({one}) => ({
 }));
 
 export const postsRelations = relations(posts, ({one, many}) => ({
-	postComments: many(postComments),
+	post_comments: many(postComments),
 	user: one(users, {
 		fields: [posts.created_by],
 		references: [users.id]
 	}),
-	postViews: many(postViews),
-	postLikes: many(postLikes),
-	postBookmarks: many(postBookmarks),
-	postsToTags: many(postsToTags),
+	post_views: many(postViews),
+	post_likes: many(postLikes),
+	post_bookmarks: many(postBookmarks),
+	posts_to_tags: many(postsToTags),
 }));
 
 export const chatMessagesRelations = relations(chatMessages, ({one}) => ({
@@ -433,12 +433,12 @@ export const postViewsRelations = relations(postViews, ({one}) => ({
 }));
 
 export const userFollowsRelations = relations(userFollows, ({one}) => ({
-	user_followerId: one(users, {
+	user_follower_id: one(users, {
 		fields: [userFollows.follower_id],
 		references: [users.id],
 		relationName: "userFollows_followerId_users_id"
 	}),
-	user_followingId: one(users, {
+	user_following_id: one(users, {
 		fields: [userFollows.following_id],
 		references: [users.id],
 		relationName: "userFollows_followingId_users_id"
@@ -479,7 +479,7 @@ export const postsToTagsRelations = relations(postsToTags, ({one}) => ({
 }));
 
 export const tagsRelations = relations(tags, ({many}) => ({
-	postsToTags: many(postsToTags),
+	posts_to_tags: many(postsToTags),
 }));
 
 export const holdingsRelations = relations(holdings, ({one}) => ({
@@ -487,7 +487,7 @@ export const holdingsRelations = relations(holdings, ({one}) => ({
 		fields: [holdings.user_id],
 		references: [users.id]
 	}),
-	holdingType: one(holdingTypes, {
+	holding_type: one(holdingTypes, {
 		fields: [holdings.holding_type_id],
 		references: [holdingTypes.id]
 	}),

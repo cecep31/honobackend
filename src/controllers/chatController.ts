@@ -41,15 +41,15 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
       const abortController = new AbortController();
 
-      const { userMessage, streamGenerator, conversationId, userId, model } =
+      const { user_message, stream_generator, conversation_id, user_id, model } =
         await chatService.createConversationStream(authUser.user_id, body, abortController.signal);
 
       // Get the actual model that will be used
       const config = getConfig;
       const actualModel = model || config.openrouter.defaultModel;
 
-      if (!streamGenerator) {
-        return sendSuccess(c, [userMessage], "Message created successfully", 201);
+      if (!stream_generator) {
+        return sendSuccess(c, [user_message], "Message created successfully", 201);
       }
 
       let fullContent = "";
@@ -62,8 +62,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
               `data: ${JSON.stringify({
                 type: "conversation_created",
                 data: {
-                  conversationId,
-                  userMessage,
+                  conversation_id,
+                  user_message,
                 },
               })}\n\n`
             );
@@ -74,7 +74,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
               completion_tokens: number;
               total_tokens: number;
             } | null = null;
-            for await (const chunk of streamGenerator) {
+            for await (const chunk of stream_generator) {
               if (typeof chunk === "string") {
                 fullContent += chunk;
                 controller.enqueue(
@@ -90,8 +90,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
             // Save the complete AI message
             const aiMessage = await chatService.saveStreamingMessage(
-              conversationId,
-              userId,
+              conversation_id,
+              user_id,
               fullContent,
               actualModel,
               usage || {
@@ -212,7 +212,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
       const abortController = new AbortController();
 
-      const { userMessage, streamGenerator, conversationId, userId, model } =
+      const { user_message, stream_generator, conversation_id, user_id, model } =
         await chatService.createStreamingMessage(authUser.user_id, {
           ...body,
           role: body.role || "user", // Use provided role or default to "user"
@@ -223,8 +223,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
       const config = getConfig;
       const actualModel = model || config.openrouter.defaultModel;
 
-      if (!streamGenerator) {
-        return sendSuccess(c, [userMessage], "Message created successfully", 201);
+      if (!stream_generator) {
+        return sendSuccess(c, [user_message], "Message created successfully", 201);
       }
 
       let fullContent = "";
@@ -236,7 +236,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
             controller.enqueue(
               `data: ${JSON.stringify({
                 type: "user_message",
-                data: userMessage,
+                data: user_message,
               })}\n\n`
             );
 
@@ -246,7 +246,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
               completion_tokens: number;
               total_tokens: number;
             } | null = null;
-            for await (const chunk of streamGenerator) {
+            for await (const chunk of stream_generator) {
               if (typeof chunk === "string") {
                 fullContent += chunk;
                 controller.enqueue(
@@ -262,8 +262,8 @@ export const chatController = new Hono<{ Variables: Variables }>()
 
             // Save the complete AI message
             const aiMessage = await chatService.saveStreamingMessage(
-              conversationId,
-              userId,
+              conversation_id,
+              user_id,
               fullContent,
               actualModel,
               usage || {

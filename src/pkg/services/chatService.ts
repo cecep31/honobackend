@@ -51,10 +51,10 @@ export class ChatService {
     }];
 
     return {
-      userMessage,
-      streamGenerator: this.openrouterService.generateStream(contextMessages, body.model, body.temperature, signal),
-      conversationId: conversation.id,
-      userId,
+      user_message: userMessage,
+      stream_generator: this.openrouterService.generateStream(contextMessages, body.model, body.temperature, signal),
+      conversation_id: conversation.id,
+      user_id: userId,
       model: body.model || "",
     };
   }
@@ -227,15 +227,15 @@ export class ChatService {
       }));
 
       return {
-        userMessage,
-        streamGenerator: this.openrouterService.generateStream(contextMessages, body.model, body.temperature, signal),
-        conversationId: body.conversation_id,
-        userId,
+        user_message: userMessage,
+        stream_generator: this.openrouterService.generateStream(contextMessages, body.model, body.temperature, signal),
+        conversation_id: body.conversation_id,
+        user_id: userId,
         model: body.model || "",
       };
     }
 
-    return { userMessage, streamGenerator: null };
+    return { user_message: userMessage, stream_generator: null };
   }
 
   async saveStreamingMessage(conversationId: string, userId: string, content: string, model: string, usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }) {

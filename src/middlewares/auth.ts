@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { verify } from "hono/jwt";
 import config from "../config";
+import { Errors } from "../utils/error";
 
 export const auth = createMiddleware(async (c, next) => {
   try {
@@ -8,28 +9,14 @@ export const auth = createMiddleware(async (c, next) => {
 
     if (!authorization) {
       c.res.headers.set("WWW-Authenticate", "Bearer");
-      return c.json(
-        {
-          success: false,
-          message: "Authorization header missing",
-          requestId: c.get("requestId") || "N/A",
-        },
-        401
-      );
+      throw Errors.Unauthorized();
     }
 
     const token = authorization.replace("Bearer ", "");
 
     if (!token) {
       c.res.headers.set("WWW-Authenticate", 'Bearer error="invalid_token"');
-      return c.json(
-        {
-          success: false,
-          message: "Token not provided",
-          requestId: c.get("requestId") || "N/A",
-        },
-        401
-      );
+      throw Errors.Unauthorized();
     }
 
     const decodedPayload = await verify(token, config.jwt.secret);
@@ -37,14 +24,10 @@ export const auth = createMiddleware(async (c, next) => {
 
     await next();
   } catch (error) {
+    if (error instanceof Error && error.name === "ApiError") {
+      throw error;
+    }
     c.res.headers.set("WWW-Authenticate", 'Bearer error="invalid_token"');
-    return c.json(
-      {
-        success: false,
-        message: "Unauthorized",
-        requestId: c.get("requestId") || "N/A",
-      },
-      401
-    );
+    throw Errors.Unauthorized();
   }
 });

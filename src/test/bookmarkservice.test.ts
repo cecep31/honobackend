@@ -15,7 +15,7 @@ const mockSelect = mock(() => ({ from: mockFrom }));
 
 const mockFindMany = mock();
 const mockQuery = {
-    postBookmarks: {
+    post_bookmarks: {
         findMany: mockFindMany
     }
 };
