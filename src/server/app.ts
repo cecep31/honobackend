@@ -5,6 +5,11 @@ import { setupMiddlewares } from "../middlewares";
 import setupRouter from "../router";
 import type { Variables } from "../types/context";
 
+// BigInt serialization fix for JSON.stringify
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 export const app = new Hono<{ Variables: Variables }>();
 
 // Initialize application
