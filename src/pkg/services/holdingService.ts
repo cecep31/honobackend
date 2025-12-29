@@ -63,6 +63,10 @@ export class HoldingService {
       case "year":
         orderByClause = order === "asc" ? asc(holdings.year) : desc(holdings.year);
         break;
+      case "holding_type":
+        orderByClause =
+          order === "asc" ? asc(holding_types.name) : desc(holding_types.name);
+        break;
       case "updated_at":
         orderByClause =
           order === "asc" ? asc(holdings.updated_at) : desc(holdings.updated_at);
@@ -74,13 +78,20 @@ export class HoldingService {
         break;
     }
 
-    return db.query.holdings.findMany({
-      where: (_, { and }) => and(...where),
-      with: {
-        holding_type: true,
-      },
-      orderBy: [orderByClause],
-    });
+    const results = await db
+      .select({
+        holding: holdings,
+        holding_type: holding_types,
+      })
+      .from(holdings)
+      .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
+      .where(and(...where))
+      .orderBy(orderByClause);
+
+    return results.map((r) => ({
+      ...r.holding,
+      holding_type: r.holding_type,
+    }));
   }
 
   async updateHolding(id: number, data: HoldingUpdate) {
