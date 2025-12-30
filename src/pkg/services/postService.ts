@@ -25,6 +25,98 @@ export class PostService {
       .returning();
   }
 
+  async updatePost(
+    post_id: string,
+    auth_id: string,
+    body: Partial<PostCreateBody>
+  ) {
+    return await db.transaction(async (tx) => {
+      try {
+        const existingPost = await tx.query.posts.findFirst({
+          where: and(
+            eq(postsModel.id, post_id),
+            eq(postsModel.created_by, auth_id),
+            isNull(postsModel.deleted_at)
+          ),
+        });
+
+        if (!existingPost) {
+          throw Errors.NotFound("Post not found or unauthorized");
+        }
+
+        const updateData: any = { ...body };
+        delete updateData.tags;
+        updateData.updated_at = new Date().toISOString();
+
+        const [updatedPost] = await tx
+          .update(postsModel)
+          .set(updateData)
+          .where(eq(postsModel.id, post_id))
+          .returning();
+
+        if (body.tags) {
+          await tx
+            .delete(posts_to_tags)
+            .where(eq(posts_to_tags.post_id, post_id));
+
+          await tx
+            .insert(tagsModel)
+            .values(body.tags.map((name) => ({ name })))
+            .onConflictDoNothing();
+
+          const tags = await tx.query.tags.findMany({
+            where: inArray(tagsModel.name, body.tags),
+          });
+
+          if (tags.length > 0) {
+            await tx
+              .insert(posts_to_tags)
+              .values(
+                tags.map((tag) => ({
+                  post_id: post_id,
+                  tag_id: tag.id,
+                }))
+              )
+              .onConflictDoNothing();
+          }
+        }
+
+        return updatedPost;
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("Post not found")) {
+          throw error;
+        }
+        console.error("Error updating post:", error);
+        throw Errors.DatabaseError({ message: "Failed to update post", error });
+      }
+    });
+  }
+
+  async incrementView(post_id: string) {
+    return await db
+      .update(postsModel)
+      .set({ view_count: sql`${postsModel.view_count} + 1` })
+      .where(eq(postsModel.id, post_id))
+      .returning({ id: postsModel.id, view_count: postsModel.view_count });
+  }
+
+  async getTrendingPosts(limit = 5) {
+    const posts = await db.query.posts.findMany({
+      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
+      orderBy: [desc(postsModel.view_count), desc(postsModel.like_count)],
+      with: {
+        user: { columns: { password: false } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
+      },
+      limit: limit,
+    });
+
+    return posts.map((post) => ({
+      ...post,
+      tags: post.posts_to_tags.map((t) => t.tag),
+    }));
+  }
+
   async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
     const posts = await db.query.posts.findMany({
       where: and(

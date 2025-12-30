@@ -51,15 +51,20 @@ const mockValuesWithConflict = mock(() => ({ onConflictDoNothing: mockOnConflict
 const mockInsertWithConflict = mock(() => ({ values: mockValuesWithConflict }));
 
 const mockTransaction = mock(async (callback: any) => {
-    return await callback({
-        insert: mockInsertWithConflict,
-        query: {
-            tags: {
-                findMany: mock(() => [])
-            }
-        },
-        select: mockSelect
-    });
+  return await callback({
+    insert: mockInsertWithConflict,
+    delete: mock(() => ({ where: mock(() => ({ returning: mockReturning })) })),
+    update: mockUpdate,
+    query: {
+      tags: {
+        findMany: mock(() => []),
+      },
+      posts: {
+        findFirst: mockFindFirst,
+      },
+    },
+    select: mockSelect,
+  });
 });
 
 mock.module('../database/drizzle', () => {
@@ -140,5 +145,39 @@ describe('PostService', () => {
         
         expect(result).toEqual([{ id: 'post1' }]);
         expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('updatePost updates an existing post', async () => {
+        const body = { title: 'Updated Title' };
+        mockFindFirst.mockResolvedValue({ id: 'post1', created_by: 'user1' });
+        mockReturning.mockResolvedValue([{ id: 'post1', title: 'Updated Title' }]);
+
+        const result = await postService.updatePost('post1', 'user1', body);
+
+        expect(result).toEqual({ id: 'post1', title: 'Updated Title' });
+        expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('incrementView increments view count', async () => {
+        mockReturning.mockResolvedValue([{ id: 'post1', view_count: 1 }]);
+
+        const result = await postService.incrementView('post1');
+
+        expect(result[0].view_count).toBe(1);
+        expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it('getTrendingPosts returns posts ordered by views', async () => {
+        const mockPosts = [
+            { id: '1', view_count: 100, posts_to_tags: [] },
+            { id: '2', view_count: 50, posts_to_tags: [] }
+        ];
+        mockFindMany.mockResolvedValue(mockPosts);
+
+        const result = await postService.getTrendingPosts(2);
+
+        expect(result).toHaveLength(2);
+        expect(result[0].id).toBe('1');
+        expect(mockFindMany).toHaveBeenCalled();
     });
 });

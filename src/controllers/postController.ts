@@ -13,6 +13,7 @@ import {
   postByUsernameSlugSchema,
   postIdSchema,
   updatePublishedSchema,
+  updatePostSchema,
 } from "../validations/post";
 
 export const postController = new Hono<{ Variables: Variables }>();
@@ -28,6 +29,11 @@ postController.get("/random", async (c) => {
   return sendSuccess(c, posts, "Random posts fetched successfully");
 });
 
+postController.get("/trending", async (c) => {
+  const posts = await postService.getTrendingPosts(5);
+  return sendSuccess(c, posts, "Trending posts fetched successfully");
+});
+
 postController.get("/mine", auth, async (c) => {
   const params = getPaginationParams(c);
   const auth = c.get("user");
@@ -38,6 +44,23 @@ postController.get("/mine", auth, async (c) => {
 postController.get("/tag/:tag", async (c) => {
   const posts = await postService.getPostsByTag(c.req.param("tag"));
   return sendSuccess(c, posts, "Posts by tag fetched successfully");
+});
+
+postController.get("/user/:username", async (c) => {
+  const username = c.req.param("username");
+  const params = getPaginationParams(c);
+  const { data, meta } = await postService.getPostsByUsername(
+    username,
+    params.limit,
+    params.offset
+  );
+  return sendSuccess(
+    c,
+    data,
+    `Posts by ${username} fetched successfully`,
+    200,
+    meta
+  );
 });
 
 postController.get("/slug/:slug", async (c) => {
@@ -92,6 +115,30 @@ postController.post(
     const body = c.req.valid("json");
     const post = await postService.addPost(auth.user_id, body);
     return sendSuccess(c, post, "Post created successfully", 201);
+  }
+);
+
+postController.patch(
+  "/:id",
+  auth,
+  validateRequest("param", postIdSchema),
+  validateRequest("json", updatePostSchema),
+  async (c) => {
+    const id = c.req.param("id");
+    const auth = c.get("user") as jwtPayload;
+    const body = c.req.valid("json");
+    const post = await postService.updatePost(id, auth.user_id, body);
+    return sendSuccess(c, post, "Post updated successfully");
+  }
+);
+
+postController.post(
+  "/:id/view",
+  validateRequest("param", postIdSchema),
+  async (c) => {
+    const id = c.req.param("id");
+    const result = await postService.incrementView(id);
+    return sendSuccess(c, result, "Post view incremented");
   }
 );
 
