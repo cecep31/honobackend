@@ -45,6 +45,9 @@ export class HoldingService {
       case "name":
         orderByClause = order === "asc" ? asc(holdings.name) : desc(holdings.name);
         break;
+      case "platform":
+        orderByClause = order === "asc" ? asc(holdings.platform) : desc(holdings.platform);
+        break;
       case "invested_amount":
         orderByClause =
           order === "asc"
@@ -56,12 +59,6 @@ export class HoldingService {
           order === "asc"
             ? asc(holdings.current_value)
             : desc(holdings.current_value);
-        break;
-      case "month":
-        orderByClause = order === "asc" ? asc(holdings.month) : desc(holdings.month);
-        break;
-      case "year":
-        orderByClause = order === "asc" ? asc(holdings.year) : desc(holdings.year);
         break;
       case "holding_type":
         orderByClause =
