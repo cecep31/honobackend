@@ -12,7 +12,6 @@ import {
   createPostSchema,
   postByUsernameSlugSchema,
   postIdSchema,
-  updatePublishedSchema,
   updatePostSchema,
 } from "../validations/post";
 
@@ -148,16 +147,3 @@ postController.delete("/:id", auth, async (c) => {
   const post = await postService.deletePost(id, auth.user_id);
   return sendSuccess(c, post, "Post deleted successfully");
 });
-
-postController.patch(
-  "/:id/published",
-  auth,
-  validateRequest("json", updatePublishedSchema),
-  validateRequest("param", postIdSchema),
-  async (c) => {
-    const body = c.req.valid("json");
-    const id = c.req.param("id");
-    const post = await postService.UpdatePublishedByadmin(id, body.published);
-    return sendSuccess(c, post, "Post published status updated successfully");
-  }
-);

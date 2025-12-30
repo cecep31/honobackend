@@ -17,14 +17,6 @@ export class PostService {
     private tagService: TagService
   ) {}
 
-  async UpdatePublishedByadmin(id: string, published: boolean) {
-    return await db
-      .update(postsModel)
-      .set({ published: published })
-      .where(eq(postsModel.id, id))
-      .returning();
-  }
-
   async updatePost(
     post_id: string,
     auth_id: string,

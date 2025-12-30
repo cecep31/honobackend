@@ -33,7 +33,7 @@ const getConfig = {
   rateLimitConfig,
   database: {
     url: process.env["DATABASE_URL"] ?? "",
-    max_connections: getNumberEnv("DB_MAX_CONNECTIONS", 50),
+    max_connections: getNumberEnv("DB_MAX_CONNECTIONS", 20),
     idle_timeout: getNumberEnv("DB_IDLE_TIMEOUT", 30),
     connect_timeout: getNumberEnv("DB_CONNECT_TIMEOUT", 5),
     max_lifetime: getNumberEnv("DB_MAX_LIFETIME", 1800),

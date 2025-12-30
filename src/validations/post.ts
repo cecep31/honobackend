@@ -18,10 +18,6 @@ export const createPostSchema = z.object({
   published: z.boolean().optional().default(true),
 });
 
-export const updatePublishedSchema = z.object({
-  published: z.boolean(),
-});
-
 export const updatePostSchema = z.object({
   title: z.string().min(5).max(255).optional(),
   body: z.string().min(20).max(10000).optional(),
