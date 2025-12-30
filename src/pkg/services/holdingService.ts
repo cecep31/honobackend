@@ -1,7 +1,11 @@
 import { db } from "../../database/drizzle";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { holdings, holding_types } from "../../database/schemas/postgre/schema";
-import type { DuplicateHoldingPayload, HoldingCreate, HoldingUpdate } from "../../types/holding";
+import type {
+  DuplicateHoldingPayload,
+  HoldingCreate,
+  HoldingUpdate,
+} from "../../types/holding";
 import { Errors } from "../../utils/error";
 
 export class HoldingService {
@@ -43,10 +47,12 @@ export class HoldingService {
     let orderByClause;
     switch (sortBy) {
       case "name":
-        orderByClause = order === "asc" ? asc(holdings.name) : desc(holdings.name);
+        orderByClause =
+          order === "asc" ? asc(holdings.name) : desc(holdings.name);
         break;
       case "platform":
-        orderByClause = order === "asc" ? asc(holdings.platform) : desc(holdings.platform);
+        orderByClause =
+          order === "asc" ? asc(holdings.platform) : desc(holdings.platform);
         break;
       case "invested_amount":
         orderByClause =
@@ -66,12 +72,16 @@ export class HoldingService {
         break;
       case "updated_at":
         orderByClause =
-          order === "asc" ? asc(holdings.updated_at) : desc(holdings.updated_at);
+          order === "asc"
+            ? asc(holdings.updated_at)
+            : desc(holdings.updated_at);
         break;
       case "created_at":
       default:
         orderByClause =
-          order === "asc" ? asc(holdings.created_at) : desc(holdings.created_at);
+          order === "asc"
+            ? asc(holdings.created_at)
+            : desc(holdings.created_at);
         break;
     }
 
@@ -108,7 +118,10 @@ export class HoldingService {
     if (!existing) {
       throw Errors.NotFound("Holding");
     }
-    return db.delete(holdings).where(eq(holdings.id, BigInt(id))).returning();
+    return db
+      .delete(holdings)
+      .where(eq(holdings.id, BigInt(id)))
+      .returning();
   }
 
   async getHoldingTypes() {
@@ -125,7 +138,123 @@ export class HoldingService {
     return holdingType;
   }
 
-  async duplicateHoldingsByMonth(userId: string, data: DuplicateHoldingPayload) {
+  async getSummary(userId: string, month?: number, year?: number) {
+    const where = [eq(holdings.user_id, userId)];
+    if (month) where.push(eq(holdings.month, month));
+    if (year) where.push(eq(holdings.year, year));
+
+    const results = await db
+      .select({
+        invested_amount: holdings.invested_amount,
+        current_value: holdings.current_value,
+        holding_type: holding_types.name,
+        platform: holdings.platform,
+      })
+      .from(holdings)
+      .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
+      .where(and(...where));
+
+    let totalInvested = 0;
+    let totalCurrentValue = 0;
+    const typeBreakdown: Record<string, { invested: number; current: number }> =
+      {};
+    const platformBreakdown: Record<
+      string,
+      { invested: number; current: number }
+    > = {};
+
+    results.forEach((r) => {
+      const invested = Number(r.invested_amount);
+      const current = Number(r.current_value);
+      totalInvested += invested;
+      totalCurrentValue += current;
+
+      const type = r.holding_type || "Unknown";
+      if (!typeBreakdown[type])
+        typeBreakdown[type] = { invested: 0, current: 0 };
+      typeBreakdown[type].invested += invested;
+      typeBreakdown[type].current += current;
+
+      const platform = r.platform;
+      if (!platformBreakdown[platform])
+        platformBreakdown[platform] = { invested: 0, current: 0 };
+      platformBreakdown[platform].invested += invested;
+      platformBreakdown[platform].current += current;
+    });
+
+    const totalProfitLoss = totalCurrentValue - totalInvested;
+    const totalProfitLossPercentage =
+      totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+
+    return {
+      totalInvested,
+      totalCurrentValue,
+      totalProfitLoss,
+      totalProfitLossPercentage,
+      typeBreakdown: Object.entries(typeBreakdown).map(([name, data]) => ({
+        name,
+        ...data,
+        profitLoss: data.current - data.invested,
+        profitLossPercentage:
+          data.invested > 0
+            ? ((data.current - data.invested) / data.invested) * 100
+            : 0,
+      })),
+      platformBreakdown: Object.entries(platformBreakdown).map(
+        ([name, data]) => ({
+          name,
+          ...data,
+          profitLoss: data.current - data.invested,
+          profitLossPercentage:
+            data.invested > 0
+              ? ((data.current - data.invested) / data.invested) * 100
+              : 0,
+        })
+      ),
+    };
+  }
+
+  async getTrends(userId: string, years?: number[]) {
+    const where = [eq(holdings.user_id, userId)];
+    if (years && years.length > 0) {
+      where.push(inArray(holdings.year, years));
+    }
+
+    const results = await db
+      .select({
+        month: holdings.month,
+        year: holdings.year,
+        invested_amount: holdings.invested_amount,
+        current_value: holdings.current_value,
+      })
+      .from(holdings)
+      .where(and(...where))
+      .orderBy(asc(holdings.year), asc(holdings.month));
+
+    const trends: Record<string, { invested: number; current: number }> = {};
+
+    results.forEach((r) => {
+      const key = `${r.year}-${String(r.month).padStart(2, "0")}`;
+      if (!trends[key]) trends[key] = { invested: 0, current: 0 };
+      trends[key].invested += Number(r.invested_amount);
+      trends[key].current += Number(r.current_value);
+    });
+
+    return Object.entries(trends).map(([date, data]) => ({
+      date,
+      ...data,
+      profitLoss: data.current - data.invested,
+      profitLossPercentage:
+        data.invested > 0
+          ? ((data.current - data.invested) / data.invested) * 100
+          : 0,
+    }));
+  }
+
+  async duplicateHoldingsByMonth(
+    userId: string,
+    data: DuplicateHoldingPayload
+  ) {
     const { fromMonth, fromYear, toMonth, toYear, overwrite } = data;
 
     // 1. Get source holdings
@@ -138,7 +267,10 @@ export class HoldingService {
     });
 
     if (sourceHoldings.length === 0) {
-      throw Errors.InvalidInput("source holdings", "No holdings found for the source period");
+      throw Errors.InvalidInput(
+        "source holdings",
+        "No holdings found for the source period"
+      );
     }
 
     return await db.transaction(async (tx) => {

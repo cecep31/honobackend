@@ -4,13 +4,14 @@ import { auth } from "../middlewares/auth";
 import config from "../config";
 import axios from "axios";
 import type { GithubUser } from "../types/user";
-import { setCookie } from "hono/cookie";
+import { setCookie, deleteCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../middlewares/validateRequest";
 import type { Variables } from "../types/context";
 import { sendSuccess } from "../utils/response";
 import { Errors } from "../utils/error";
 import {
+  emailSchema,
   loginSchema,
   registerSchema,
   updatePasswordSchema,
@@ -84,7 +85,7 @@ authController.post(
 );
 
 authController.post(
-  "register",
+  "/register",
   validateRequest("json", registerSchema),
   async (c) => {
     const body = c.req.valid("json");
@@ -102,6 +103,34 @@ authController.get(
     return sendSuccess(c, { exists }, "Username check completed");
   }
 );
+
+authController.get(
+  "/email/:email",
+  validateRequest("param", emailSchema),
+  async (c) => {
+    const email = c.req.valid("param").email;
+    const exists = await authService.checkEmail(email);
+    return sendSuccess(c, { exists }, "Email check completed");
+  }
+);
+
+authController.post("/refresh-token", async (c) => {
+  const body = await c.req.json();
+  const refreshToken = body.refresh_token;
+  if (!refreshToken) {
+    throw Errors.InvalidInput("refresh_token", "Refresh token is required");
+  }
+  const result = await authService.refreshToken(refreshToken);
+  return sendSuccess(c, result, "Token refreshed successfully");
+});
+
+authController.post("/logout", auth, async (c) => {
+  deleteCookie(c, "token", {
+    domain: "pilput.dev",
+    path: "/",
+  });
+  return sendSuccess(c, null, "Logged out successfully");
+});
 
 authController.patch(
   "/password",

@@ -111,6 +111,16 @@ export class UserService {
     return users[0].count;
   }
 
+  async getUserCountByEmail(email: string) {
+    const users = await db
+      .select({ count: count() })
+      .from(usersModel)
+      .where(
+        and(eq(usersModel.email, email), isNull(usersModel.deleted_at))
+      );
+    return users[0].count;
+  }
+
   async createUser(data: UserSignup) {
     const user = await db.insert(usersModel).values({ ...data, id: randomUUIDv7() }).returning();
     await db.insert(profiles).values({ user_id: user[0].id });

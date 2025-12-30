@@ -7,6 +7,15 @@ export const getHoldingsQuerySchema = z.object({
   order: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
+export const getSummaryQuerySchema = z.object({
+  month: z.string().regex(/^\d+$/).transform(Number).optional(),
+  year: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
+export const getTrendsQuerySchema = z.object({
+  years: z.string().optional().transform((val) => val ? val.split(",").map(Number) : undefined),
+});
+
 export const holdingIdSchema = z.object({
   id: z.string().regex(/^\d+$/),
 });

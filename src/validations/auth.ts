@@ -22,6 +22,10 @@ export const usernameSchema = z.object({
   username: z.string().min(5),
 });
 
+export const emailSchema = z.object({
+  email: z.string().email(),
+});
+
 export const updatePasswordSchema = z
   .object({
     old_password: z.string(),

@@ -1,4 +1,5 @@
-import { decode, sign, verify } from "hono/jwt";
+import { sign } from "hono/jwt";
+import { and, eq } from "drizzle-orm";
 import type { UserService } from "./userService";
 import type { userLogin, UserSignup } from "../../types/user";
 import config from "../../config";
@@ -131,14 +132,44 @@ export class AuthService {
     }
     return false;
   }
+
+  async checkEmail(email: string) {
+    const user = await this.userService.getUserCountByEmail(email);
+    if (user > 0) {
+      return true;
+    }
+    return false;
+  }
   async refreshToken(refreshToken: string) {
-    try {
-      await verify(refreshToken, config.jwt.secret);
-      const { payload } = decode(refreshToken);
-      return payload;
-    } catch (error) {
+    const session = await db.query.sessions.findFirst({
+      where: and(
+        eq(sessionModel.refresh_token, refreshToken),
+        // Add expiration check if you have a way to compare ISO strings or use native DB date comparison
+      ),
+      with: {
+        user: true,
+      },
+    });
+
+    if (
+      !session ||
+      !session.user ||
+      !session.expires_at ||
+      new Date(session.expires_at) < new Date()
+    ) {
       throw Errors.Unauthorized();
     }
+
+    const payload = {
+      user_id: session.user.id,
+      email: session.user.email,
+      is_super_admin: session.user.is_super_admin,
+      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
+    };
+
+    const token = await sign(payload, config.jwt.secret);
+
+    return { access_token: token };
   }
 
   async updatePassword(

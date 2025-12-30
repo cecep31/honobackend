@@ -8,48 +8,71 @@ import {
   createHoldingSchema,
   duplicateHoldingSchema,
   getHoldingsQuerySchema,
+  getSummaryQuerySchema,
+  getTrendsQuerySchema,
   holdingIdSchema,
   updateHoldingSchema,
 } from "../validations/holding";
 
 export const holdingController = new Hono<{ Variables: Variables }>()
-  .get("/", auth, validateRequest("query", getHoldingsQuerySchema), async (c) => {
-    const authUser = c.get("user");
-    const { month, year, sortBy, order } = c.req.valid("query");
-    const holdings = await holdingService.getHoldingsByUserId(
-      authUser.user_id,
-      month,
-      year,
-      sortBy,
-      order
-    );
-    return sendSuccess(c, holdings, "Holdings fetched successfully");
-  })
+  .get(
+    "/",
+    auth,
+    validateRequest("query", getHoldingsQuerySchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { month, year, sortBy, order } = c.req.valid("query");
+      const holdings = await holdingService.getHoldingsByUserId(
+        authUser.user_id,
+        month,
+        year,
+        sortBy,
+        order
+      );
+      return sendSuccess(c, holdings, "Holdings fetched successfully");
+    }
+  )
+  .get(
+    "/summary",
+    auth,
+    validateRequest("query", getSummaryQuerySchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { month, year } = c.req.valid("query");
+      const summary = await holdingService.getSummary(
+        authUser.user_id,
+        month,
+        year
+      );
+      return sendSuccess(c, summary, "Holdings summary fetched successfully");
+    }
+  )
+  .get(
+    "/trends",
+    auth,
+    validateRequest("query", getTrendsQuerySchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { years } = c.req.valid("query");
+      const trends = await holdingService.getTrends(authUser.user_id, years);
+      return sendSuccess(c, trends, "Holdings trends fetched successfully");
+    }
+  )
   .get("/types", auth, async (c) => {
     const types = await holdingService.getHoldingTypes();
     return sendSuccess(c, types, "Holding types fetched successfully");
   })
-  .get(
-    "/:id",
-    auth,
-    validateRequest("param", holdingIdSchema),
-    async (c) => {
-      const params = c.req.valid("param");
-      const holding = await holdingService.getHoldingById(Number(params.id));
-      return sendSuccess(c, holding, "Holding fetched successfully");
-    }
-  )
-  .post(
-    "/",
-    auth,
-    validateRequest("json", createHoldingSchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const body = c.req.valid("json");
-      const holding = await holdingService.createHolding(authUser.user_id, body);
-      return sendSuccess(c, holding, "Holding created successfully", 201);
-    }
-  )
+  .get("/:id", auth, validateRequest("param", holdingIdSchema), async (c) => {
+    const params = c.req.valid("param");
+    const holding = await holdingService.getHoldingById(Number(params.id));
+    return sendSuccess(c, holding, "Holding fetched successfully");
+  })
+  .post("/", auth, validateRequest("json", createHoldingSchema), async (c) => {
+    const authUser = c.get("user");
+    const body = c.req.valid("json");
+    const holding = await holdingService.createHolding(authUser.user_id, body);
+    return sendSuccess(c, holding, "Holding created successfully", 201);
+  })
   .post(
     "/duplicate",
     auth,
