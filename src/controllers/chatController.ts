@@ -113,16 +113,20 @@ export const chatController = new Hono<{ Variables: Variables }>()
           } catch (error) {
             if ((error as Error).name === 'AbortError') {
               console.log('Stream aborted by client');
+              // Properly close controller on abort to prevent memory leak
+              try { controller.close(); } catch { /* already closed */ }
               return;
             }
             console.error("Streaming error:", error);
-            controller.enqueue(
-              `data: ${JSON.stringify({
-                type: "error",
-                data: "Failed to generate AI response",
-              })}\n\n`
-            );
-            controller.close();
+            try {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "error",
+                  data: "Failed to generate AI response",
+                })}\n\n`
+              );
+              controller.close();
+            } catch { /* controller may already be closed */ }
           }
         },
         cancel() {
@@ -285,16 +289,20 @@ export const chatController = new Hono<{ Variables: Variables }>()
           } catch (error) {
             if ((error as Error).name === 'AbortError') {
               console.log('Stream aborted by client');
+              // Properly close controller on abort to prevent memory leak
+              try { controller.close(); } catch { /* already closed */ }
               return;
             }
             console.error("Streaming error:", error);
-            controller.enqueue(
-              `data: ${JSON.stringify({
-                type: "error",
-                data: "Failed to generate AI response",
-              })}\n\n`
-            );
-            controller.close();
+            try {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  type: "error",
+                  data: "Failed to generate AI response",
+                })}\n\n`
+              );
+              controller.close();
+            } catch { /* controller may already be closed */ }
           }
         },
         cancel() {

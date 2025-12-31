@@ -1,5 +1,6 @@
 import { app } from './src/server/app';
 import { getLogger } from './src/middlewares/logger';
+import { shutdownMiddlewares } from './src/middlewares';
 
 // Setup application
 const logger = getLogger();
@@ -29,8 +30,10 @@ process.on('unhandledRejection', (reason, promise) => {
 const shutdown = async (signal: string) => {
   console.log(`Received ${signal}. Shutting down server gracefully...`);
   
-  // Add any cleanup tasks here
-  // For now, we just give a small delay for any pending logs or requests
+  // Cleanup rate limiter store to prevent memory leak
+  shutdownMiddlewares();
+  
+  // Give a small delay for any pending logs or requests
   setTimeout(() => {
     console.log('Server shutdown complete.');
     process.exit(0);

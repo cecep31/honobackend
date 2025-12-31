@@ -9,14 +9,27 @@ import { LikeService } from "./services/likeService";
 import { BookmarkService } from "./services/bookmarkService";
 import { OpenRouterService } from "./services/openrouterService";
 
-// Helper for lazy service instantiation
+// Helper for lazy service instantiation with cached bound methods
 function createLazyService<T extends object>(factory: () => T): T {
   let instance: T | null = null;
+  const boundMethods = new Map<string | symbol, Function>();
+  
   return new Proxy({} as T, {
     get: (_, prop) => {
       if (!instance) instance = factory();
+      
+      // Return cached bound method if exists
+      const cached = boundMethods.get(prop);
+      if (cached) return cached;
+      
       const value = Reflect.get(instance, prop);
-      return typeof value === "function" ? value.bind(instance) : value;
+      if (typeof value === "function") {
+        // Cache the bound method to prevent memory leak
+        const bound = value.bind(instance);
+        boundMethods.set(prop, bound);
+        return bound;
+      }
+      return value;
     },
   });
 }
