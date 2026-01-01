@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { timeout } from "hono/timeout";
+import { compress } from "hono/compress";
 import { errorHandler } from "../middlewares/errorHandler";
 import { setupMiddlewares } from "../middlewares";
 import setupRouter from "../router";
@@ -14,6 +15,7 @@ export const app = new Hono<{ Variables: Variables }>();
 
 // Initialize application
 app.use(timeout(30000));
+app.use(compress());
 app.onError(errorHandler());
 
 // Setup middlewares and routes

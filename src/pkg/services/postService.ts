@@ -198,47 +198,57 @@ export class PostService {
   }
 
   async getPostByUsernameSlug(username: string, slug: string) {
-     const posts = await db
-      .select({
-        posts: postsModel,
-        users: {
-          id: usersModel.id,
-          username: usersModel.username,
-          email: usersModel.email,
-          first_name: usersModel.first_name,
-          last_name: usersModel.last_name,
-          image: usersModel.image,
-          is_super_admin: usersModel.is_super_admin,
-        },
-        tags: {
-          id: tagsModel.id,
-          name: tagsModel.name,
-        },
-      })
-      .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .leftJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
-      .leftJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
-      .where(and(eq(usersModel.username, username), eq(postsModel.slug, slug)));
-    
-    if (posts.length === 0) {
+    const user = await db.query.users.findFirst({
+      where: eq(usersModel.username, username),
+      columns: { id: true },
+    });
+
+    if (!user) {
       return null;
     }
 
-    const mappedTags = posts.filter((p) => p.tags !== null).map(p => p.tags!);
+    const post = await db.query.posts.findFirst({
+      where: and(eq(postsModel.slug, slug), eq(postsModel.created_by, user.id)),
+      with: {
+        user: {
+          columns: {
+            id: true,
+            username: true,
+            email: true,
+            first_name: true,
+            last_name: true,
+            image: true,
+            is_super_admin: true,
+          },
+        },
+        posts_to_tags: {
+          columns: {},
+          with: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return null;
+    }
 
     return {
-        ...posts[0].posts,
-        creator: posts[0].users,
-        tags: mappedTags 
+      ...post,
+      creator: post.user,
+      tags: post.posts_to_tags.map((t) => t.tag),
     };
   }
 
   async getPosts(params: GetPaginationParams) {
     const { offset, limit, search, orderBy, orderDirection } = params;
-    
-    let whereClause = and(isNull(postsModel.deleted_at), eq(postsModel.published, true));
-    
+
+    let whereClause = and(
+      isNull(postsModel.deleted_at),
+      eq(postsModel.published, true)
+    );
+
     if (search) {
       whereClause = and(
         whereClause,
@@ -248,33 +258,57 @@ export class PostService {
         )
       );
     }
-    
+
     let orderByClause = desc(postsModel.created_at);
     if (orderBy) {
       switch (orderBy) {
-        case 'title':
-          orderByClause = orderDirection === 'asc' ? asc(postsModel.title) : desc(postsModel.title);
+        case "title":
+          orderByClause =
+            orderDirection === "asc"
+              ? asc(postsModel.title)
+              : desc(postsModel.title);
           break;
-        case 'created_at':
-          orderByClause = orderDirection === 'asc' ? asc(postsModel.created_at) : desc(postsModel.created_at);
+        case "created_at":
+          orderByClause =
+            orderDirection === "asc"
+              ? asc(postsModel.created_at)
+              : desc(postsModel.created_at);
           break;
-        case 'updated_at':
-          orderByClause = orderDirection === 'asc' ? asc(postsModel.updated_at) : desc(postsModel.updated_at);
+        case "updated_at":
+          orderByClause =
+            orderDirection === "asc"
+              ? asc(postsModel.updated_at)
+              : desc(postsModel.updated_at);
           break;
-        case 'view_count':
-          orderByClause = orderDirection === 'asc' ? asc(postsModel.view_count) : desc(postsModel.view_count);
+        case "view_count":
+          orderByClause =
+            orderDirection === "asc"
+              ? asc(postsModel.view_count)
+              : desc(postsModel.view_count);
           break;
-        case 'like_count':
-          orderByClause = orderDirection === 'asc' ? asc(postsModel.like_count) : desc(postsModel.like_count);
+        case "like_count":
+          orderByClause =
+            orderDirection === "asc"
+              ? asc(postsModel.like_count)
+              : desc(postsModel.like_count);
           break;
         default:
-          orderByClause = orderDirection === 'asc' ? asc(postsModel.created_at) : desc(postsModel.created_at);
+          orderByClause =
+            orderDirection === "asc"
+              ? asc(postsModel.created_at)
+              : desc(postsModel.created_at);
       }
     }
-    
+
     const posts = await db.query.posts.findMany({
       where: whereClause,
       orderBy: orderByClause,
+      columns: {
+        body: false,
+      },
+      extras: {
+        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
+      },
       with: {
         user: { columns: { password: false } },
         posts_to_tags: { columns: {}, with: { tag: true } },
@@ -282,21 +316,18 @@ export class PostService {
       limit: limit,
       offset: offset,
     });
-    
+
     const countQuery = await db
       .select({ count: count() })
       .from(postsModel)
       .where(whereClause);
-    
+
     const total = countQuery[0].count;
 
     const response = posts.map((post) => ({
       id: post.id,
       title: post.title,
-      body:
-        post.body && post.body.length > 200
-          ? post.body.slice(0, 200) + "..."
-          : post.body,
+      body: post.body_snippet ? post.body_snippet + "..." : "",
       slug: post.slug,
       photo_url: post.photo_url,
       created_at: post.created_at,
@@ -339,7 +370,7 @@ export class PostService {
         id: postsModel.id,
         title: postsModel.title,
         slug: postsModel.slug,
-        body: postsModel.body,
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
         created_at: postsModel.created_at,
         creator: {
           id: usersModel.id,
@@ -355,13 +386,10 @@ export class PostService {
       .orderBy(sql.raw("RANDOM()"))
       .limit(limit);
 
-    data.forEach((post) => {
-      post.body =
-        post.body && post.body.length > 200
-          ? post.body.substring(0, 200) + "..."
-          : post.body;
-    });
-    return data;
+    return data.map((post) => ({
+      ...post,
+      body: post.body ? post.body + "..." : "",
+    }));
   }
 
   async getPost(id_post: string) {
@@ -408,6 +436,12 @@ export class PostService {
         eq(postsModel.created_by, user_id),
         isNull(postsModel.deleted_at)
       ),
+      columns: {
+        body: false,
+      },
+      extras: {
+        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
+      },
       with: {
         user: { columns: { password: false } },
           posts_to_tags: { columns: {}, with: { tag: true } },
@@ -423,13 +457,11 @@ export class PostService {
         and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at))
       );
       
-    const data = posts;
-    data.forEach((post) => {
-      post.body =
-        post.body && post.body.length > 200
-          ? post.body.substring(0, 200) + "..."
-          : post.body;
-    });
+    const data = posts.map((post) => ({
+      ...post,
+      body: post.body_snippet ? post.body_snippet + "..." : "",
+    }));
+
     const meta = getPaginationMetadata(total[0].count, params.offset, params.limit);
     return { data, meta };
   }
