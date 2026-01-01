@@ -10,6 +10,8 @@ const mockSelect = mock(() => ({ from: mockFrom }));
 const mockReturning = mock();
 const mockSet = mock(() => ({ where: mock(() => ({ returning: mockReturning })) }));
 const mockUpdate = mock(() => ({ set: mockSet }));
+const mockValues = mock(() => ({ returning: mockReturning }));
+const mockInsert = mock(() => ({ values: mockValues }));
 
 // Mock the db module
 mock.module('../database/drizzle', () => {
@@ -23,6 +25,7 @@ mock.module('../database/drizzle', () => {
             },
             select: mockSelect,
             update: mockUpdate,
+            insert: mockInsert,
         }
     }
 });
@@ -36,42 +39,336 @@ describe('UserService', () => {
         mockFindFirst.mockReset();
         mockWhere.mockReset();
         mockReturning.mockReset();
+        mockInsert.mockClear();
+        mockValues.mockClear();
     });
 
-    it('getUsers returns data and meta', async () => {
-        const mockData = [{ id: '1', username: 'user1' }];
-        const mockCount = [{ count: 1 }];
+    describe('getUsers', () => {
+        it('returns data and meta', async () => {
+            const mockData = [{ id: '1', username: 'user1' }];
+            const mockCount = [{ count: 1 }];
 
-        mockFindMany.mockResolvedValue(mockData);
-        mockWhere.mockResolvedValue(mockCount);
+            mockFindMany.mockResolvedValue(mockData);
+            mockWhere.mockResolvedValue(mockCount);
 
-        const result = await userService.getUsers({ limit: 10, offset: 0 });
+            const result = await userService.getUsers({ limit: 10, offset: 0 });
 
-        expect(result.data).toEqual(mockData);
-        expect(result.meta).toBeDefined();
-        expect(result.meta.total_items).toBe(1);
-        expect(mockFindMany).toHaveBeenCalled();
-        expect(mockSelect).toHaveBeenCalled();
+            expect(result.data).toEqual(mockData);
+            expect(result.meta).toBeDefined();
+            expect(result.meta.total_items).toBe(1);
+            expect(mockFindMany).toHaveBeenCalled();
+            expect(mockSelect).toHaveBeenCalled();
+        });
+
+        it('uses default pagination params', async () => {
+            mockFindMany.mockResolvedValue([]);
+            mockWhere.mockResolvedValue([{ count: 0 }]);
+
+            const result = await userService.getUsers();
+
+            expect(result.data).toEqual([]);
+            expect(result.meta).toBeDefined();
+        });
+
+        it('handles empty results', async () => {
+            mockFindMany.mockResolvedValue([]);
+            mockWhere.mockResolvedValue([{ count: 0 }]);
+
+            const result = await userService.getUsers({ limit: 10, offset: 0 });
+
+            expect(result.data).toHaveLength(0);
+            expect(result.meta.total_items).toBe(0);
+        });
     });
 
-    it('getUser returns a user', async () => {
-        const mockUser = { id: '1', username: 'user1' };
-        mockFindFirst.mockResolvedValue(mockUser);
+    describe('getUser', () => {
+        it('returns a user', async () => {
+            const mockUser = { id: '1', username: 'user1' };
+            mockFindFirst.mockResolvedValue(mockUser);
 
-        const result = await userService.getUser('1');
+            const result = await userService.getUser('1');
 
-        expect(result).toEqual(mockUser);
-        expect(mockFindFirst).toHaveBeenCalled();
+            expect(result).toEqual(mockUser);
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns null if user not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUser('non-existent');
+
+            expect(result).toBeNull();
+        });
     });
 
-    it('deleteUser soft deletes a user', async () => {
-        const mockUser = { id: '1', username: 'user1' };
-        mockFindFirst.mockResolvedValue(mockUser);
-        mockReturning.mockResolvedValue([{ id: '1' }]);
+    describe('getUserMe', () => {
+        it('returns user without profile by default', async () => {
+            const mockUser = { id: '1', username: 'user1', email: 'user@test.com' };
+            mockFindFirst.mockResolvedValue(mockUser);
 
-        const result = await userService.deleteUser('1');
+            const result = await userService.getUserMe('1');
 
-        expect(result).toEqual([{ id: '1' }]);
-        expect(mockUpdate).toHaveBeenCalled();
+            expect(result).toEqual(mockUser);
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns user with profile when requested', async () => {
+            const mockUser = { 
+                id: '1', 
+                username: 'user1', 
+                profiles: { bio: 'Test bio', website: 'https://example.com' } 
+            };
+            mockFindFirst.mockResolvedValue(mockUser);
+
+            const result = await userService.getUserMe('1', true);
+
+            expect(result).toHaveProperty('profiles');
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns null if user not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUserMe('non-existent');
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('deleteUser', () => {
+        it('soft deletes a user', async () => {
+            const mockUser = { id: '1', username: 'user1' };
+            mockFindFirst.mockResolvedValue(mockUser);
+            mockReturning.mockResolvedValue([{ id: '1' }]);
+
+            const result = await userService.deleteUser('1');
+
+            expect(result).toEqual([{ id: '1' }]);
+            expect(mockUpdate).toHaveBeenCalled();
+        });
+
+        it('throws NotFound if user does not exist', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            expect(userService.deleteUser('non-existent')).rejects.toThrow();
+        });
+    });
+
+    describe('addUser', () => {
+        it('creates a new user with hashed password', async () => {
+            const userData = {
+                first_name: 'John',
+                last_name: 'Doe',
+                username: 'johndoe',
+                email: 'john@example.com',
+                password: 'password123',
+                image: 'https://example.com/avatar.jpg',
+                is_super_admin: false
+            };
+
+            mockReturning.mockResolvedValue([{ id: 'new-user-id' }]);
+
+            const result = await userService.addUser(userData);
+
+            expect(result).toHaveProperty('id', 'new-user-id');
+            expect(mockInsert).toHaveBeenCalled();
+        });
+
+        it('creates a super admin user when specified', async () => {
+            const userData = {
+                first_name: 'Admin',
+                last_name: 'User',
+                username: 'admin',
+                email: 'admin@example.com',
+                password: 'adminpass',
+                image: null,
+                is_super_admin: true
+            };
+
+            mockReturning.mockResolvedValue([{ id: 'admin-id', is_super_admin: true }]);
+
+            const result = await userService.addUser(userData);
+
+            expect(result).toHaveProperty('id');
+            expect(mockInsert).toHaveBeenCalled();
+        });
+    });
+
+    describe('getUserByGithubId', () => {
+        it('returns user by github id', async () => {
+            const mockUser = { id: '1', github_id: 12345, username: 'githubuser' };
+            mockFindFirst.mockResolvedValue(mockUser);
+
+            const result = await userService.getUserByGithubId(12345);
+
+            expect(result).toEqual(mockUser);
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns null if github user not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUserByGithubId(99999);
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getUserCountByUsername', () => {
+        it('returns count of users with username', async () => {
+            mockWhere.mockResolvedValue([{ count: 1 }]);
+
+            const result = await userService.getUserCountByUsername('existinguser');
+
+            expect(result).toBe(1);
+            expect(mockSelect).toHaveBeenCalled();
+        });
+
+        it('returns 0 if username does not exist', async () => {
+            mockWhere.mockResolvedValue([{ count: 0 }]);
+
+            const result = await userService.getUserCountByUsername('newuser');
+
+            expect(result).toBe(0);
+        });
+    });
+
+    describe('getUserCountByEmail', () => {
+        it('returns count of users with email', async () => {
+            mockWhere.mockResolvedValue([{ count: 1 }]);
+
+            const result = await userService.getUserCountByEmail('existing@example.com');
+
+            expect(result).toBe(1);
+        });
+
+        it('returns 0 if email does not exist', async () => {
+            mockWhere.mockResolvedValue([{ count: 0 }]);
+
+            const result = await userService.getUserCountByEmail('new@example.com');
+
+            expect(result).toBe(0);
+        });
+    });
+
+    describe('createUser', () => {
+        it('creates a new user and profile', async () => {
+            const signupData = {
+                email: 'new@example.com',
+                password: 'hashedpassword',
+                username: 'newuser',
+                first_name: 'New',
+                last_name: 'User'
+            };
+
+            mockReturning.mockResolvedValue([{ 
+                id: 'new-id', 
+                email: signupData.email, 
+                username: signupData.username 
+            }]);
+
+            const result = await userService.createUser(signupData);
+
+            expect(result).toHaveProperty('id');
+            expect(result).toHaveProperty('email', signupData.email);
+            expect(mockInsert).toHaveBeenCalled();
+        });
+    });
+
+    describe('getUserWithPassword', () => {
+        it('returns user with password field', async () => {
+            const mockUser = { 
+                id: '1', 
+                username: 'user1', 
+                password: 'hashedpassword' 
+            };
+            mockFindFirst.mockResolvedValue(mockUser);
+
+            const result = await userService.getUserWithPassword('1');
+
+            expect(result).toHaveProperty('password');
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns null if user not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUserWithPassword('non-existent');
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getUserProfile', () => {
+        it('returns user with profile', async () => {
+            const mockUser = { 
+                id: '1', 
+                username: 'user1',
+                profiles: { bio: 'My bio', website: 'https://test.com' }
+            };
+            mockFindFirst.mockResolvedValue(mockUser);
+
+            const result = await userService.getUserProfile('1');
+
+            expect(result).toHaveProperty('profiles');
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns null if user not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUserProfile('non-existent');
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getUserByEmailRaw', () => {
+        it('returns user by email', async () => {
+            const mockUser = { id: '1', email: 'test@example.com', password: 'hash' };
+            mockFindFirst.mockResolvedValue(mockUser);
+
+            const result = await userService.getUserByEmailRaw('test@example.com');
+
+            expect(result).toEqual(mockUser);
+        });
+
+        it('returns null if email not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUserByEmailRaw('notfound@example.com');
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getUserByUsernameRaw', () => {
+        it('returns user by username', async () => {
+            const mockUser = { id: '1', username: 'testuser', password: 'hash' };
+            mockFindFirst.mockResolvedValue(mockUser);
+
+            const result = await userService.getUserByUsernameRaw('testuser');
+
+            expect(result).toEqual(mockUser);
+        });
+
+        it('returns null if username not found', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.getUserByUsernameRaw('nonexistent');
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('updatePassword', () => {
+        it('updates user password', async () => {
+            mockReturning.mockResolvedValue([{ id: '1' }]);
+
+            const result = await userService.updatePassword('1', 'newhash');
+
+            expect(result[0]).toHaveProperty('id', '1');
+            expect(mockUpdate).toHaveBeenCalled();
+        });
     });
 });
