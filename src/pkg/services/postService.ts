@@ -208,7 +208,12 @@ export class PostService {
     }
 
     const post = await db.query.posts.findFirst({
-      where: and(eq(postsModel.slug, slug), eq(postsModel.created_by, user.id)),
+      where: and(
+        eq(postsModel.slug, slug),
+        eq(postsModel.created_by, user.id),
+        eq(postsModel.published, true),
+        isNull(postsModel.deleted_at)
+      ),
       with: {
         user: {
           columns: {
@@ -360,7 +365,11 @@ export class PostService {
       })
       .from(postsModel)
       .rightJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
-      .where(eq(posts_to_tags.tag_id, tag.id))
+      .where(and(
+        eq(posts_to_tags.tag_id, tag.id),
+        eq(postsModel.published, true),
+        isNull(postsModel.deleted_at)
+      ))
       .orderBy(desc(postsModel.created_at));
   }
 
@@ -394,7 +403,11 @@ export class PostService {
 
   async getPost(id_post: string) {
     return await db.query.posts.findFirst({
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.id, id_post)),
+      where: and(
+        isNull(postsModel.deleted_at),
+        eq(postsModel.id, id_post),
+        eq(postsModel.published, true)
+      ),
       with: {
         user: { columns: { password: false } },
         posts_to_tags: { columns: {}, with: { tag: true } },
@@ -486,7 +499,11 @@ export class PostService {
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(eq(usersModel.username, username))
+      .where(and(
+        eq(usersModel.username, username),
+        eq(postsModel.published, true),
+        isNull(postsModel.deleted_at)
+      ))
       .orderBy(desc(postsModel.created_at))
       .limit(limit)
       .offset(offset);
@@ -495,9 +512,11 @@ export class PostService {
       .select({ count: count() })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(eq(usersModel.username, username))
-      .limit(limit)
-      .offset(offset);
+      .where(and(
+        eq(usersModel.username, username),
+        eq(postsModel.published, true),
+        isNull(postsModel.deleted_at)
+      ));
       
     const meta = getPaginationMetadata(total[0].count, offset, limit);
     return { data: posts, meta };
