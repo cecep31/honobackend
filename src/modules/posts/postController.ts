@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { postService } from "../../pkg/service";
+import { postService } from "../../services/index";
 import { auth } from "../../middlewares/auth";
 import type { jwtPayload } from "../../types/auth";
 import { superAdminMiddleware } from "../../middlewares/superAdmin";

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { userService } from "../../pkg/service";
+import { userService } from "../../services/index";
 import { auth } from "../../middlewares/auth";
 import { superAdminMiddleware } from "../../middlewares/superAdmin";
 import { validateRequest } from "../../middlewares/validateRequest";

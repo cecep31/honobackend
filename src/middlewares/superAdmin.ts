@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { userService } from "../pkg/service";
+import { userService } from "../services/index";
 import { Errors } from "../utils/error";
 
 export const superAdminMiddleware = createMiddleware(async (c, next) => {

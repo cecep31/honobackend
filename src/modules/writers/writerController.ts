@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { writerService, postService } from "../../pkg/service";
+import { writerService, postService } from "../../services/index";
 import type { Variables } from "../../types/context";
 import { sendSuccess } from "../../utils/response";
 import { Errors } from "../../utils/error";

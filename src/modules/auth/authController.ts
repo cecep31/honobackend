@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { authService } from "../../pkg/service";
+import { authService } from "../../services/index";
 import { auth } from "../../middlewares/auth";
 import config from "../../config";
 import axios from "axios";

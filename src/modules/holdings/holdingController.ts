@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { holdingService } from "../../pkg/service";
+import { holdingService } from "../../services/index";
 import { auth } from "../../middlewares/auth";
 import { validateRequest } from "../../middlewares/validateRequest";
 import type { Variables } from "../../types/context";

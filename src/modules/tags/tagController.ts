@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { tagService } from "../../pkg/service";
+import { tagService } from "../../services/index";
 import type { Variables } from "../../types/context";
 import { sendSuccess } from "../../utils/response";
 

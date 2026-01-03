@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { auth } from "../../middlewares/auth";
-import { likeService } from "../../pkg/service";
+import { likeService } from "../../services/index";
 import type { Variables } from "../../types/context";
 import { sendSuccess } from "../../utils/response";
 
