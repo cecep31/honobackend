@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { HoldingService } from '../pkg/services/holdingService';
+import { HoldingService } from '../modules/holdings/holdingService';
 
 // Mock DB
 const mockReturning = mock();

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { auth } from "../middlewares/auth";
-import { likeService } from "../pkg/service";
-import type { Variables } from "../types/context";
-import { sendSuccess } from "../utils/response";
+import { auth } from "../../middlewares/auth";
+import { likeService } from "../../pkg/service";
+import type { Variables } from "../../types/context";
+import { sendSuccess } from "../../utils/response";
 
 export const likeController = new Hono<{ Variables: Variables }>();
 

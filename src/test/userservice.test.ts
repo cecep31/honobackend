@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock, afterEach } from 'bun:test';
-import { UserService } from '../pkg/services/userService';
+import { UserService } from '../modules/users/userService';
 
 // specific mocks we can control
 const mockFindMany = mock();

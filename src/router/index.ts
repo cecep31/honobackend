@@ -1,13 +1,13 @@
 import { Hono } from "hono";
-import { userController } from "../controllers/userController";
-import { authController } from "../controllers/authController";
-import { postController } from "../controllers/postController";
-import { tagController } from "../controllers/tagController";
-import { likeController } from "../controllers/likeController";
-import { writerController } from "../controllers/writerController";
-import { chatController } from "../controllers/chatController";
-import { holdingController } from "../controllers/holdingController";
-import { bookmarkController } from "../controllers/bookmarkController";
+import { userController } from "../modules/users/userController";
+import { authController } from "../modules/auth/authController";
+import { postController } from "../modules/posts/postController";
+import { tagController } from "../modules/tags/tagController";
+import { likeController } from "../modules/likes/likeController";
+import { writerController } from "../modules/writers/writerController";
+import { chatController } from "../modules/chat/chatController";
+import { holdingController } from "../modules/holdings/holdingController";
+import { bookmarkController } from "../modules/bookmarks/bookmarkController";
 import type { Variables } from "../types/context";
 
 const setupRouter = (app: Hono<{ Variables: Variables }>) => {

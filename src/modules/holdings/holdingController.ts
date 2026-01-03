@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import { holdingService } from "../pkg/service";
-import { auth } from "../middlewares/auth";
-import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from "../types/context";
-import { sendSuccess } from "../utils/response";
+import { holdingService } from "../../pkg/service";
+import { auth } from "../../middlewares/auth";
+import { validateRequest } from "../../middlewares/validateRequest";
+import type { Variables } from "../../types/context";
+import { sendSuccess } from "../../utils/response";
 import {
   createHoldingSchema,
   duplicateHoldingSchema,
@@ -12,7 +12,7 @@ import {
   getTrendsQuerySchema,
   holdingIdSchema,
   updateHoldingSchema,
-} from "../validations/holding";
+} from "../../validations/holding";
 
 export const holdingController = new Hono<{ Variables: Variables }>()
   .get(

@@ -1,6 +1,6 @@
 import { sign } from "hono/jwt";
 import { and, eq } from "drizzle-orm";
-import type { UserService } from "./userService";
+import type { UserService } from "../../modules/users/userService";
 import type { userLogin, UserSignup } from "../../types/user";
 import config from "../../config";
 import axios from "axios";

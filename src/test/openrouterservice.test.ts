@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock, afterEach } from 'bun:test';
-import { OpenRouterService } from '../pkg/services/openrouterService';
+import { OpenRouterService } from '../modules/chat/openrouterService';
 
 // Mock config
 mock.module('../config', () => {

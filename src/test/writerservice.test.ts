@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { WriterService } from '../pkg/services/writerService';
+import { WriterService } from '../modules/writers/writerService';
 
 const mockFindFirst = mock();
 const mockWhere = mock();

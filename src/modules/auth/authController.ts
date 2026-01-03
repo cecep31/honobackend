@@ -1,22 +1,22 @@
 import { Hono } from "hono";
-import { authService } from "../pkg/service";
-import { auth } from "../middlewares/auth";
-import config from "../config";
+import { authService } from "../../pkg/service";
+import { auth } from "../../middlewares/auth";
+import config from "../../config";
 import axios from "axios";
-import type { GithubUser } from "../types/user";
+import type { GithubUser } from "../../types/user";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
-import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from "../types/context";
-import { sendSuccess } from "../utils/response";
-import { Errors } from "../utils/error";
+import { validateRequest } from "../../middlewares/validateRequest";
+import type { Variables } from "../../types/context";
+import { sendSuccess } from "../../utils/response";
+import { Errors } from "../../utils/error";
 import {
   emailSchema,
   loginSchema,
   registerSchema,
   updatePasswordSchema,
   usernameSchema,
-} from "../validations/auth";
+} from "../../validations/auth";
 
 export const authController = new Hono<{ Variables: Variables }>();
 

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { writerService, postService } from "../pkg/service";
-import type { Variables } from "../types/context";
-import { sendSuccess } from "../utils/response";
-import { Errors } from "../utils/error";
+import { writerService, postService } from "../../pkg/service";
+import type { Variables } from "../../types/context";
+import { sendSuccess } from "../../utils/response";
+import { Errors } from "../../utils/error";
 
 export const writerController = new Hono<{ Variables: Variables }>()
   .get("/:username", async (c) => {

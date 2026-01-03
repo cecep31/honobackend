@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { LikeService } from '../pkg/services/likeService';
+import { LikeService } from '../modules/likes/likeService';
 
 // Mock DB chain
 const mockReturning = mock();

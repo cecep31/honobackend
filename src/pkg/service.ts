@@ -1,13 +1,13 @@
-import { AuthService } from "./services/authService";
-import { PostService } from "./services/postService";
-import { TagService } from "./services/tagService";
-import { UserService } from "./services/userService";
-import { WriterService } from "./services/writerService";
-import { ChatService } from "./services/chatService";
-import { HoldingService } from "./services/holdingService";
-import { LikeService } from "./services/likeService";
-import { BookmarkService } from "./services/bookmarkService";
-import { OpenRouterService } from "./services/openrouterService";
+import { AuthService } from "../modules/auth/authService";
+import { PostService } from "../modules/posts/postService";
+import { TagService } from "../modules/tags/tagService";
+import { UserService } from "../modules/users/userService";
+import { WriterService } from "../modules/writers/writerService";
+import { ChatService } from "../modules/chat/chatService";
+import { HoldingService } from "../modules/holdings/holdingService";
+import { LikeService } from "../modules/likes/likeService";
+import { BookmarkService } from "../modules/bookmarks/bookmarkService";
+import { OpenRouterService } from "../modules/chat/openrouterService";
 
 // Helper for lazy service instantiation with cached bound methods
 function createLazyService<T extends object>(factory: () => T): T {

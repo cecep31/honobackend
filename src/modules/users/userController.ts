@@ -1,13 +1,13 @@
 import { Hono } from "hono";
-import { userService } from "../pkg/service";
-import { auth } from "../middlewares/auth";
-import { superAdminMiddleware } from "../middlewares/superAdmin";
-import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from "../types/context";
-import { getPaginationParams } from "../utils/paginate";
-import { sendSuccess } from "../utils/response";
-import { Errors } from "../utils/error";
-import { createUserSchema, userIdSchema } from "../validations/user";
+import { userService } from "../../pkg/service";
+import { auth } from "../../middlewares/auth";
+import { superAdminMiddleware } from "../../middlewares/superAdmin";
+import { validateRequest } from "../../middlewares/validateRequest";
+import type { Variables } from "../../types/context";
+import { getPaginationParams } from "../../utils/paginate";
+import { sendSuccess } from "../../utils/response";
+import { Errors } from "../../utils/error";
+import { createUserSchema, userIdSchema } from "../../validations/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
   .get("/", auth, superAdminMiddleware, async (c) => {

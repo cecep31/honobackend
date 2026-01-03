@@ -1,19 +1,19 @@
 import { Hono } from "hono";
-import { postService } from "../pkg/service";
-import { auth } from "../middlewares/auth";
-import type { jwtPayload } from "../types/auth";
-import { superAdminMiddleware } from "../middlewares/superAdmin";
-import { getPaginationParams } from "../utils/paginate";
-import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from "../types/context";
-import { sendSuccess } from "../utils/response";
-import { Errors } from "../utils/error";
+import { postService } from "../../pkg/service";
+import { auth } from "../../middlewares/auth";
+import type { jwtPayload } from "../../types/auth";
+import { superAdminMiddleware } from "../../middlewares/superAdmin";
+import { getPaginationParams } from "../../utils/paginate";
+import { validateRequest } from "../../middlewares/validateRequest";
+import type { Variables } from "../../types/context";
+import { sendSuccess } from "../../utils/response";
+import { Errors } from "../../utils/error";
 import {
   createPostSchema,
   postByUsernameSlugSchema,
   postIdSchema,
   updatePostSchema,
-} from "../validations/post";
+} from "../../validations/post";
 
 export const postController = new Hono<{ Variables: Variables }>();
 

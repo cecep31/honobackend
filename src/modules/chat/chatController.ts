@@ -1,18 +1,18 @@
 import { Hono } from "hono";
-import { chatService } from "../pkg/service";
-import { auth } from "../middlewares/auth";
-import { validateRequest } from "../middlewares/validateRequest";
-import type { Variables } from "../types/context";
-import { getPaginationParams } from "../utils/paginate";
-import { sendSuccess } from "../utils/response";
-import getConfig from "../config";
+import { chatService } from "../../pkg/service";
+import { auth } from "../../middlewares/auth";
+import { validateRequest } from "../../middlewares/validateRequest";
+import type { Variables } from "../../types/context";
+import { getPaginationParams } from "../../utils/paginate";
+import { sendSuccess } from "../../utils/response";
+import getConfig from "../../config";
 import {
   conversationIdSchema,
   conversationParamSchema,
   createConversationSchema,
   createConversationStreamSchema,
   createMessageSchema,
-} from "../validations/chat";
+} from "../../validations/chat";
 
 export const chatController = new Hono<{ Variables: Variables }>()
   // Conversation endpoints

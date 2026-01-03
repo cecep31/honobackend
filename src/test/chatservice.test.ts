@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { ChatService } from '../pkg/services/chatService';
-import type { OpenRouterService } from '../pkg/services/openrouterService';
+import { ChatService } from '../modules/chat/chatService';
+import type { OpenRouterService } from '../modules/chat/openrouterService';
 
 // Mock OpenRouterService
 const mockGenerateResponse = mock();

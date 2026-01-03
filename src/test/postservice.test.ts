@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { PostService } from '../pkg/services/postService';
+import { PostService } from '../modules/posts/postService';
 import { TagService } from '../pkg/services/tagService';
 
 // Mock TagService

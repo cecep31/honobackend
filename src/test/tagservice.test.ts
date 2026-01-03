@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { TagService } from '../pkg/services/tagService';
+import { TagService } from '../modules/tags/tagService';
 
 const mockFindMany = mock();
 const mockFindFirst = mock();

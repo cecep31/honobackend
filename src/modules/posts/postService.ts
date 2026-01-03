@@ -1,12 +1,13 @@
-import { and, count, desc, eq, isNull, sql, asc, ilike, or, inArray } from "drizzle-orm";
+import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../../database/drizzle";
 import {
   users as usersModel,
   posts as postsModel,
   posts_to_tags,
-  tags as tagsModel,
 } from "../../database/schemas/postgre/schema";
-import { TagService } from "./tagService";
+import { TagService } from "../tags/tagService";
+import { PostQueryHelpers } from "./postQueryHelpers";
+import { PostTagManager } from "./postTagManager";
 import type { PostCreateBody } from "../../types/post";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
@@ -47,30 +48,7 @@ export class PostService {
           .returning();
 
         if (body.tags) {
-          await tx
-            .delete(posts_to_tags)
-            .where(eq(posts_to_tags.post_id, post_id));
-
-          await tx
-            .insert(tagsModel)
-            .values(body.tags.map((name) => ({ name })))
-            .onConflictDoNothing();
-
-          const tags = await tx.query.tags.findMany({
-            where: inArray(tagsModel.name, body.tags),
-          });
-
-          if (tags.length > 0) {
-            await tx
-              .insert(posts_to_tags)
-              .values(
-                tags.map((tag) => ({
-                  post_id: post_id,
-                  tag_id: tag.id,
-                }))
-              )
-              .onConflictDoNothing();
-          }
+          await PostTagManager.updatePostTags(post_id, body.tags, tx);
         }
 
         return updatedPost;
@@ -93,8 +71,10 @@ export class PostService {
   }
 
   async getTrendingPosts(limit = 5) {
+    const queryConfig = PostQueryHelpers.getPublishedPostQuery();
+    
     const posts = await db.query.posts.findMany({
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
+      ...queryConfig,
       orderBy: [desc(postsModel.view_count), desc(postsModel.like_count)],
       columns: {
         body: false,
@@ -109,12 +89,7 @@ export class PostService {
       limit: limit,
     });
 
-    return posts.map((post) => ({
-      ...post,
-      body: post.body_snippet ? post.body_snippet + "..." : "",
-      creator: post.user,
-      tags: post.posts_to_tags.map((t) => t.tag),
-    }));
+    return posts.map((post) => PostQueryHelpers.transformPostWithSnippet(post));
   }
 
   async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
@@ -172,29 +147,7 @@ export class PostService {
           .returning({ id: postsModel.id });
 
         if (body.tags && body.tags.length > 0) {
-          // Batch insert tags (ignoring duplicates)
-          await tx
-            .insert(tagsModel)
-            .values(body.tags.map((name) => ({ name })))
-            .onConflictDoNothing();
-
-          // Get all tag IDs for these tags
-          const tags = await tx.query.tags.findMany({
-            where: inArray(tagsModel.name, body.tags),
-          });
-
-          // Batch link tags to post
-          if (tags.length > 0) {
-            await tx
-              .insert(posts_to_tags)
-              .values(
-                tags.map((tag) => ({
-                  post_id: post.id,
-                  tag_id: tag.id,
-                }))
-              )
-              .onConflictDoNothing();
-          }
+          await PostTagManager.linkTagsToPost(post.id, body.tags, tx);
         }
 
         return post;
@@ -257,61 +210,8 @@ export class PostService {
   async getPosts(params: GetPaginationParams) {
     const { offset, limit, search, orderBy, orderDirection } = params;
 
-    let whereClause = and(
-      isNull(postsModel.deleted_at),
-      eq(postsModel.published, true)
-    );
-
-    if (search) {
-      whereClause = and(
-        whereClause,
-        or(
-          ilike(postsModel.title, `%${search}%`),
-          ilike(postsModel.body, `%${search}%`)
-        )
-      );
-    }
-
-    let orderByClause = desc(postsModel.created_at);
-    if (orderBy) {
-      switch (orderBy) {
-        case "title":
-          orderByClause =
-            orderDirection === "asc"
-              ? asc(postsModel.title)
-              : desc(postsModel.title);
-          break;
-        case "created_at":
-          orderByClause =
-            orderDirection === "asc"
-              ? asc(postsModel.created_at)
-              : desc(postsModel.created_at);
-          break;
-        case "updated_at":
-          orderByClause =
-            orderDirection === "asc"
-              ? asc(postsModel.updated_at)
-              : desc(postsModel.updated_at);
-          break;
-        case "view_count":
-          orderByClause =
-            orderDirection === "asc"
-              ? asc(postsModel.view_count)
-              : desc(postsModel.view_count);
-          break;
-        case "like_count":
-          orderByClause =
-            orderDirection === "asc"
-              ? asc(postsModel.like_count)
-              : desc(postsModel.like_count);
-          break;
-        default:
-          orderByClause =
-            orderDirection === "asc"
-              ? asc(postsModel.created_at)
-              : desc(postsModel.created_at);
-      }
-    }
+    const whereClause = PostQueryHelpers.buildSearchClause(search);
+    const orderByClause = PostQueryHelpers.buildOrderByClause(orderBy, orderDirection);
 
     const posts = await db.query.posts.findMany({
       where: whereClause,
@@ -330,14 +230,8 @@ export class PostService {
       offset: offset,
     });
 
-    const countQuery = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .where(whereClause);
-
-    const total = countQuery[0].count;
-
-    const response = posts.map((post) => ({
+    const total = await PostQueryHelpers.getTotalCount(whereClause);
+    const response = posts.map((post: any) => ({
       id: post.id,
       title: post.title,
       body: post.body_snippet ? post.body_snippet + "..." : "",
@@ -349,7 +243,7 @@ export class PostService {
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
       creator: post.user,
-      tags: post.posts_to_tags.map((tag) => tag.tag),
+      tags: post.posts_to_tags.map((tag: any) => tag.tag),
     }));
 
     const meta = getPaginationMetadata(total, params.offset, params.limit);

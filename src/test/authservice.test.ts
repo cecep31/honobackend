@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { AuthService } from '../pkg/services/authService';
-import { UserService } from '../pkg/services/userService';
+import { AuthService } from '../modules/auth/authService';
+import { UserService } from '../modules/users/userService';
 
 // Mock UserService
 const mockUserService = {
