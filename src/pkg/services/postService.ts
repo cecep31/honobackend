@@ -96,6 +96,12 @@ export class PostService {
     const posts = await db.query.posts.findMany({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       orderBy: [desc(postsModel.view_count), desc(postsModel.like_count)],
+      columns: {
+        body: false,
+      },
+      extras: {
+        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
+      },
       with: {
         user: { columns: { password: false } },
         posts_to_tags: { columns: {}, with: { tag: true } },
@@ -105,6 +111,7 @@ export class PostService {
 
     return posts.map((post) => ({
       ...post,
+      body: post.body_snippet ? post.body_snippet + "..." : "",
       tags: post.posts_to_tags.map((t) => t.tag),
     }));
   }
