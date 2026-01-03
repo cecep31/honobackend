@@ -103,7 +103,7 @@ export class PostService {
         body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
       },
       with: {
-        user: { columns: { password: false } },
+        user: { columns: { username: true } },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
@@ -112,6 +112,7 @@ export class PostService {
     return posts.map((post) => ({
       ...post,
       body: post.body_snippet ? post.body_snippet + "..." : "",
+      creator: post.user,
       tags: post.posts_to_tags.map((t) => t.tag),
     }));
   }
