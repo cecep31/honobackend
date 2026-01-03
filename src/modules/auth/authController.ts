@@ -51,7 +51,7 @@ authController.get("/oauth/github/callback", async (c) => {
       maxAge: 60 * 60 * 5,
       sameSite: "Strict",
     });
-    return c.redirect("https://pilput.dev");
+    return c.redirect("https://pilput.me");
   } catch (error) {
     console.error("Github OAuth error:", error);
     throw Errors.Unauthorized();
