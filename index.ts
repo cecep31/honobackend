@@ -1,17 +1,11 @@
 import { app } from './src/server/app';
-import { getLogger } from './src/middlewares/logger';
+import { logger } from './src/middlewares/logger';
 import { shutdownMiddlewares } from './src/middlewares';
 
 // Setup application
-const logger = getLogger();
-logger.log({
-  level: 'info',
-  message: 'Starting application...',
-  timestamp: new Date().toISOString(),
-  context: {
-    phase: 'application_startup',
-    environment: process.env.NODE_ENV || 'development'
-  }
+logger.info('Starting application...', {
+  phase: 'application_startup',
+  environment: process.env.NODE_ENV || 'development'
 });
 
 // Handle uncaught exceptions

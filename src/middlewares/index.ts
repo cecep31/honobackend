@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { cors } from "hono/cors";
 import { rateLimiter, type Store, type ClientRateLimitInfo } from "hono-rate-limiter";
 import { requestId } from "hono/request-id";
-import { pilputLogger } from "./logger";
+import { loggingMiddleware } from "./logger";
 import config, { originList, rateLimitConfig } from "../config";
 import type { Variables } from "../types/context";
 
@@ -80,7 +80,7 @@ let rateLimitStore: CleanupStore | null = null;
 export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
   app
     .use(requestId())
-    .use(pilputLogger)
+    .use(loggingMiddleware)
     .use(
       cors({
         origin: originList,
