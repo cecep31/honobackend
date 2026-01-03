@@ -80,7 +80,7 @@ export class PostService {
         body: false,
       },
       extras: {
-        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
       },
       with: {
         user: { columns: { username: true } },
@@ -89,7 +89,12 @@ export class PostService {
       limit: limit,
     });
 
-    return posts.map((post) => PostQueryHelpers.transformPostWithSnippet(post));
+    return posts.map((post) => ({
+      ...post,
+      body: post.body ? post.body + "..." : "",
+      creator: post.user,
+      tags: post.posts_to_tags.map((t: any) => t.tag),
+    }));
   }
 
   async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
