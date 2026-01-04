@@ -13,7 +13,7 @@ import {
   postByUsernameSlugSchema,
   postIdSchema,
   updatePostSchema,
-} from "../../validations/post";
+} from "./validation/post";
 
 export const postController = new Hono<{ Variables: Variables }>();
 

@@ -16,7 +16,7 @@ import {
   registerSchema,
   updatePasswordSchema,
   usernameSchema,
-} from "../../validations/auth";
+} from "./validation/auth";
 
 export const authController = new Hono<{ Variables: Variables }>();
 

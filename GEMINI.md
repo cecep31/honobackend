@@ -21,7 +21,7 @@ The project strictly integrates data access within the Service layer.
 5.  **Database (`src/database/`)**:
     -   `drizzle.ts`: Database connection and Drizzle client initialization.
     -   `schemas/postgre/schema.ts`: Drizzle schema definitions.
-6.  **Validations (`src/validations/`)**: Centralized Zod schemas for request payload validation.
+6.  **Validations (`src/modules/<module>/validation/`)**: Zod schemas for request payload validation, co-located with their respective modules.
 
 ## Key Files
 - `index.ts`: Application entry point.
@@ -60,6 +60,6 @@ The project strictly integrates data access within the Service layer.
     -   Run `bun run db:generate` and `bun run db:migrate`.
 2.  **Types:** Add or update types in `src/types/`.
 3.  **Service:** Create or update a service in `src/pkg/services/` to handle logic and DB queries.
-4.  **Validation:** Define Zod schemas in `src/validations/` for input validation.
+4.  **Validation:** Define Zod schemas in `src/modules/<module>/validation/` for input validation.
 5.  **Controller:** Create a controller in `src/controllers/` to handle the HTTP request/response.
 6.  **Route:** Register the new route in `src/router/index.ts`.

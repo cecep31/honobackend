@@ -7,7 +7,7 @@ import type { Variables } from "../../types/context";
 import { getPaginationParams } from "../../utils/paginate";
 import { sendSuccess } from "../../utils/response";
 import { Errors } from "../../utils/error";
-import { createUserSchema, userIdSchema } from "../../validations/user";
+import { createUserSchema, userIdSchema } from "./validation/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
   .get("/", auth, superAdminMiddleware, async (c) => {
