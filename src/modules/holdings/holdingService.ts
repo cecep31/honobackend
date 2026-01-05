@@ -1,5 +1,5 @@
 import { db } from "../../database/drizzle";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
 import { holdings, holding_types } from "../../database/schemas/postgre/schema";
 import type {
   DuplicateHoldingPayload,
@@ -154,13 +154,7 @@ export class HoldingService {
       .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
       .where(and(...where));
 
-    // Get holdings count
-    const countResult = await db
-      .select({ count: holdings.id })
-      .from(holdings)
-      .where(and(...where));
-    
-    const holdingsCount = countResult.length;
+    const holdingsCount = results.length;
 
     let totalInvested = 0;
     let totalCurrentValue = 0;
@@ -321,86 +315,286 @@ export class HoldingService {
     });
   }
 
-  async compareMonths(userId: string, fromMonth?: number, fromYear?: number, toMonth?: number, toYear?: number) {
+  async compareMonths(
+    userId: string,
+    fromMonth?: number,
+    fromYear?: number,
+    toMonth?: number,
+    toYear?: number
+  ) {
     // Default to current month vs previous month if not provided
     const currentDate = new Date();
-    const currentMonth = toMonth ?? currentDate.getMonth() + 1;
-    const currentYear = toYear ?? currentDate.getFullYear();
-    
+    const tMonth = toMonth ?? currentDate.getMonth() + 1;
+    const tYear = toYear ?? currentDate.getFullYear();
+
     // If fromMonth not provided, calculate previous month from toMonth
-    let prevMonth = fromMonth;
-    let prevYear = fromYear;
-    if (!prevMonth || !prevYear) {
-      prevMonth = currentMonth - 1;
-      prevYear = currentYear;
-      if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear = currentYear - 1;
+    let fMonth = fromMonth;
+    let fYear = fromYear;
+
+    if (fMonth === undefined && fYear === undefined) {
+      fMonth = tMonth - 1;
+      fYear = tYear;
+      if (fMonth === 0) {
+        fMonth = 12;
+        fYear = tYear - 1;
       }
+    } else {
+      // If partially provided, default missing parts to current/target date
+      if (fMonth === undefined) fMonth = tMonth;
+      if (fYear === undefined) fYear = tYear;
     }
 
-    // Get data for both months
-    const currentSummary = await this.getSummary(userId, currentMonth, currentYear);
-    const prevSummary = await this.getSummary(userId, prevMonth, prevYear);
+    // Fetch data for both months in a single query
+    const results = await db
+      .select({
+        month: holdings.month,
+        year: holdings.year,
+        invested_amount: holdings.invested_amount,
+        current_value: holdings.current_value,
+        holding_type: holding_types.name,
+        platform: holdings.platform,
+      })
+      .from(holdings)
+      .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
+      .where(
+        and(
+          eq(holdings.user_id, userId),
+          or(
+            and(eq(holdings.month, fMonth), eq(holdings.year, fYear)),
+            and(eq(holdings.month, tMonth), eq(holdings.year, tYear))
+          )
+        )
+      );
 
-    // Calculate differences
-    const investedDiff = currentSummary.totalInvested - prevSummary.totalInvested;
-    const currentValueDiff = currentSummary.totalCurrentValue - prevSummary.totalCurrentValue;
-    const profitLossDiff = currentSummary.totalProfitLoss - prevSummary.totalProfitLoss;
-    const holdingsCountDiff = currentSummary.holdingsCount - prevSummary.holdingsCount;
+    const fromData: typeof results = [];
+    const toData: typeof results = [];
 
-    const investedDiffPercentage = prevSummary.totalInvested > 0 
-      ? (investedDiff / prevSummary.totalInvested) * 100 
-      : 0;
-    
-    const currentValueDiffPercentage = prevSummary.totalCurrentValue > 0 
-      ? (currentValueDiff / prevSummary.totalCurrentValue) * 100 
-      : 0;
+    // Partition results
+    for (const r of results) {
+      if (r.month === fMonth && r.year === fYear) fromData.push(r);
+      else if (r.month === tMonth && r.year === tYear) toData.push(r);
+    }
 
-    const holdingsCountDiffPercentage = prevSummary.holdingsCount > 0 
-      ? (holdingsCountDiff / prevSummary.holdingsCount) * 100 
-      : 0;
+    // Helper to calculate stats
+    const calculateStats = (data: typeof results) => {
+      let totalInvested = 0;
+      let totalCurrentValue = 0;
+      const typeBreakdown: Record<
+        string,
+        { invested: number; current: number }
+      > = {};
+      const platformBreakdown: Record<
+        string,
+        { invested: number; current: number }
+      > = {};
 
-    // Compare type breakdowns
-    const typeComparison = currentSummary.typeBreakdown.map(currentType => {
-      const prevType = prevSummary.typeBreakdown.find(t => t.name === currentType.name);
-      const prevInvested = prevType?.invested || 0;
-      const prevCurrent = prevType?.current || 0;
-      
+      for (const r of data) {
+        const invested = Number(r.invested_amount);
+        const current = Number(r.current_value);
+        totalInvested += invested;
+        totalCurrentValue += current;
+
+        const type = r.holding_type || "Unknown";
+        if (!typeBreakdown[type])
+          typeBreakdown[type] = { invested: 0, current: 0 };
+        typeBreakdown[type].invested += invested;
+        typeBreakdown[type].current += current;
+
+        const platform = r.platform;
+        if (!platformBreakdown[platform])
+          platformBreakdown[platform] = { invested: 0, current: 0 };
+        platformBreakdown[platform].invested += invested;
+        platformBreakdown[platform].current += current;
+      }
+
+      const totalProfitLoss = totalCurrentValue - totalInvested;
+      const totalProfitLossPercentage =
+        totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+
       return {
-        name: currentType.name,
-        to: currentType,
-        from: prevType || { name: currentType.name, invested: 0, current: 0, profitLoss: 0, profitLossPercentage: 0 },
-        investedDiff: currentType.invested - prevInvested,
-        currentValueDiff: currentType.current - prevCurrent,
-        investedDiffPercentage: prevInvested > 0 ? ((currentType.invested - prevInvested) / prevInvested) * 100 : 0,
-        currentValueDiffPercentage: prevCurrent > 0 ? ((currentType.current - prevCurrent) / prevCurrent) * 100 : 0,
+        totalInvested,
+        totalCurrentValue,
+        totalProfitLoss,
+        totalProfitLossPercentage,
+        holdingsCount: data.length,
+        typeBreakdown,
+        platformBreakdown,
+      };
+    };
+
+    const prevSummary = calculateStats(fromData);
+    const currentSummary = calculateStats(toData);
+
+    const investedDiff =
+      currentSummary.totalInvested - prevSummary.totalInvested;
+    const currentValueDiff =
+      currentSummary.totalCurrentValue - prevSummary.totalCurrentValue;
+    const profitLossDiff =
+      currentSummary.totalProfitLoss - prevSummary.totalProfitLoss;
+    const holdingsCountDiff =
+      currentSummary.holdingsCount - prevSummary.holdingsCount;
+
+    const investedDiffPercentage =
+      prevSummary.totalInvested > 0
+        ? (investedDiff / prevSummary.totalInvested) * 100
+        : 0;
+
+    const currentValueDiffPercentage =
+      prevSummary.totalCurrentValue > 0
+        ? (currentValueDiff / prevSummary.totalCurrentValue) * 100
+        : 0;
+
+    const holdingsCountDiffPercentage =
+      prevSummary.holdingsCount > 0
+        ? (holdingsCountDiff / prevSummary.holdingsCount) * 100
+        : 0;
+
+    // Helper to format breakdown for return
+    const formatBreakdown = (
+      breakdown: Record<string, { invested: number; current: number }>
+    ) =>
+      Object.entries(breakdown).map(([name, data]) => ({
+        name,
+        ...data,
+        profitLoss: data.current - data.invested,
+        profitLossPercentage:
+          data.invested > 0
+            ? ((data.current - data.invested) / data.invested) * 100
+            : 0,
+      }));
+
+    // Compare type breakdowns (UNION of keys)
+    const allTypes = Array.from(
+      new Set([
+        ...Object.keys(prevSummary.typeBreakdown),
+        ...Object.keys(currentSummary.typeBreakdown),
+      ])
+    );
+
+    const typeComparison = allTypes.map((name) => {
+      const currentData = currentSummary.typeBreakdown[name] || {
+        invested: 0,
+        current: 0,
+      };
+      const prevData = prevSummary.typeBreakdown[name] || {
+        invested: 0,
+        current: 0,
+      };
+
+      const currentProfitLoss = currentData.current - currentData.invested;
+      const currentProfitLossPercentage =
+        currentData.invested > 0
+          ? (currentProfitLoss / currentData.invested) * 100
+          : 0;
+
+      const prevProfitLoss = prevData.current - prevData.invested;
+      const prevProfitLossPercentage =
+        prevData.invested > 0
+          ? (prevProfitLoss / prevData.invested) * 100
+          : 0;
+
+      return {
+        name,
+        to: {
+          name,
+          ...currentData,
+          profitLoss: currentProfitLoss,
+          profitLossPercentage: currentProfitLossPercentage,
+        },
+        from: {
+          name,
+          ...prevData,
+          profitLoss: prevProfitLoss,
+          profitLossPercentage: prevProfitLossPercentage,
+        },
+        investedDiff: currentData.invested - prevData.invested,
+        currentValueDiff: currentData.current - prevData.current,
+        investedDiffPercentage:
+          prevData.invested > 0
+            ? ((currentData.invested - prevData.invested) / prevData.invested) *
+              100
+            : 0,
+        currentValueDiffPercentage:
+          prevData.current > 0
+            ? ((currentData.current - prevData.current) / prevData.current) *
+              100
+            : 0,
       };
     });
 
-    // Compare platform breakdowns
-    const platformComparison = currentSummary.platformBreakdown.map(currentPlatform => {
-      const prevPlatform = prevSummary.platformBreakdown.find(p => p.name === currentPlatform.name);
-      const prevInvested = prevPlatform?.invested || 0;
-      const prevCurrent = prevPlatform?.current || 0;
-      
+    // Compare platform breakdowns (UNION of keys)
+    const allPlatforms = Array.from(
+      new Set([
+        ...Object.keys(prevSummary.platformBreakdown),
+        ...Object.keys(currentSummary.platformBreakdown),
+      ])
+    );
+
+    const platformComparison = allPlatforms.map((name) => {
+      const currentData = currentSummary.platformBreakdown[name] || {
+        invested: 0,
+        current: 0,
+      };
+      const prevData = prevSummary.platformBreakdown[name] || {
+        invested: 0,
+        current: 0,
+      };
+
+      const currentProfitLoss = currentData.current - currentData.invested;
+      const currentProfitLossPercentage =
+        currentData.invested > 0
+          ? (currentProfitLoss / currentData.invested) * 100
+          : 0;
+
+      const prevProfitLoss = prevData.current - prevData.invested;
+      const prevProfitLossPercentage =
+        prevData.invested > 0
+          ? (prevProfitLoss / prevData.invested) * 100
+          : 0;
+
       return {
-        name: currentPlatform.name,
-        to: currentPlatform,
-        from: prevPlatform || { name: currentPlatform.name, invested: 0, current: 0, profitLoss: 0, profitLossPercentage: 0 },
-        investedDiff: currentPlatform.invested - prevInvested,
-        currentValueDiff: currentPlatform.current - prevCurrent,
-        investedDiffPercentage: prevInvested > 0 ? ((currentPlatform.invested - prevInvested) / prevInvested) * 100 : 0,
-        currentValueDiffPercentage: prevCurrent > 0 ? ((currentPlatform.current - prevCurrent) / prevCurrent) * 100 : 0,
+        name,
+        to: {
+          name,
+          ...currentData,
+          profitLoss: currentProfitLoss,
+          profitLossPercentage: currentProfitLossPercentage,
+        },
+        from: {
+          name,
+          ...prevData,
+          profitLoss: prevProfitLoss,
+          profitLossPercentage: prevProfitLossPercentage,
+        },
+        investedDiff: currentData.invested - prevData.invested,
+        currentValueDiff: currentData.current - prevData.current,
+        investedDiffPercentage:
+          prevData.invested > 0
+            ? ((currentData.invested - prevData.invested) / prevData.invested) *
+              100
+            : 0,
+        currentValueDiffPercentage:
+          prevData.current > 0
+            ? ((currentData.current - prevData.current) / prevData.current) *
+              100
+            : 0,
       };
     });
 
     return {
-      fromMonth: { month: prevMonth, year: prevYear },
-      toMonth: { month: currentMonth, year: currentYear },
+      fromMonth: { month: fMonth, year: fYear },
+      toMonth: { month: tMonth, year: tYear },
       summary: {
-        from: prevSummary,
-        to: currentSummary,
+        from: {
+          ...prevSummary,
+          typeBreakdown: formatBreakdown(prevSummary.typeBreakdown),
+          platformBreakdown: formatBreakdown(prevSummary.platformBreakdown),
+        },
+        to: {
+          ...currentSummary,
+          typeBreakdown: formatBreakdown(currentSummary.typeBreakdown),
+          platformBreakdown: formatBreakdown(currentSummary.platformBreakdown),
+        },
         investedDiff,
         currentValueDiff,
         profitLossDiff,
