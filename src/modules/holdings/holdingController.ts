@@ -5,6 +5,7 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import type { Variables } from "../../types/context";
 import { sendSuccess } from "../../utils/response";
 import {
+  compareMonthsSchema,
   createHoldingSchema,
   duplicateHoldingSchema,
   getHoldingsQuerySchema,
@@ -56,6 +57,23 @@ export const holdingController = new Hono<{ Variables: Variables }>()
       const { years } = c.req.valid("query");
       const trends = await holdingService.getTrends(authUser.user_id, years);
       return sendSuccess(c, trends, "Holdings trends fetched successfully");
+    }
+  )
+  .post(
+    "/compare",
+    auth,
+    validateRequest("json", compareMonthsSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { fromMonth, fromYear, toMonth, toYear } = c.req.valid("json");
+      const comparison = await holdingService.compareMonths(
+        authUser.user_id,
+        fromMonth,
+        fromYear,
+        toMonth,
+        toYear
+      );
+      return sendSuccess(c, comparison, "Month comparison fetched successfully");
     }
   )
   .get("/types", auth, async (c) => {

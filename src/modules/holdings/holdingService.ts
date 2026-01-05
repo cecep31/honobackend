@@ -311,4 +311,90 @@ export class HoldingService {
       return tx.insert(holdings).values(newHoldings).returning();
     });
   }
+
+  async compareMonths(userId: string, fromMonth?: number, fromYear?: number, toMonth?: number, toYear?: number) {
+    // Default to current month vs previous month if not provided
+    const currentDate = new Date();
+    const currentMonth = toMonth ?? currentDate.getMonth() + 1;
+    const currentYear = toYear ?? currentDate.getFullYear();
+    
+    // If fromMonth not provided, calculate previous month from toMonth
+    let prevMonth = fromMonth;
+    let prevYear = fromYear;
+    if (!prevMonth || !prevYear) {
+      prevMonth = currentMonth - 1;
+      prevYear = currentYear;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear = currentYear - 1;
+      }
+    }
+
+    // Get data for both months
+    const currentSummary = await this.getSummary(userId, currentMonth, currentYear);
+    const prevSummary = await this.getSummary(userId, prevMonth, prevYear);
+
+    // Calculate differences
+    const investedDiff = currentSummary.totalInvested - prevSummary.totalInvested;
+    const currentValueDiff = currentSummary.totalCurrentValue - prevSummary.totalCurrentValue;
+    const profitLossDiff = currentSummary.totalProfitLoss - prevSummary.totalProfitLoss;
+
+    const investedDiffPercentage = prevSummary.totalInvested > 0 
+      ? (investedDiff / prevSummary.totalInvested) * 100 
+      : 0;
+    
+    const currentValueDiffPercentage = prevSummary.totalCurrentValue > 0 
+      ? (currentValueDiff / prevSummary.totalCurrentValue) * 100 
+      : 0;
+
+    // Compare type breakdowns
+    const typeComparison = currentSummary.typeBreakdown.map(currentType => {
+      const prevType = prevSummary.typeBreakdown.find(t => t.name === currentType.name);
+      const prevInvested = prevType?.invested || 0;
+      const prevCurrent = prevType?.current || 0;
+      
+      return {
+        name: currentType.name,
+        to: currentType,
+        from: prevType || { name: currentType.name, invested: 0, current: 0, profitLoss: 0, profitLossPercentage: 0 },
+        investedDiff: currentType.invested - prevInvested,
+        currentValueDiff: currentType.current - prevCurrent,
+        investedDiffPercentage: prevInvested > 0 ? ((currentType.invested - prevInvested) / prevInvested) * 100 : 0,
+        currentValueDiffPercentage: prevCurrent > 0 ? ((currentType.current - prevCurrent) / prevCurrent) * 100 : 0,
+      };
+    });
+
+    // Compare platform breakdowns
+    const platformComparison = currentSummary.platformBreakdown.map(currentPlatform => {
+      const prevPlatform = prevSummary.platformBreakdown.find(p => p.name === currentPlatform.name);
+      const prevInvested = prevPlatform?.invested || 0;
+      const prevCurrent = prevPlatform?.current || 0;
+      
+      return {
+        name: currentPlatform.name,
+        to: currentPlatform,
+        from: prevPlatform || { name: currentPlatform.name, invested: 0, current: 0, profitLoss: 0, profitLossPercentage: 0 },
+        investedDiff: currentPlatform.invested - prevInvested,
+        currentValueDiff: currentPlatform.current - prevCurrent,
+        investedDiffPercentage: prevInvested > 0 ? ((currentPlatform.invested - prevInvested) / prevInvested) * 100 : 0,
+        currentValueDiffPercentage: prevCurrent > 0 ? ((currentPlatform.current - prevCurrent) / prevCurrent) * 100 : 0,
+      };
+    });
+
+    return {
+      fromMonth: { month: prevMonth, year: prevYear },
+      toMonth: { month: currentMonth, year: currentYear },
+      summary: {
+        from: prevSummary,
+        to: currentSummary,
+        investedDiff,
+        currentValueDiff,
+        profitLossDiff,
+        investedDiffPercentage,
+        currentValueDiffPercentage,
+      },
+      typeComparison,
+      platformComparison,
+    };
+  }
 }
