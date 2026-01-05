@@ -60,11 +60,11 @@ export const duplicateHoldingSchema = z.object({
   overwrite: z.boolean().optional().default(false),
 });
 
-export const compareMonthsSchema = z.object({
-  fromMonth: z.number().int().min(1).max(12).optional(),
-  fromYear: z.number().int().min(1900).max(2100).optional(),
-  toMonth: z.number().int().min(1).max(12).optional(),
-  toYear: z.number().int().min(1900).max(2100).optional(),
+export const getCompareMonthsSchema = z.object({
+  fromMonth: z.string().regex(/^\d+$/).transform(Number).optional(),
+  fromYear: z.string().regex(/^\d+$/).transform(Number).optional(),
+  toMonth: z.string().regex(/^\d+$/).transform(Number).optional(),
+  toYear: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
 export type DuplicateHoldingPayload = z.infer<typeof duplicateHoldingSchema>;
