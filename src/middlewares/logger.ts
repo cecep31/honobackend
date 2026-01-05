@@ -71,22 +71,14 @@ class StandardLogger implements Logger {
   }
 
   private formatLog(entry: LogEntry): string {
-    const color = LEVEL_COLORS[entry.level];
-    const contextStr = entry.context ? Object.entries(entry.context)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(" ") : "";
-    
-    const parts = [
-      `${color}[${entry.timestamp}]${RESET}`,
-      `${color}${entry.level.toUpperCase()}${RESET}`,
-      entry.message
-    ];
-    
-    if (contextStr) parts.push(`(${contextStr})`);
-    if (entry.error) parts.push(`Error: ${entry.error.message}`);
-    
-    return parts.join(" ");
+    return JSON.stringify({
+      timestamp: entry.timestamp,
+      level: entry.level.toUpperCase(),
+      message: entry.message,
+      ...entry.context,
+      ...(entry.error ? { error: entry.error.message, stack: entry.error.stack } : {}),
+      ...(entry.metadata || {})
+    });
   }
 
   private log(level: LogLevel, message: string, context?: LogContext, error?: Error): void {
