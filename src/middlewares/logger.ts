@@ -20,7 +20,6 @@ export interface LogEntry {
   timestamp: string;
   context?: LogContext;
   error?: Error;
-  metadata?: Record<string, unknown>;
 }
 
 const LEVELS: Record<LogLevel, number> = {
@@ -30,16 +29,6 @@ const LEVELS: Record<LogLevel, number> = {
   http: 3,
   debug: 4,
 };
-
-const LEVEL_COLORS: Record<LogLevel, string> = {
-  error: "\x1b[31m", // red
-  warn: "\x1b[33m",  // yellow
-  info: "\x1b[36m",  // cyan
-  http: "\x1b[34m",  // blue
-  debug: "\x1b[37m", // white
-};
-
-const RESET = "\x1b[0m";
 
 let currentLevel: LogLevel = (process.env['LOG_LEVEL'] as LogLevel) || "info";
 
@@ -77,7 +66,6 @@ class StandardLogger implements Logger {
       message: entry.message,
       ...entry.context,
       ...(entry.error ? { error: entry.error.message, stack: entry.error.stack } : {}),
-      ...(entry.metadata || {})
     });
   }
 
@@ -90,7 +78,6 @@ class StandardLogger implements Logger {
       timestamp: new Date().toISOString(),
       context: { ...this.baseContext, ...context },
       error,
-      metadata: { ...this.baseContext, ...context }
     };
 
     const formattedLog = this.formatLog(entry);
@@ -133,20 +120,24 @@ export const loggingMiddleware = createMiddleware(async (c, next) => {
   const requestId = c.get("requestId") || `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   c.set("requestId", requestId);
 
+  const path = c.req.path;
+  const method = c.req.method;
+  const userAgent = c.req.header("user-agent");
+
   const requestContext: LogContext = {
     requestId,
-    method: c.req.method,
-    path: new URL(c.req.url).pathname,
-    userAgent: c.req.header("user-agent"),
+    method,
+    path,
+    userAgent,
     ip: c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "unknown"
   };
 
   const requestLogger = getLogger(requestContext);
 
   requestLogger.debug("Request started", {
-    method: c.req.method,
-    path: new URL(c.req.url).pathname,
-    userAgent: c.req.header("user-agent")
+    method,
+    path,
+    userAgent
   });
 
   try {
@@ -170,7 +161,7 @@ export const loggingMiddleware = createMiddleware(async (c, next) => {
   };
 
   const statusLevel = getStatusLevel(status);
-  const message = `${c.req.method} ${new URL(c.req.url).pathname} ${status} - ${latency}ms`;
+  const message = `${method} ${path} ${status} - ${latency}ms`;
   
   switch (statusLevel) {
     case "error":
