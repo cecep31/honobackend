@@ -154,6 +154,14 @@ export class HoldingService {
       .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
       .where(and(...where));
 
+    // Get holdings count
+    const countResult = await db
+      .select({ count: holdings.id })
+      .from(holdings)
+      .where(and(...where));
+    
+    const holdingsCount = countResult.length;
+
     let totalInvested = 0;
     let totalCurrentValue = 0;
     const typeBreakdown: Record<string, { invested: number; current: number }> =
@@ -191,6 +199,7 @@ export class HoldingService {
       totalCurrentValue,
       totalProfitLoss,
       totalProfitLossPercentage,
+      holdingsCount,
       typeBreakdown: Object.entries(typeBreakdown).map(([name, data]) => ({
         name,
         ...data,
@@ -338,6 +347,7 @@ export class HoldingService {
     const investedDiff = currentSummary.totalInvested - prevSummary.totalInvested;
     const currentValueDiff = currentSummary.totalCurrentValue - prevSummary.totalCurrentValue;
     const profitLossDiff = currentSummary.totalProfitLoss - prevSummary.totalProfitLoss;
+    const holdingsCountDiff = currentSummary.holdingsCount - prevSummary.holdingsCount;
 
     const investedDiffPercentage = prevSummary.totalInvested > 0 
       ? (investedDiff / prevSummary.totalInvested) * 100 
@@ -345,6 +355,10 @@ export class HoldingService {
     
     const currentValueDiffPercentage = prevSummary.totalCurrentValue > 0 
       ? (currentValueDiff / prevSummary.totalCurrentValue) * 100 
+      : 0;
+
+    const holdingsCountDiffPercentage = prevSummary.holdingsCount > 0 
+      ? (holdingsCountDiff / prevSummary.holdingsCount) * 100 
       : 0;
 
     // Compare type breakdowns
@@ -390,8 +404,10 @@ export class HoldingService {
         investedDiff,
         currentValueDiff,
         profitLossDiff,
+        holdingsCountDiff,
         investedDiffPercentage,
         currentValueDiffPercentage,
+        holdingsCountDiffPercentage,
       },
       typeComparison,
       platformComparison,
