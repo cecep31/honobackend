@@ -4,8 +4,8 @@ import {
   users as usersModel,
   posts as postsModel,
   posts_to_tags,
+  tags as tagsModel,
 } from "../../database/schemas/postgre/schema";
-import { TagService } from "../tags/tagService";
 import { PostQueryHelpers } from "./postQueryHelpers";
 import { PostTagManager } from "./postTagManager";
 import type { PostCreateBody } from "../../types/post";
@@ -14,9 +14,7 @@ import { getPaginationMetadata } from "../../utils/paginate";
 import { Errors } from "../../utils/error";
 
 export class PostService {
-  constructor(
-    private tagService: TagService
-  ) {}
+  constructor() {}
 
   async updatePost(
     post_id: string,
@@ -31,6 +29,7 @@ export class PostService {
             eq(postsModel.created_by, auth_id),
             isNull(postsModel.deleted_at)
           ),
+          columns: { id: true },
         });
 
         if (!existingPost) {
@@ -95,27 +94,6 @@ export class PostService {
       creator: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     }));
-  }
-
-  async getAllPostsByUser(user_id: string, limit = 100, offset = 0) {
-    const posts = await db.query.posts.findMany({
-      where: and(
-        isNull(postsModel.deleted_at),
-        eq(postsModel.created_by, user_id)
-      ),
-      orderBy: desc(postsModel.created_at),
-      with: {
-        user: { columns: { password: false } },
-        posts_to_tags: { columns: {}, with: { tag: true } },
-      },
-      limit: limit,
-      offset: offset,
-    });
-    const total = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .where(eq(postsModel.created_by, user_id));
-    return { data: posts, total: total[0].count };
   }
 
   async getAllPosts(limit = 100, offset = 0) {
@@ -256,24 +234,21 @@ export class PostService {
   }
 
   async getPostsByTag($tag: string) {
-    const tag = await this.tagService.getTag($tag);
-    if (!tag) {
-      throw Errors.NotFound("Tag");
-    }
     return await db
       .select({
         id: postsModel.id,
         title: postsModel.title,
         slug: postsModel.slug,
-        body: postsModel.body,
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`,
         created_at: postsModel.created_at,
         view_count: postsModel.view_count,
         like_count: postsModel.like_count,
       })
       .from(postsModel)
-      .rightJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+      .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+      .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
       .where(and(
-        eq(posts_to_tags.tag_id, tag.id),
+        eq(tagsModel.name, $tag),
         eq(postsModel.published, true),
         isNull(postsModel.deleted_at)
       ))
@@ -349,7 +324,7 @@ export class PostService {
     return deletedPost;
   }
 
-  async getPostsByuser(user_id: string, params: GetPaginationParams) {
+  async getPostsByUser(user_id: string, params: GetPaginationParams) {
      const { offset, limit } = params;
     const posts = await db.query.posts.findMany({
       where: and(
@@ -392,7 +367,7 @@ export class PostService {
         id: postsModel.id,
         title: postsModel.title,
         slug: postsModel.slug,
-        body: postsModel.body,
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
         created_at: postsModel.created_at,
         view_count: postsModel.view_count,
         like_count: postsModel.like_count,
@@ -405,7 +380,7 @@ export class PostService {
         },
       })
       .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(and(
         eq(usersModel.username, username),
         eq(postsModel.published, true),
@@ -418,7 +393,7 @@ export class PostService {
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(and(
         eq(usersModel.username, username),
         eq(postsModel.published, true),

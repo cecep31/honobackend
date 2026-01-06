@@ -37,7 +37,7 @@ function createLazyService<T extends object>(factory: () => T): T {
 export const tagService = createLazyService(() => new TagService());
 export const userService = createLazyService(() => new UserService());
 export const authService = createLazyService(() => new AuthService(userService));
-export const postService = createLazyService(() => new PostService(tagService));
+export const postService = createLazyService(() => new PostService());
 export const writerService = createLazyService(() => new WriterService());
 export const openrouterService = createLazyService(() => new OpenRouterService());
 export const chatService = createLazyService(() => new ChatService(openrouterService));
