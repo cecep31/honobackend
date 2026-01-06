@@ -8,6 +8,7 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import type { Variables } from "../../types/context";
 import { sendSuccess } from "../../utils/response";
 import { Errors } from "../../utils/error";
+import { getS3Helper } from "../../utils/s3";
 import {
   createPostSchema,
   postByUsernameSlugSchema,
@@ -146,4 +147,43 @@ postController.delete("/:id", auth, async (c) => {
   const auth = c.get("user") as jwtPayload;
   const post = await postService.deletePost(id, auth.user_id);
   return sendSuccess(c, post, "Post deleted successfully");
+});
+
+// Upload image endpoint
+postController.post("/upload/image", auth, async (c) => {
+  const auth = c.get("user") as jwtPayload;
+  const formData = await c.req.formData();
+  const file = formData.get("image") as File;
+
+  if (!file) {
+    throw Errors.InvalidInput("image", "No image file provided");
+  }
+
+  // Validate file type
+  const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    throw Errors.InvalidInput("image", "Invalid file type. Allowed: JPEG, PNG, GIF, WebP");
+  }
+
+  // Validate file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    throw Errors.InvalidInput("image", "File size exceeds 5MB limit");
+  }
+
+  // Generate unique key for the file
+  const timestamp = Date.now();
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  const extension = file.name.split(".").pop() || "jpg";
+  const key = `posts/${auth.user_id}/${timestamp}-${randomStr}.${extension}`;
+
+  // Get file buffer
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  // Upload to S3
+  const s3 = getS3Helper();
+  const url = await s3.uploadFile(key, buffer);
+
+  return sendSuccess(c, { url }, "Image uploaded successfully", 201);
 });
