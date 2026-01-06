@@ -1,5 +1,5 @@
 import { db } from "../../database/drizzle";
-import { and, asc, desc, eq, inArray, or, sql, sum, count } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql, count } from "drizzle-orm";
 import { holdings, holding_types } from "../../database/schemas/postgre/schema";
 import type {
   DuplicateHoldingPayload,
@@ -145,8 +145,12 @@ export class HoldingService {
 
     const [totals] = await db
       .select({
-        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
-        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
+        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(
+          Number
+        ),
+        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(
+          Number
+        ),
         holdingsCount: count(holdings.id),
       })
       .from(holdings)
