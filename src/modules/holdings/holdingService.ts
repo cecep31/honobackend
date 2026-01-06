@@ -1,5 +1,5 @@
 import { db } from "../../database/drizzle";
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql, sum, count } from "drizzle-orm";
 import { holdings, holding_types } from "../../database/schemas/postgre/schema";
 import type {
   DuplicateHoldingPayload,
@@ -143,50 +143,69 @@ export class HoldingService {
     if (month) where.push(eq(holdings.month, month));
     if (year) where.push(eq(holdings.year, year));
 
-    const results = await db
+    const [totals] = await db
       .select({
-        invested_amount: holdings.invested_amount,
-        current_value: holdings.current_value,
-        holding_type: holding_types.name,
-        platform: holdings.platform,
+        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
+        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
+        holdingsCount: count(holdings.id),
       })
       .from(holdings)
-      .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
       .where(and(...where));
 
-    const holdingsCount = results.length;
-
-    let totalInvested = 0;
-    let totalCurrentValue = 0;
-    const typeBreakdown: Record<string, { invested: number; current: number }> =
-      {};
-    const platformBreakdown: Record<
-      string,
-      { invested: number; current: number }
-    > = {};
-
-    results.forEach((r) => {
-      const invested = Number(r.invested_amount);
-      const current = Number(r.current_value);
-      totalInvested += invested;
-      totalCurrentValue += current;
-
-      const type = r.holding_type || "Unknown";
-      if (!typeBreakdown[type])
-        typeBreakdown[type] = { invested: 0, current: 0 };
-      typeBreakdown[type].invested += invested;
-      typeBreakdown[type].current += current;
-
-      const platform = r.platform;
-      if (!platformBreakdown[platform])
-        platformBreakdown[platform] = { invested: 0, current: 0 };
-      platformBreakdown[platform].invested += invested;
-      platformBreakdown[platform].current += current;
-    });
+    const totalInvested = totals?.totalInvested || 0;
+    const totalCurrentValue = totals?.totalCurrentValue || 0;
+    const holdingsCount = totals?.holdingsCount || 0;
 
     const totalProfitLoss = totalCurrentValue - totalInvested;
     const totalProfitLossPercentage =
       totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+
+    const typeResults = await db
+      .select({
+        name: holding_types.name,
+        invested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
+        current: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
+      })
+      .from(holdings)
+      .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
+      .where(and(...where))
+      .groupBy(holding_types.name);
+
+    const typeBreakdown = typeResults.map((r) => {
+      const invested = r.invested || 0;
+      const current = r.current || 0;
+      return {
+        name: r.name || "Unknown",
+        invested,
+        current,
+        profitLoss: current - invested,
+        profitLossPercentage:
+          invested > 0 ? ((current - invested) / invested) * 100 : 0,
+      };
+    });
+
+    const platformResults = await db
+      .select({
+        name: holdings.platform,
+        invested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
+        current: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
+      })
+      .from(holdings)
+      .where(and(...where))
+      .groupBy(holdings.platform);
+
+    const platformBreakdown = platformResults.map((r) => {
+      const invested = r.invested || 0;
+      const current = r.current || 0;
+      return {
+        name: r.name,
+        invested,
+        current,
+        profitLoss: current - invested,
+        profitLossPercentage:
+          invested > 0 ? ((current - invested) / invested) * 100 : 0,
+      };
+    });
 
     return {
       totalInvested,
@@ -194,26 +213,8 @@ export class HoldingService {
       totalProfitLoss,
       totalProfitLossPercentage,
       holdingsCount,
-      typeBreakdown: Object.entries(typeBreakdown).map(([name, data]) => ({
-        name,
-        ...data,
-        profitLoss: data.current - data.invested,
-        profitLossPercentage:
-          data.invested > 0
-            ? ((data.current - data.invested) / data.invested) * 100
-            : 0,
-      })),
-      platformBreakdown: Object.entries(platformBreakdown).map(
-        ([name, data]) => ({
-          name,
-          ...data,
-          profitLoss: data.current - data.invested,
-          profitLossPercentage:
-            data.invested > 0
-              ? ((data.current - data.invested) / data.invested) * 100
-              : 0,
-        })
-      ),
+      typeBreakdown,
+      platformBreakdown,
     };
   }
 
@@ -227,31 +228,27 @@ export class HoldingService {
       .select({
         month: holdings.month,
         year: holdings.year,
-        invested_amount: holdings.invested_amount,
-        current_value: holdings.current_value,
+        invested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
+        current: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
       })
       .from(holdings)
       .where(and(...where))
+      .groupBy(holdings.year, holdings.month)
       .orderBy(asc(holdings.year), asc(holdings.month));
 
-    const trends: Record<string, { invested: number; current: number }> = {};
-
-    results.forEach((r) => {
-      const key = `${r.year}-${String(r.month).padStart(2, "0")}`;
-      if (!trends[key]) trends[key] = { invested: 0, current: 0 };
-      trends[key].invested += Number(r.invested_amount);
-      trends[key].current += Number(r.current_value);
+    return results.map((r) => {
+      const invested = r.invested || 0;
+      const current = r.current || 0;
+      const date = `${r.year}-${String(r.month).padStart(2, "0")}`;
+      return {
+        date,
+        invested,
+        current,
+        profitLoss: current - invested,
+        profitLossPercentage:
+          invested > 0 ? ((current - invested) / invested) * 100 : 0,
+      };
     });
-
-    return Object.entries(trends).map(([date, data]) => ({
-      date,
-      ...data,
-      profitLoss: data.current - data.invested,
-      profitLossPercentage:
-        data.invested > 0
-          ? ((data.current - data.invested) / data.invested) * 100
-          : 0,
-    }));
   }
 
   async duplicateHoldingsByMonth(
@@ -344,86 +341,8 @@ export class HoldingService {
       if (fYear === undefined) fYear = tYear;
     }
 
-    // Fetch data for both months in a single query
-    const results = await db
-      .select({
-        month: holdings.month,
-        year: holdings.year,
-        invested_amount: holdings.invested_amount,
-        current_value: holdings.current_value,
-        holding_type: holding_types.name,
-        platform: holdings.platform,
-      })
-      .from(holdings)
-      .leftJoin(holding_types, eq(holdings.holding_type_id, holding_types.id))
-      .where(
-        and(
-          eq(holdings.user_id, userId),
-          or(
-            and(eq(holdings.month, fMonth), eq(holdings.year, fYear)),
-            and(eq(holdings.month, tMonth), eq(holdings.year, tYear))
-          )
-        )
-      );
-
-    const fromData: typeof results = [];
-    const toData: typeof results = [];
-
-    // Partition results
-    for (const r of results) {
-      if (r.month === fMonth && r.year === fYear) fromData.push(r);
-      else if (r.month === tMonth && r.year === tYear) toData.push(r);
-    }
-
-    // Helper to calculate stats
-    const calculateStats = (data: typeof results) => {
-      let totalInvested = 0;
-      let totalCurrentValue = 0;
-      const typeBreakdown: Record<
-        string,
-        { invested: number; current: number }
-      > = {};
-      const platformBreakdown: Record<
-        string,
-        { invested: number; current: number }
-      > = {};
-
-      for (const r of data) {
-        const invested = Number(r.invested_amount);
-        const current = Number(r.current_value);
-        totalInvested += invested;
-        totalCurrentValue += current;
-
-        const type = r.holding_type || "Unknown";
-        if (!typeBreakdown[type])
-          typeBreakdown[type] = { invested: 0, current: 0 };
-        typeBreakdown[type].invested += invested;
-        typeBreakdown[type].current += current;
-
-        const platform = r.platform;
-        if (!platformBreakdown[platform])
-          platformBreakdown[platform] = { invested: 0, current: 0 };
-        platformBreakdown[platform].invested += invested;
-        platformBreakdown[platform].current += current;
-      }
-
-      const totalProfitLoss = totalCurrentValue - totalInvested;
-      const totalProfitLossPercentage =
-        totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
-
-      return {
-        totalInvested,
-        totalCurrentValue,
-        totalProfitLoss,
-        totalProfitLossPercentage,
-        holdingsCount: data.length,
-        typeBreakdown,
-        platformBreakdown,
-      };
-    };
-
-    const prevSummary = calculateStats(fromData);
-    const currentSummary = calculateStats(toData);
+    const prevSummary = await this.getSummary(userId, fMonth, fYear);
+    const currentSummary = await this.getSummary(userId, tMonth, tYear);
 
     const investedDiff =
       currentSummary.totalInvested - prevSummary.totalInvested;
@@ -449,152 +368,63 @@ export class HoldingService {
         ? (holdingsCountDiff / prevSummary.holdingsCount) * 100
         : 0;
 
-    // Helper to format breakdown for return
-    const formatBreakdown = (
-      breakdown: Record<string, { invested: number; current: number }>
-    ) =>
-      Object.entries(breakdown).map(([name, data]) => ({
-        name,
-        ...data,
-        profitLoss: data.current - data.invested,
-        profitLossPercentage:
-          data.invested > 0
-            ? ((data.current - data.invested) / data.invested) * 100
-            : 0,
-      }));
+    // Helper to compare breakdowns
+    const compareBreakdowns = (
+      prev: typeof prevSummary.typeBreakdown,
+      curr: typeof currentSummary.typeBreakdown
+    ) => {
+      const prevMap = new Map(prev.map((i) => [i.name, i]));
+      const currMap = new Map(curr.map((i) => [i.name, i]));
+      const allNames = new Set([...prevMap.keys(), ...currMap.keys()]);
 
-    // Compare type breakdowns (UNION of keys)
-    const allTypes = Array.from(
-      new Set([
-        ...Object.keys(prevSummary.typeBreakdown),
-        ...Object.keys(currentSummary.typeBreakdown),
-      ])
+      return Array.from(allNames).map((name) => {
+        const prevData = prevMap.get(name) || {
+          invested: 0,
+          current: 0,
+          profitLoss: 0,
+          profitLossPercentage: 0,
+        };
+        const currData = currMap.get(name) || {
+          invested: 0,
+          current: 0,
+          profitLoss: 0,
+          profitLossPercentage: 0,
+        };
+
+        return {
+          name,
+          to: { name, ...currData },
+          from: { name, ...prevData },
+          investedDiff: currData.invested - prevData.invested,
+          currentValueDiff: currData.current - prevData.current,
+          investedDiffPercentage:
+            prevData.invested > 0
+              ? ((currData.invested - prevData.invested) / prevData.invested) *
+                100
+              : 0,
+          currentValueDiffPercentage:
+            prevData.current > 0
+              ? ((currData.current - prevData.current) / prevData.current) * 100
+              : 0,
+        };
+      });
+    };
+
+    const typeComparison = compareBreakdowns(
+      prevSummary.typeBreakdown,
+      currentSummary.typeBreakdown
     );
-
-    const typeComparison = allTypes.map((name) => {
-      const currentData = currentSummary.typeBreakdown[name] || {
-        invested: 0,
-        current: 0,
-      };
-      const prevData = prevSummary.typeBreakdown[name] || {
-        invested: 0,
-        current: 0,
-      };
-
-      const currentProfitLoss = currentData.current - currentData.invested;
-      const currentProfitLossPercentage =
-        currentData.invested > 0
-          ? (currentProfitLoss / currentData.invested) * 100
-          : 0;
-
-      const prevProfitLoss = prevData.current - prevData.invested;
-      const prevProfitLossPercentage =
-        prevData.invested > 0
-          ? (prevProfitLoss / prevData.invested) * 100
-          : 0;
-
-      return {
-        name,
-        to: {
-          name,
-          ...currentData,
-          profitLoss: currentProfitLoss,
-          profitLossPercentage: currentProfitLossPercentage,
-        },
-        from: {
-          name,
-          ...prevData,
-          profitLoss: prevProfitLoss,
-          profitLossPercentage: prevProfitLossPercentage,
-        },
-        investedDiff: currentData.invested - prevData.invested,
-        currentValueDiff: currentData.current - prevData.current,
-        investedDiffPercentage:
-          prevData.invested > 0
-            ? ((currentData.invested - prevData.invested) / prevData.invested) *
-              100
-            : 0,
-        currentValueDiffPercentage:
-          prevData.current > 0
-            ? ((currentData.current - prevData.current) / prevData.current) *
-              100
-            : 0,
-      };
-    });
-
-    // Compare platform breakdowns (UNION of keys)
-    const allPlatforms = Array.from(
-      new Set([
-        ...Object.keys(prevSummary.platformBreakdown),
-        ...Object.keys(currentSummary.platformBreakdown),
-      ])
+    const platformComparison = compareBreakdowns(
+      prevSummary.platformBreakdown,
+      currentSummary.platformBreakdown
     );
-
-    const platformComparison = allPlatforms.map((name) => {
-      const currentData = currentSummary.platformBreakdown[name] || {
-        invested: 0,
-        current: 0,
-      };
-      const prevData = prevSummary.platformBreakdown[name] || {
-        invested: 0,
-        current: 0,
-      };
-
-      const currentProfitLoss = currentData.current - currentData.invested;
-      const currentProfitLossPercentage =
-        currentData.invested > 0
-          ? (currentProfitLoss / currentData.invested) * 100
-          : 0;
-
-      const prevProfitLoss = prevData.current - prevData.invested;
-      const prevProfitLossPercentage =
-        prevData.invested > 0
-          ? (prevProfitLoss / prevData.invested) * 100
-          : 0;
-
-      return {
-        name,
-        to: {
-          name,
-          ...currentData,
-          profitLoss: currentProfitLoss,
-          profitLossPercentage: currentProfitLossPercentage,
-        },
-        from: {
-          name,
-          ...prevData,
-          profitLoss: prevProfitLoss,
-          profitLossPercentage: prevProfitLossPercentage,
-        },
-        investedDiff: currentData.invested - prevData.invested,
-        currentValueDiff: currentData.current - prevData.current,
-        investedDiffPercentage:
-          prevData.invested > 0
-            ? ((currentData.invested - prevData.invested) / prevData.invested) *
-              100
-            : 0,
-        currentValueDiffPercentage:
-          prevData.current > 0
-            ? ((currentData.current - prevData.current) / prevData.current) *
-              100
-            : 0,
-      };
-    });
 
     return {
       fromMonth: { month: fMonth, year: fYear },
       toMonth: { month: tMonth, year: tYear },
       summary: {
-        from: {
-          ...prevSummary,
-          typeBreakdown: formatBreakdown(prevSummary.typeBreakdown),
-          platformBreakdown: formatBreakdown(prevSummary.platformBreakdown),
-        },
-        to: {
-          ...currentSummary,
-          typeBreakdown: formatBreakdown(currentSummary.typeBreakdown),
-          platformBreakdown: formatBreakdown(currentSummary.platformBreakdown),
-        },
+        from: prevSummary,
+        to: currentSummary,
         investedDiff,
         currentValueDiff,
         profitLossDiff,

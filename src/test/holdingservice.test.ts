@@ -12,9 +12,17 @@ const mockDeleteWhere = mock(() => ({ returning: mockReturning }));
 const mockDelete = mock(() => ({ where: mockDeleteWhere }));
 
 const mockOrderBy = mock(() => []);
-const mockLeftJoinWhere = mock(() => ({ orderBy: mockOrderBy }));
+const mockGroupBy = mock(() => ({ orderBy: mockOrderBy }));
+// Allow groupBy to be awaitable (returning array) if it's the end of chain
+const mockGroupByEnd = mock(() => Promise.resolve([])); 
+
+const mockLeftJoinWhere = mock(() => ({ groupBy: mockGroupByEnd, orderBy: mockOrderBy }));
 const mockLeftJoin = mock(() => ({ where: mockLeftJoinWhere }));
-const mockSelectWhere = mock(() => ({ orderBy: mockOrderBy }));
+
+const mockSelectWhere = mock(() => ({ groupBy: mockGroupBy, orderBy: mockOrderBy }));
+// Make select(...).from(...).where(...) awaitable directly for cases without groupBy
+const mockSelectWhereAwaitable = mock(() => Promise.resolve([]));
+
 const mockSelectFrom = mock(() => ({ leftJoin: mockLeftJoin, where: mockSelectWhere }));
 const mockSelect = mock(() => ({ from: mockSelectFrom }));
 
@@ -54,6 +62,46 @@ mock.module('../database/drizzle', () => {
     }
 });
 
+// Update mock chain for getSummary/getTrends
+// The chain is: db.select().from().where().groupBy()...
+// For getSummary 1: select.from.where -> awaitable
+// For getSummary 2: select.from.leftJoin.where.groupBy -> awaitable
+// For getSummary 3: select.from.where.groupBy -> awaitable
+
+// We need a more flexible mock structure or just update specific tests to override the chain
+const mockChain = {
+    groupBy: mock(() => Promise.resolve([])),
+    orderBy: mock(() => Promise.resolve([])),
+    then: (resolve: any) => resolve([]) // Make it awaitable
+};
+const mockWhere = mock(() => mockChain);
+const mockLeftJoinChain = mock(() => ({ where: mockWhere }));
+const mockFrom = mock(() => ({ where: mockWhere, leftJoin: mockLeftJoinChain }));
+const mockSelectChain = mock(() => ({ from: mockFrom }));
+
+// Re-apply mocks with the new chain
+mock.module('../database/drizzle', () => {
+    return {
+        db: {
+            insert: mockInsert,
+            update: mockUpdate,
+            delete: mockDelete,
+            select: mockSelectChain,
+            transaction: mockTransaction,
+            query: {
+                holdings: {
+                    findFirst: mockHoldingsFindFirst,
+                    findMany: mockHoldingsFindMany,
+                },
+                holding_types: {
+                    findFirst: mockHoldingTypesFindFirst,
+                    findMany: mockHoldingTypesFindMany,
+                }
+            }
+        }
+    }
+});
+
 describe('HoldingService', () => {
     let holdingService: HoldingService;
 
@@ -63,13 +111,22 @@ describe('HoldingService', () => {
         mockInsert.mockClear();
         mockUpdate.mockClear();
         mockDelete.mockClear();
-        mockSelect.mockClear();
+        mockSelectChain.mockClear();
         mockHoldingsFindFirst.mockReset();
         mockHoldingsFindMany.mockReset();
         mockHoldingTypesFindFirst.mockReset();
         mockHoldingTypesFindMany.mockReset();
         mockTransaction.mockClear();
+        
+        // Reset chain mocks
+        mockWhere.mockClear();
+        mockChain.groupBy.mockClear();
+        mockChain.orderBy.mockClear();
+        mockWhere.mockImplementation(() => mockChain);
+        mockChain.groupBy.mockImplementation(() => Promise.resolve([]));
     });
+    
+    // ... createHolding, getHoldingById ... (keep existing)
 
     describe('createHolding', () => {
         it('should create a new holding', async () => {
@@ -128,12 +185,20 @@ describe('HoldingService', () => {
                 { holding: { id: BigInt(2), name: 'Gold' }, holding_type: { name: 'Commodity' } }
             ];
 
-            mockOrderBy.mockReturnValue(mockHoldings);
+            // For getHoldingsByUserId: select().from().leftJoin().where().orderBy()
+            // Our new chain: select -> from -> leftJoin -> where -> [groupBy/orderBy/then]
+            // We need orderBy to return the holdings
+            
+            const mockOrderByChain = mock(() => Promise.resolve(mockHoldings));
+            mockWhere.mockImplementation(() => ({
+                orderBy: mockOrderByChain,
+                groupBy: mock(() => ({ orderBy: mockOrderByChain })) // Handle case where groupBy might be called
+            }));
 
             const result = await holdingService.getHoldingsByUserId(userId);
 
             expect(result).toBeInstanceOf(Array);
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mockSelectChain).toHaveBeenCalled();
         });
 
         it('should filter by month and year', async () => {
@@ -144,37 +209,41 @@ describe('HoldingService', () => {
                 { holding: { id: BigInt(1), name: 'Bitcoin', month, year }, holding_type: { name: 'Crypto' } }
             ];
 
-            mockOrderBy.mockReturnValue(mockHoldings);
+            const mockOrderByChain = mock(() => Promise.resolve(mockHoldings));
+            mockWhere.mockImplementation(() => ({ orderBy: mockOrderByChain }));
 
             const result = await holdingService.getHoldingsByUserId(userId, month, year);
 
             expect(result).toBeInstanceOf(Array);
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mockSelectChain).toHaveBeenCalled();
         });
-
-        it('should sort by different fields', async () => {
+        
+        // ... sort tests ...
+         it('should sort by different fields', async () => {
             const userId = 'user-1';
-            mockOrderBy.mockReturnValue([]);
+             const mockOrderByChain = mock(() => Promise.resolve([]));
+            mockWhere.mockImplementation(() => ({ orderBy: mockOrderByChain }));
 
             // Test sorting by name ascending
             await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'name', 'asc');
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mockSelectChain).toHaveBeenCalled();
 
             // Test sorting by invested_amount descending
             await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'invested_amount', 'desc');
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mockSelectChain).toHaveBeenCalled();
 
             // Test sorting by current_value
             await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'current_value', 'asc');
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mockSelectChain).toHaveBeenCalled();
 
             // Test sorting by platform
             await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'platform', 'desc');
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mockSelectChain).toHaveBeenCalled();
         });
     });
 
-    describe('updateHolding', () => {
+    // ... update, delete, getTypes ... (keep existing)
+     describe('updateHolding', () => {
         it('should update an existing holding', async () => {
             const holdingId = 1;
             const data = { name: 'Bitcoin Updated', current_value: '15000' };
@@ -255,21 +324,30 @@ describe('HoldingService', () => {
     describe('getSummary', () => {
         it('should return portfolio summary with breakdowns', async () => {
             const userId = 'user-1';
-            const mockHoldings = [
-                { invested_amount: '10000', current_value: '12000', holding_type: 'Crypto', platform: 'Binance' },
-                { invested_amount: '5000', current_value: '4500', holding_type: 'Stocks', platform: 'Robinhood' }
-            ];
+            
+            // Mock returns for the 3 queries
+            const totals = [{ totalInvested: 10000, totalCurrentValue: 12000, holdingsCount: 2 }];
+            const typeResults = [{ name: 'Crypto', invested: 10000, current: 12000 }];
+            const platformResults = [{ name: 'Binance', invested: 10000, current: 12000 }];
 
-            mockLeftJoinWhere.mockReturnValue(mockHoldings);
+            // Mock implementation to return different values based on calls
+            let callCount = 0;
+            mockWhere.mockImplementation(() => {
+                callCount++;
+                return {
+                     groupBy: mock(() => Promise.resolve(
+                        callCount === 2 ? typeResults : platformResults
+                     )),
+                     then: (resolve: any) => resolve(totals)
+                };
+            });
 
             const result = await holdingService.getSummary(userId);
 
-            expect(result).toHaveProperty('totalInvested');
-            expect(result).toHaveProperty('totalCurrentValue');
-            expect(result).toHaveProperty('totalProfitLoss');
-            expect(result).toHaveProperty('totalProfitLossPercentage');
+            expect(result).toHaveProperty('totalInvested', 10000);
+            expect(result).toHaveProperty('totalCurrentValue', 12000);
             expect(result).toHaveProperty('typeBreakdown');
-            expect(result).toHaveProperty('platformBreakdown');
+            expect(result.typeBreakdown[0]).toHaveProperty('name', 'Crypto');
         });
 
         it('should filter summary by month and year', async () => {
@@ -277,7 +355,10 @@ describe('HoldingService', () => {
             const month = 1;
             const year = 2024;
 
-            mockLeftJoinWhere.mockReturnValue([]);
+             mockWhere.mockImplementation(() => ({
+                groupBy: mock(() => Promise.resolve([])),
+                then: (resolve: any) => resolve([{ totalInvested: 0, totalCurrentValue: 0 }])
+            }));
 
             const result = await holdingService.getSummary(userId, month, year);
 
@@ -287,7 +368,10 @@ describe('HoldingService', () => {
 
         it('should handle zero invested amount', async () => {
             const userId = 'user-1';
-            mockLeftJoinWhere.mockReturnValue([]);
+             mockWhere.mockImplementation(() => ({
+                groupBy: mock(() => Promise.resolve([])),
+                then: (resolve: any) => resolve([])
+            }));
 
             const result = await holdingService.getSummary(userId);
 
@@ -299,25 +383,33 @@ describe('HoldingService', () => {
         it('should return trends data', async () => {
             const userId = 'user-1';
             const mockData = [
-                { month: 1, year: 2024, invested_amount: '10000', current_value: '11000' },
-                { month: 2, year: 2024, invested_amount: '10000', current_value: '12000' }
+                { month: 1, year: 2024, invested: 10000, current: 11000 },
+                { month: 2, year: 2024, invested: 10000, current: 12000 }
             ];
-
-            mockOrderBy.mockReturnValue(mockData);
-            mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
+            
+            // getTrends: select().from().where().groupBy().orderBy()
+             mockWhere.mockImplementation(() => ({
+                 groupBy: mock(() => ({
+                     orderBy: mock(() => Promise.resolve(mockData))
+                 }))
+             }));
 
             const result = await holdingService.getTrends(userId);
 
             expect(result).toBeInstanceOf(Array);
-            expect(mockSelect).toHaveBeenCalled();
+            expect(result).toHaveLength(2);
+            expect(mockSelectChain).toHaveBeenCalled();
         });
 
         it('should filter trends by years', async () => {
             const userId = 'user-1';
             const years = [2023, 2024];
 
-            mockOrderBy.mockReturnValue([]);
-            mockSelectWhere.mockReturnValue({ orderBy: mockOrderBy });
+            mockWhere.mockImplementation(() => ({
+                 groupBy: mock(() => ({
+                     orderBy: mock(() => Promise.resolve([]))
+                 }))
+             }));
 
             const result = await holdingService.getTrends(userId, years);
 
