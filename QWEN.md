@@ -20,9 +20,9 @@ This is a full-stack web backend application built with TypeScript and the Bun r
 The project follows a modular architecture with the following key directories:
 
 - `src/config/` - Application configuration and environment variables
-- `src/controllers/` - API controllers handling HTTP requests
 - `src/database/` - Database schema definitions and connection setup
 - `src/middlewares/` - Hono middleware functions (auth, logging, CORS, etc.)
+- `src/modules/` - API modules containing controllers, services, and validation
 - `src/pkg/` - Business logic services
 - `src/router/` - API route definitions
 - `src/server/` - Server initialization and configuration
@@ -104,6 +104,7 @@ The application requires the following environment variables (refer to `.env.exa
 ## Development Conventions
 
 - API routes are versioned under `/v1`
+- Controllers are organized within each module in the `src/modules/` directory
 - Controllers follow a consistent pattern with proper error handling
 - Request validation is done using Zod schemas
 - Authentication is handled via middleware
