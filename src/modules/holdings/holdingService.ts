@@ -17,6 +17,7 @@ export class HoldingService {
         user_id: userId,
         invested_amount: String(data.invested_amount),
         current_value: String(data.current_value),
+        units: data.units ? String(data.units) : undefined,
         avg_buy_price: data.avg_buy_price ? String(data.avg_buy_price) : undefined,
         current_price: data.current_price ? String(data.current_price) : undefined,
         month: data.month === null ? undefined : data.month,
@@ -125,6 +126,8 @@ export class HoldingService {
       updateData.avg_buy_price = String(data.avg_buy_price);
     if (data.current_price !== undefined && data.current_price !== null)
       updateData.current_price = String(data.current_price);
+    if (data.units !== undefined && data.units !== null)
+      updateData.units = String(data.units);
     
     if (data.month === null) delete updateData.month;
     if (data.year === null) delete updateData.year;
