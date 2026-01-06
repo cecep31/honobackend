@@ -5,14 +5,23 @@ import type {
   DuplicateHoldingPayload,
   HoldingCreate,
   HoldingUpdate,
-} from "../../types/holding";
+} from "./validation/holding";
 import { Errors } from "../../utils/error";
 
 export class HoldingService {
   async createHolding(userId: string, data: HoldingCreate) {
     return db
       .insert(holdings)
-      .values({ ...data, user_id: userId })
+      .values({
+        ...data,
+        user_id: userId,
+        invested_amount: String(data.invested_amount),
+        current_value: String(data.current_value),
+        avg_buy_price: data.avg_buy_price ? String(data.avg_buy_price) : undefined,
+        current_price: data.current_price ? String(data.current_price) : undefined,
+        month: data.month === null ? undefined : data.month,
+        year: data.year === null ? undefined : data.year,
+      })
       .returning();
   }
 
@@ -106,9 +115,23 @@ export class HoldingService {
     if (!existing) {
       throw Errors.NotFound("Holding");
     }
+
+    const updateData: any = { ...data };
+    if (data.invested_amount !== undefined)
+      updateData.invested_amount = String(data.invested_amount);
+    if (data.current_value !== undefined)
+      updateData.current_value = String(data.current_value);
+    if (data.avg_buy_price !== undefined && data.avg_buy_price !== null)
+      updateData.avg_buy_price = String(data.avg_buy_price);
+    if (data.current_price !== undefined && data.current_price !== null)
+      updateData.current_price = String(data.current_price);
+    
+    if (data.month === null) delete updateData.month;
+    if (data.year === null) delete updateData.year;
+
     return db
       .update(holdings)
-      .set({ ...data, updated_at: new Date().toISOString() })
+      .set({ ...updateData, updated_at: new Date().toISOString() })
       .where(eq(holdings.id, BigInt(id)))
       .returning();
   }

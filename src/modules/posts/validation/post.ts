@@ -26,3 +26,5 @@ export const updatePostSchema = z.object({
   photo_url: z.string().optional(),
   published: z.boolean().optional(),
 });
+
+export type PostCreateBody = z.infer<typeof createPostSchema>;

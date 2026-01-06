@@ -13,3 +13,5 @@ export const createUserSchema = z.object({
   image: z.string().optional().default("/images/default.jpg"),
   is_super_admin: z.boolean().optional().default(false),
 });
+
+export type UserCreateBody = z.infer<typeof createUserSchema>;

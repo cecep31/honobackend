@@ -25,3 +25,7 @@ export const createConversationStreamSchema = z.object({
   model: z.string().optional(),
   temperature: z.number().min(0).max(2).default(0.7),
 });
+
+export type CreateConversationBody = z.infer<typeof createConversationSchema>;
+export type CreateMessageBody = z.infer<typeof createMessageSchema> & { conversation_id: string };
+export type CreateConversationStreamBody = z.infer<typeof createConversationStreamSchema>;

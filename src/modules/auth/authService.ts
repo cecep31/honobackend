@@ -1,7 +1,7 @@
 import { sign } from "hono/jwt";
 import { and, eq } from "drizzle-orm";
 import type { UserService } from "../../modules/users/userService";
-import type { userLogin, UserSignup } from "../../types/user";
+import type { UserSignup } from "./validation/auth";
 import config from "../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
@@ -23,7 +23,7 @@ export class AuthService {
   }
 
   async signIn(username: string, password: string, user_agent: string) {
-    let user: userLogin | undefined;
+    let user;
 
     if (this.isEmail(username)) {
       user = await this.userService.getUserByEmailRaw(username);

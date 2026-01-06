@@ -3,7 +3,7 @@ import { authService } from "../../services/index";
 import { auth } from "../../middlewares/auth";
 import config from "../../config";
 import axios from "axios";
-import type { GithubUser } from "../../types/user";
+import type { GithubUser } from "../../types/auth";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../../middlewares/validateRequest";

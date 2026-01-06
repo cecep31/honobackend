@@ -5,7 +5,8 @@ import {
   profiles,
   users as usersModel,
 } from "../../database/schemas/postgre/schema";
-import type { UserCreateBody, UserSignup } from "../../types/user";
+import type { UserCreateBody } from "./validation/user";
+import type { UserSignup } from "../auth/validation/auth";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
 import { Errors } from "../../utils/error";

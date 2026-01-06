@@ -68,3 +68,5 @@ export const getCompareMonthsSchema = z.object({
 });
 
 export type DuplicateHoldingPayload = z.infer<typeof duplicateHoldingSchema>;
+export type HoldingCreate = z.infer<typeof createHoldingSchema>;
+export type HoldingUpdate = z.infer<typeof updateHoldingSchema>;
