@@ -1,21 +1,3 @@
-export interface User {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  image: string;
-  is_super_admin: boolean;
-}
-
-export interface PostUser {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  image: string;
-}
-
 interface UserBase {
   username: string;
   email: string;
@@ -29,13 +11,6 @@ export interface UserCreateBody extends UserBase {
   username: string;
   image: string;
   is_super_admin: boolean;
-}
-
-export interface UserCreate extends UserBase {
-  is_super_admin: boolean;
-  first_name: string;
-  last_name: string;
-  image: string;
 }
 
 export interface userLogin {
