@@ -1,6 +1,9 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../database/drizzle";
-import { posts_to_tags, tags as tagsModel } from "../../database/schemas/postgre/schema";
+import {
+  posts_to_tags,
+  tags as tagsModel,
+} from "../../database/schemas/postgre/schema";
 
 export class TagService {
   async getTags() {
@@ -30,7 +33,7 @@ export class TagService {
     if (names.length === 0) return [];
     return await db
       .insert(tagsModel)
-      .values(names.map(name => ({ name })))
+      .values(names.map((name) => ({ name })))
       .onConflictDoNothing()
       .returning();
   }
@@ -53,7 +56,7 @@ export class TagService {
     if (tag_ids.length === 0) return [];
     return await db
       .insert(posts_to_tags)
-      .values(tag_ids.map(tag_id => ({ post_id, tag_id })))
+      .values(tag_ids.map((tag_id) => ({ post_id, tag_id })))
       .onConflictDoNothing();
   }
 }
