@@ -21,8 +21,7 @@
     "test:coverage": "bun test --coverage",
     "clean": "rm -rf dist bin",
     "lint": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "prepare": "bun run typecheck"
+    "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
