@@ -133,8 +133,8 @@ describe('CommentService', () => {
       const result = await commentService.getCommentsByPost(postId, 1, 20);
 
       expect(result.data).toEqual(mockComments);
-      expect(result.pagination.total).toBe(2);
-      expect(result.pagination.page).toBe(1);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.page).toBe(1);
       expect(mockFindMany).toHaveBeenCalled();
     });
   });

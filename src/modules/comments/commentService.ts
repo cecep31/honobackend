@@ -115,7 +115,7 @@ export class CommentService {
 
       return {
         data: comments,
-        pagination: {
+        meta: {
           page,
           limit,
           total,
@@ -329,7 +329,7 @@ export class CommentService {
 
       return {
         data: comments,
-        pagination: {
+        meta: {
           page,
           limit,
           total,

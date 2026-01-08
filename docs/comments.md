@@ -52,7 +52,9 @@ Create a new comment on a post.
       "last_name": "Doe",
       "image": "https://example.com/avatar.jpg"
     }
-  }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
 }
 ```
 
@@ -79,33 +81,33 @@ Retrieve all top-level comments for a specific post (paginated).
 {
   "success": true,
   "message": "Comments fetched successfully",
-  "data": {
-    "data": [
-      {
-        "id": "comment-uuid",
-        "text": "Great post!",
-        "post_id": "post-uuid",
-        "parent_comment_id": null,
-        "created_by": "user-uuid",
-        "created_at": "2026-01-08T08:00:00Z",
-        "updated_at": "2026-01-08T08:00:00Z",
-        "deleted_at": null,
-        "user": {
-          "id": "user-uuid",
-          "username": "johndoe",
-          "first_name": "John",
-          "last_name": "Doe",
-          "image": "https://example.com/avatar.jpg"
-        }
+  "data": [
+    {
+      "id": "comment-uuid",
+      "text": "Great post!",
+      "post_id": "post-uuid",
+      "parent_comment_id": null,
+      "created_by": "user-uuid",
+      "created_at": "2026-01-08T08:00:00Z",
+      "updated_at": "2026-01-08T08:00:00Z",
+      "deleted_at": null,
+      "user": {
+        "id": "user-uuid",
+        "username": "johndoe",
+        "first_name": "John",
+        "last_name": "Doe",
+        "image": "https://example.com/avatar.jpg"
       }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 45,
-      "totalPages": 3
     }
-  }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "totalPages": 3
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
 }
 ```
 
@@ -141,7 +143,9 @@ Retrieve all replies to a specific comment.
         "image": "https://example.com/avatar2.jpg"
       }
     }
-  ]
+  ],
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:05:00.000Z"
 }
 ```
 
@@ -175,7 +179,9 @@ Retrieve a specific comment by ID.
       "last_name": "Doe",
       "image": "https://example.com/avatar.jpg"
     }
-  }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
 }
 ```
 
@@ -222,7 +228,9 @@ Update an existing comment (only by the comment owner).
       "last_name": "Doe",
       "image": "https://example.com/avatar.jpg"
     }
-  }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:10:00.000Z"
 }
 ```
 
@@ -255,7 +263,9 @@ Soft delete a comment (only by the comment owner).
     "created_at": "2026-01-08T08:00:00Z",
     "updated_at": "2026-01-08T08:00:00Z",
     "deleted_at": "2026-01-08T08:15:00Z"
-  }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:15:00.000Z"
 }
 ```
 
@@ -282,38 +292,38 @@ Retrieve all comments made by a specific user (paginated).
 {
   "success": true,
   "message": "User comments fetched successfully",
-  "data": {
-    "data": [
-      {
-        "id": "comment-uuid",
-        "text": "Great post!",
-        "post_id": "post-uuid",
-        "parent_comment_id": null,
-        "created_by": "user-uuid",
-        "created_at": "2026-01-08T08:00:00Z",
-        "updated_at": "2026-01-08T08:00:00Z",
-        "deleted_at": null,
-        "user": {
-          "id": "user-uuid",
-          "username": "johndoe",
-          "first_name": "John",
-          "last_name": "Doe",
-          "image": "https://example.com/avatar.jpg"
-        },
-        "post": {
-          "id": "post-uuid",
-          "title": "Post Title",
-          "slug": "post-title"
-        }
+  "data": [
+    {
+      "id": "comment-uuid",
+      "text": "Great post!",
+      "post_id": "post-uuid",
+      "parent_comment_id": null,
+      "created_by": "user-uuid",
+      "created_at": "2026-01-08T08:00:00Z",
+      "updated_at": "2026-01-08T08:00:00Z",
+      "deleted_at": null,
+      "user": {
+        "id": "user-uuid",
+        "username": "johndoe",
+        "first_name": "John",
+        "last_name": "Doe",
+        "image": "https://example.com/avatar.jpg"
+      },
+      "post": {
+        "id": "post-uuid",
+        "title": "Post Title",
+        "slug": "post-title"
       }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 15,
-      "totalPages": 1
     }
-  }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 15,
+    "totalPages": 1
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
 }
 ```
 

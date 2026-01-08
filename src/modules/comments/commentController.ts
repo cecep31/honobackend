@@ -34,7 +34,7 @@ commentController.get("/post/:post_id", async (c) => {
   const limit = parseInt(validated.limit);
   
   const result = await commentService.getCommentsByPost(post_id, page, limit);
-  return sendSuccess(c, result, "Comments fetched successfully");
+  return sendSuccess(c, result.data, "Comments fetched successfully", 200, result.meta);
 });
 
 // Get replies for a specific comment
@@ -82,5 +82,5 @@ commentController.get("/user/:user_id", async (c) => {
   const limit = parseInt(validated.limit);
   
   const result = await commentService.getCommentsByUser(user_id, page, limit);
-  return sendSuccess(c, result, "User comments fetched successfully");
+  return sendSuccess(c, result.data, "User comments fetched successfully", 200, result.meta);
 });
