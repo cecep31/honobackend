@@ -17,14 +17,28 @@
     "strict": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
 
-    // Some stricter flags
+    // Interop and module resolution
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    // Bun-specific
+    "types": ["bun-types"],
+
+    // Stricter flags (removed noPropertyAccessFromIndexSignature - too strict for backend)
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noPropertyAccessFromIndexSignature": true
+    "noUnusedParameters": true
   },
+  "include": [
+    "src/**/*",
+    "index.ts"
+  ],
   "exclude": [
-    "./src/test",
-    "node_modules"
+    "node_modules",
+    "dist",
+    "bin",
+    "**/*.test.ts"
   ]
 }
