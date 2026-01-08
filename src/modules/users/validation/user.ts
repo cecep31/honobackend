@@ -32,5 +32,10 @@ export const updateUserSchema = z.object({
   is_super_admin: z.boolean().optional(),
 });
 
+export const followUserSchema = z.object({
+  following_id: z.string().uuid(),
+});
+
 export type UserCreateBody = z.infer<typeof createUserSchema>;
 export type UserUpdateBody = z.infer<typeof updateUserSchema>;
+export type FollowUserBody = z.infer<typeof followUserSchema>;

@@ -21,6 +21,9 @@ mock.module('../database/drizzle', () => {
                 users: {
                     findMany: mockFindMany,
                     findFirst: mockFindFirst,
+                },
+                user_follows: {
+                    findFirst: mockFindFirst,
                 }
             },
             select: mockSelect,
@@ -375,6 +378,160 @@ describe('UserService', () => {
 
             expect(result).toHaveProperty('id', '1');
             expect(mockUpdate).toHaveBeenCalled();
+        });
+    });
+
+    describe('followUser', () => {
+        it('creates a follow relationship', async () => {
+            const follower = { id: 'user1', username: 'follower' };
+            const following = { id: 'user2', username: 'following' };
+            
+            mockFindFirst.mockResolvedValueOnce(follower); // follower exists
+            mockFindFirst.mockResolvedValueOnce(following); // following exists
+            mockFindFirst.mockResolvedValueOnce(null); // no existing follow
+            mockReturning.mockResolvedValue([{
+                id: 'follow-id',
+                follower_id: 'user1',
+                following_id: 'user2'
+            }]);
+
+            const result = await userService.followUser('user1', 'user2');
+
+            expect(result).toHaveProperty('follower_id', 'user1');
+            expect(result).toHaveProperty('following_id', 'user2');
+            expect(mockInsert).toHaveBeenCalled();
+            expect(mockUpdate).toHaveBeenCalled();
+        });
+
+        it('throws error if follower does not exist', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            expect(userService.followUser('non-existent', 'user2')).rejects.toThrow();
+        });
+
+        it('throws error if already following', async () => {
+            const follower = { id: 'user1', username: 'follower' };
+            const following = { id: 'user2', username: 'following' };
+            const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
+            
+            mockFindFirst.mockResolvedValueOnce(follower);
+            mockFindFirst.mockResolvedValueOnce(following);
+            mockFindFirst.mockResolvedValueOnce(existingFollow);
+
+            expect(userService.followUser('user1', 'user2')).rejects.toThrow();
+        });
+    });
+
+    describe('unfollowUser', () => {
+        it('soft deletes a follow relationship', async () => {
+            const existingFollow = {
+                id: 'follow-id',
+                follower_id: 'user1',
+                following_id: 'user2'
+            };
+            
+            mockFindFirst.mockResolvedValue(existingFollow);
+            mockReturning.mockResolvedValue([{
+                ...existingFollow,
+                deleted_at: new Date().toISOString()
+            }]);
+
+            const result = await userService.unfollowUser('user1', 'user2');
+
+            expect(result).toHaveProperty('deleted_at');
+            expect(mockUpdate).toHaveBeenCalled();
+        });
+
+        it('throws error if follow relationship does not exist', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            expect(userService.unfollowUser('user1', 'user2')).rejects.toThrow();
+        });
+    });
+
+    describe('getFollowers', () => {
+        it('returns paginated list of followers', async () => {
+            const mockFollowers = [
+                { id: 'user1', username: 'follower1', created_at: new Date().toISOString() },
+                { id: 'user2', username: 'follower2', created_at: new Date().toISOString() }
+            ];
+            const mockCount = [{ count: 2 }];
+
+            // Mock the select chain
+            const mockLimit = mock(() => ({ offset: mock(() => Promise.resolve(mockFollowers)) }));
+            const mockOrderBy = mock(() => ({ limit: mockLimit }));
+            const mockWhere = mock(() => ({ orderBy: mockOrderBy }));
+            const mockInnerJoin = mock(() => ({ where: mockWhere }));
+            const mockFrom = mock(() => ({ innerJoin: mockInnerJoin }));
+            mockSelect.mockReturnValue({ from: mockFrom });
+
+            // Mock count query
+            const mockCountWhere = mock(() => Promise.resolve(mockCount));
+            const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
+            const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
+            mockSelect.mockReturnValueOnce({ from: mockFrom });
+            mockSelect.mockReturnValueOnce({ from: mockCountFrom });
+
+            const result = await userService.getFollowers('user-id', { limit: 10, offset: 0 });
+
+            expect(result.data).toBeDefined();
+            expect(result.meta).toBeDefined();
+            expect(mockSelect).toHaveBeenCalled();
+        });
+    });
+
+    describe('getFollowing', () => {
+        it('returns paginated list of following users', async () => {
+            const mockFollowing = [
+                { id: 'user1', username: 'following1', created_at: new Date().toISOString() },
+                { id: 'user2', username: 'following2', created_at: new Date().toISOString() }
+            ];
+            const mockCount = [{ count: 2 }];
+
+            // Mock the select chain
+            const mockLimit = mock(() => ({ offset: mock(() => Promise.resolve(mockFollowing)) }));
+            const mockOrderBy = mock(() => ({ limit: mockLimit }));
+            const mockWhere = mock(() => ({ orderBy: mockOrderBy }));
+            const mockInnerJoin = mock(() => ({ where: mockWhere }));
+            const mockFrom = mock(() => ({ innerJoin: mockInnerJoin }));
+            mockSelect.mockReturnValue({ from: mockFrom });
+
+            // Mock count query
+            const mockCountWhere = mock(() => Promise.resolve(mockCount));
+            const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
+            const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
+            mockSelect.mockReturnValueOnce({ from: mockFrom });
+            mockSelect.mockReturnValueOnce({ from: mockCountFrom });
+
+            const result = await userService.getFollowing('user-id', { limit: 10, offset: 0 });
+
+            expect(result.data).toBeDefined();
+            expect(result.meta).toBeDefined();
+            expect(mockSelect).toHaveBeenCalled();
+        });
+    });
+
+    describe('isFollowing', () => {
+        it('returns true if following', async () => {
+            const existingFollow = {
+                id: 'follow-id',
+                follower_id: 'user1',
+                following_id: 'user2'
+            };
+            mockFindFirst.mockResolvedValue(existingFollow);
+
+            const result = await userService.isFollowing('user1', 'user2');
+
+            expect(result).toBe(true);
+            expect(mockFindFirst).toHaveBeenCalled();
+        });
+
+        it('returns false if not following', async () => {
+            mockFindFirst.mockResolvedValue(null);
+
+            const result = await userService.isFollowing('user1', 'user2');
+
+            expect(result).toBe(false);
         });
     });
 });

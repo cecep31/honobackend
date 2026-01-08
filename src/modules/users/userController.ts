@@ -97,4 +97,86 @@ export const userController = new Hono<{ Variables: Variables }>()
       const user = await userService.deleteUser(id);
       return sendSuccess(c, user, "User deleted successfully");
     }
+  )
+
+  /**
+   * POST /users/:id/follow - Follow a user
+   */
+  .post(
+    "/:id/follow",
+    auth,
+    validateRequest("param", userIdSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { id: following_id } = c.req.valid("param");
+
+      if (authUser.user_id === following_id) {
+        throw Errors.BusinessRuleViolation("Cannot follow yourself");
+      }
+
+      const follow = await userService.followUser(authUser.user_id, following_id);
+      return sendSuccess(c, follow, "User followed successfully", 201);
+    }
+  )
+
+  /**
+   * DELETE /users/:id/follow - Unfollow a user
+   */
+  .delete(
+    "/:id/follow",
+    auth,
+    validateRequest("param", userIdSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { id: following_id } = c.req.valid("param");
+
+      const unfollow = await userService.unfollowUser(authUser.user_id, following_id);
+      return sendSuccess(c, unfollow, "User unfollowed successfully");
+    }
+  )
+
+  /**
+   * GET /users/:id/followers - Get user's followers
+   */
+  .get(
+    "/:id/followers",
+    auth,
+    validateRequest("param", userIdSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const params = getPaginationParams(c);
+      const { data, meta } = await userService.getFollowers(id, params);
+      return sendSuccess(c, data, "Followers fetched successfully", 200, meta);
+    }
+  )
+
+  /**
+   * GET /users/:id/following - Get users that this user is following
+   */
+  .get(
+    "/:id/following",
+    auth,
+    validateRequest("param", userIdSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const params = getPaginationParams(c);
+      const { data, meta } = await userService.getFollowing(id, params);
+      return sendSuccess(c, data, "Following fetched successfully", 200, meta);
+    }
+  )
+
+  /**
+   * GET /users/:id/is-following - Check if authenticated user is following this user
+   */
+  .get(
+    "/:id/is-following",
+    auth,
+    validateRequest("param", userIdSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { id: following_id } = c.req.valid("param");
+
+      const isFollowing = await userService.isFollowing(authUser.user_id, following_id);
+      return sendSuccess(c, { isFollowing }, "Follow status checked successfully");
+    }
   );

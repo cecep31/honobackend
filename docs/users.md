@@ -258,6 +258,210 @@ curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000 \
 
 ---
 
+### 6. Follow User
+Follow another user.
+
+- **URL:** `/:id/follow`
+- **Method:** `POST`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X POST /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "follow-id",
+    "follower_id": "your-user-id",
+    "following_id": "550e8400-e29b-41d4-a716-446655440000",
+    "created_at": "2026-01-08T00:00:00Z"
+  },
+  "message": "User followed successfully"
+}
+```
+
+**Response (400):**
+```json
+{
+  "success": false,
+  "error": "Cannot follow yourself"
+}
+```
+
+**Response (409):**
+```json
+{
+  "success": false,
+  "error": "Already following this user"
+}
+```
+
+---
+
+### 7. Unfollow User
+Unfollow a user.
+
+- **URL:** `/:id/follow`
+- **Method:** `DELETE`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "follow-id",
+    "follower_id": "your-user-id",
+    "following_id": "550e8400-e29b-41d4-a716-446655440000",
+    "deleted_at": "2026-01-08T00:00:00Z"
+  },
+  "message": "User unfollowed successfully"
+}
+```
+
+**Response (404):**
+```json
+{
+  "success": false,
+  "error": "Follow relationship not found"
+}
+```
+
+---
+
+### 8. Get User Followers
+Get a paginated list of users following the specified user.
+
+- **URL:** `/:id/followers`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| page | number | No | 1 | Page number |
+| limit | number | No | 10 | Items per page |
+
+**Example Request:**
+```bash
+curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?page=1&limit=10" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "follower-user-id",
+      "username": "follower1",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "follower@example.com",
+      "image": "https://example.com/avatar.jpg",
+      "followers_count": 50,
+      "following_count": 100,
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "meta": {
+    "total_items": 50,
+    "current_page": 1,
+    "total_pages": 5,
+    "items_per_page": 10
+  },
+  "message": "Followers fetched successfully"
+}
+```
+
+---
+
+### 9. Get User Following
+Get a paginated list of users that the specified user is following.
+
+- **URL:** `/:id/following`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| page | number | No | 1 | Page number |
+| limit | number | No | 10 | Items per page |
+
+**Example Request:**
+```bash
+curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?page=1&limit=10" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "following-user-id",
+      "username": "following1",
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "email": "following@example.com",
+      "image": "https://example.com/avatar2.jpg",
+      "followers_count": 200,
+      "following_count": 150,
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "meta": {
+    "total_items": 100,
+    "current_page": 1,
+    "total_pages": 10,
+    "items_per_page": 10
+  },
+  "message": "Following fetched successfully"
+}
+```
+
+---
+
+### 10. Check Follow Status
+Check if the authenticated user is following another user.
+
+- **URL:** `/:id/is-following`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X GET /v1/users/550e8400-e29b-41d4-a716-446655440000/is-following \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "isFollowing": true
+  },
+  "message": "Follow status checked successfully"
+}
+```
+
+---
+
 ## Data Models
 
 ### User Object
@@ -369,6 +573,53 @@ async function createUser(data: UserCreateBody): Promise<User> {
   });
   const result = await response.json();
   return result.data;
+}
+
+// Follow a user
+async function followUser(userId: string): Promise<FollowRelationship> {
+  const response = await fetch(`/v1/users/${userId}/follow`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const result = await response.json();
+  return result.data;
+}
+
+// Unfollow a user
+async function unfollowUser(userId: string): Promise<FollowRelationship> {
+  const response = await fetch(`/v1/users/${userId}/follow`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const result = await response.json();
+  return result.data;
+}
+
+// Get user's followers
+async function getFollowers(userId: string, page = 1, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
+  const response = await fetch(`/v1/users/${userId}/followers?page=${page}&limit=${limit}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const result = await response.json();
+  return result;
+}
+
+// Get users that a user is following
+async function getFollowing(userId: string, page = 1, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
+  const response = await fetch(`/v1/users/${userId}/following?page=${page}&limit=${limit}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const result = await response.json();
+  return result;
+}
+
+// Check if following a user
+async function isFollowing(userId: string): Promise<boolean> {
+  const response = await fetch(`/v1/users/${userId}/is-following`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const result = await response.json();
+  return result.data.isFollowing;
 }
 ```
 
