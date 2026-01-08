@@ -15,4 +15,4 @@ helm-charts
 .editorconfig
 .idea
 coverage*
-bun.lockb
+bun.lock

@@ -37,10 +37,6 @@
     "drizzle-kit": "^0.31.8",
     "typescript": "^5.9.3"
   },
-  "engines": {
-    "bun": ">=1.0.0",
-    "node": ">=18.0.0"
-  },
   "keywords": [
     "hono",
     "typescript",
@@ -50,6 +46,6 @@
     "drizzle-orm",
     "bun"
   ],
-  "author": "",
+  "author": "pilput",
   "license": "MIT"
 }
