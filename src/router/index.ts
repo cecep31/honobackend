@@ -8,6 +8,7 @@ import { writerController } from "../modules/writers/writerController";
 import { chatController } from "../modules/chat/chatController";
 import { holdingController } from "../modules/holdings/holdingController";
 import { bookmarkController } from "../modules/bookmarks/bookmarkController";
+import { commentController } from "../modules/comments/commentController";
 import type { Variables } from "../types/context";
 
 const setupRouter = (app: Hono<{ Variables: Variables }>) => {
@@ -20,7 +21,8 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
     .route("/writers", writerController)
     .route("/chat", chatController)
     .route("/holdings", holdingController)
-    .route("/bookmarks", bookmarkController);
+    .route("/bookmarks", bookmarkController)
+    .route("/comments", commentController);
 
   app.route("/v1", v1);
 };

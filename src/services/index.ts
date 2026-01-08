@@ -7,6 +7,7 @@ import { ChatService } from "../modules/chat/chatService";
 import { HoldingService } from "../modules/holdings/holdingService";
 import { LikeService } from "../modules/likes/likeService";
 import { BookmarkService } from "../modules/bookmarks/bookmarkService";
+import { CommentService } from "../modules/comments/commentService";
 import { OpenRouterService } from "../modules/chat/openrouterService";
 
 // Helper for lazy service instantiation with cached bound methods
@@ -44,3 +45,4 @@ export const chatService = createLazyService(() => new ChatService(openrouterSer
 export const holdingService = createLazyService(() => new HoldingService());
 export const likeService = createLazyService(() => new LikeService());
 export const bookmarkService = createLazyService(() => new BookmarkService());
+export const commentService = createLazyService(() => new CommentService());
