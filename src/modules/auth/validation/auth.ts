@@ -38,3 +38,18 @@ export const updatePasswordSchema = z
     message: "password not match",
     path: ["confirm_password"],
   });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Token is required"),
+    new_password: z.string().min(6, "Password must be at least 6 characters"),
+    confirm_password: z.string(),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });

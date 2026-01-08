@@ -1,0 +1,2 @@
+DROP INDEX "uq_holdings_user_platform_name_currency";--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_holdings_user_platform_name_currency" ON "holdings" USING btree ("user_id" uuid_ops,"platform" text_ops,"name" text_ops,"currency" bpchar_ops);

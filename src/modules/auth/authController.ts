@@ -16,6 +16,8 @@ import {
   registerSchema,
   updatePasswordSchema,
   usernameSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "./validation/auth";
 
 export const authController = new Hono<{ Variables: Variables }>();
@@ -94,6 +96,7 @@ authController.post(
   }
 );
 
+// check username exists
 authController.get(
   "/username/:username",
   validateRequest("param", usernameSchema),
@@ -145,5 +148,50 @@ authController.patch(
       user.user_id
     );
     return sendSuccess(c, result, "Password updated successfully");
+  }
+);
+
+// Forgot password - request password reset
+authController.post(
+  "/forgot-password",
+  rateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 3, // Limit each IP to 3 requests per 15 minutes
+    standardHeaders: "draft-6",
+    keyGenerator: (c) =>
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip") ||
+      "unknown",
+  }),
+  validateRequest("json", forgotPasswordSchema),
+  async (c) => {
+    const body = c.req.valid("json");
+    const result = await authService.requestPasswordReset(body.email);
+    return sendSuccess(c, result, result.message);
+  }
+);
+
+// Reset password - actually reset the password with token
+authController.post(
+  "/reset-password",
+  rateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 5, // Limit each IP to 5 requests per 15 minutes
+    standardHeaders: "draft-6",
+    keyGenerator: (c) =>
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip") ||
+      "unknown",
+  }),
+  validateRequest("json", resetPasswordSchema),
+  async (c) => {
+    const body = c.req.valid("json");
+    const result = await authService.resetPassword(
+      body.token,
+      body.new_password
+    );
+    return sendSuccess(c, result, result.message);
   }
 );

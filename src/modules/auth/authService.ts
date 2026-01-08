@@ -1,5 +1,5 @@
 import { sign } from "hono/jwt";
-import { and, eq } from "drizzle-orm";
+import { and, eq, lt, isNull } from "drizzle-orm";
 import type { UserService } from "../../modules/users/userService";
 import type { UserSignup } from "./validation/auth";
 import config from "../../config";
@@ -7,7 +7,10 @@ import axios from "axios";
 import { randomUUIDv7 } from "bun";
 import { Errors } from "../../utils/error";
 import { db } from "../../database/drizzle";
-import { sessions as sessionModel } from "../../database/schemas/postgre/schema";
+import {
+  sessions as sessionModel,
+  password_reset_tokens as passwordResetTokensModel
+} from "../../database/schemas/postgre/schema";
 
 export class AuthService {
   constructor(
@@ -194,5 +197,104 @@ export class AuthService {
     });
 
     return this.userService.updatePassword(userId, hashedPassword);
+  }
+
+  async requestPasswordReset(email: string) {
+    const user = await this.userService.getUserByEmailRaw(email);
+    
+    if (!user) {
+      // Return success even if user doesn't exist (security best practice)
+      return {
+        message: "If the email exists, a password reset link has been sent"
+      };
+    }
+
+    // Generate a secure random token
+    const token = randomUUIDv7().toString();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Delete any existing unused tokens for this user
+    await db
+      .delete(passwordResetTokensModel)
+      .where(
+        and(
+          eq(passwordResetTokensModel.user_id, user.id),
+          isNull(passwordResetTokensModel.used_at)
+        )
+      );
+
+    // Create new reset token
+    await db.insert(passwordResetTokensModel).values({
+      id: randomUUIDv7(),
+      user_id: user.id,
+      token: token,
+      expires_at: expiresAt.toISOString(),
+    });
+
+    // TODO: Send email with reset link
+    // For now, we'll return the token (in production, this should be sent via email)
+    // Example reset link: https://yourapp.com/reset-password?token=${token}
+    
+    const resetLink = `${config.frontend.resetPasswordUrl}?token=${token}`;
+    console.log(`Password reset token for ${email}: ${token}`);
+    console.log(`Reset link: ${resetLink}`);
+
+    return {
+      message: "If the email exists, a password reset link has been sent",
+      // Remove this in production - only for development
+      ...(process.env.NODE_ENV === "development" && { token, resetLink })
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    // Find the token
+    const resetToken = await db.query.password_reset_tokens.findFirst({
+      where: and(
+        eq(passwordResetTokensModel.token, token),
+        isNull(passwordResetTokensModel.used_at)
+      ),
+      with: {
+        user: true,
+      },
+    });
+
+    if (!resetToken) {
+      throw Errors.InvalidInput("token", "Invalid or expired reset token");
+    }
+
+    // Check if token is expired
+    if (new Date(resetToken.expires_at) < new Date()) {
+      throw Errors.InvalidInput("token", "Reset token has expired");
+    }
+
+    // Hash the new password
+    const hashedPassword = Bun.password.hashSync(newPassword, {
+      algorithm: "bcrypt",
+      cost: 12,
+    });
+
+    // Update user password
+    await this.userService.updatePassword(resetToken.user_id, hashedPassword);
+
+    // Mark token as used
+    await db
+      .update(passwordResetTokensModel)
+      .set({ used_at: new Date().toISOString() })
+      .where(eq(passwordResetTokensModel.token, token));
+
+    // Optionally: Invalidate all existing sessions for this user
+    await db
+      .delete(sessionModel)
+      .where(eq(sessionModel.user_id, resetToken.user_id));
+
+    return { message: "Password has been reset successfully" };
+  }
+
+  async cleanupExpiredTokens() {
+    // Clean up expired tokens (can be run as a cron job)
+    const now = new Date().toISOString();
+    await db
+      .delete(passwordResetTokensModel)
+      .where(lt(passwordResetTokensModel.expires_at, now));
   }
 }

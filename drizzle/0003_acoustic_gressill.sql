@@ -1,0 +1,1 @@
+DROP INDEX "uq_holdings_user_platform_name_currency";

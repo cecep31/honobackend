@@ -109,6 +109,23 @@ export const sessions = pgTable("sessions", {
 		}).onDelete("cascade"),
 ]);
 
+export const password_reset_tokens = pgTable("password_reset_tokens", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	user_id: uuid("user_id").notNull(),
+	token: varchar({ length: 255 }).notNull(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	expires_at: timestamp("expires_at", { withTimezone: true, mode: 'string' }).notNull(),
+	used_at: timestamp("used_at", { withTimezone: true, mode: 'string' }),
+}, (table) => [
+	uniqueIndex("idx_password_reset_tokens_token").using("btree", table.token.asc().nullsLast().op("text_ops")),
+	index("idx_password_reset_tokens_user_id").using("btree", table.user_id.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.user_id],
+			foreignColumns: [users.id],
+			name: "password_reset_tokens_user_id_users_id_fk"
+		}).onDelete("cascade"),
+]);
+
 export const tags = pgTable("tags", {
 	id: serial().primaryKey().notNull(),
 	name: varchar({ length: 30 }),
@@ -327,7 +344,6 @@ export const holdings = pgTable("holdings", {
 	year: integer().default(2025).notNull(),
 }, (table) => [
 	index("idx_holdings_user").using("btree", table.user_id.asc().nullsLast().op("uuid_ops")),
-	uniqueIndex("uq_holdings_user_platform_name_currency").using("btree", table.user_id.asc().nullsLast().op("bpchar_ops"), table.platform.asc().nullsLast().op("bpchar_ops"), table.name.asc().nullsLast().op("bpchar_ops"), table.currency.asc().nullsLast().op("bpchar_ops")),
 	foreignKey({
 			columns: [table.user_id],
 			foreignColumns: [users.id],
@@ -364,6 +380,7 @@ export const usersRelations = relations(users, ({many}) => ({
 	}),
 	post_likes: many(post_likes),
 	post_bookmarks: many(post_bookmarks),
+	password_reset_tokens: many(password_reset_tokens),
 }));
 
 export const post_comments_relations = relations(post_comments, ({one}) => ({
@@ -403,6 +420,13 @@ export const chat_conversations_relations = relations(chat_conversations, ({many
 export const sessionsRelations = relations(sessions, ({one}) => ({
 	user: one(users, {
 		fields: [sessions.user_id],
+		references: [users.id]
+	}),
+}));
+
+export const passwordResetTokensRelations = relations(password_reset_tokens, ({one}) => ({
+	user: one(users, {
+		fields: [password_reset_tokens.user_id],
 		references: [users.id]
 	}),
 }));

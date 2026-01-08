@@ -57,6 +57,18 @@ const getConfig = {
     defaultModel:
       process.env["OPENROUTER_DEFAULT_MODEL"] ?? "google/gemma-2-9b-it:free",
   },
+  email: {
+    host: process.env["EMAIL_HOST"] ?? "",
+    port: getNumberEnv("EMAIL_PORT", 587),
+    secure: process.env["EMAIL_SECURE"] === "true",
+    user: process.env["EMAIL_USER"] ?? "",
+    password: process.env["EMAIL_PASSWORD"] ?? "",
+    from: process.env["EMAIL_FROM"] ?? "noreply@pilput.me",
+  },
+  frontend: {
+    url: process.env["FRONTEND_URL"] ?? "http://localhost:3000",
+    resetPasswordUrl: process.env["FRONTEND_RESET_PASSWORD_URL"] ?? "http://localhost:3000/reset-password",
+  },
 };
 
 export default getConfig;

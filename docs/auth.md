@@ -284,6 +284,138 @@ curl -X PATCH /v1/auth/password \
 
 ---
 
+### 10. Forgot Password
+Request a password reset link.
+
+- **URL:** `/forgot-password`
+- **Method:** `POST`
+- **Rate Limit:** 3 requests per 15 minutes per IP
+- **Content-Type:** `application/json`
+- **Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Validation Rules:**
+| Field | Type | Rules |
+|-------|------|-------|
+| email | string | Valid email format |
+
+**Example Request:**
+```bash
+curl -X POST /v1/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com"}'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "If the email exists, a password reset link has been sent"
+  },
+  "message": "If the email exists, a password reset link has been sent"
+}
+```
+
+**Development Mode Response (includes token):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "If the email exists, a password reset link has been sent",
+    "token": "01942f3e-8b7a-7890-b123-456789abcdef",
+    "resetLink": "http://localhost:3000/reset-password?token=01942f3e-8b7a-7890-b123-456789abcdef"
+  },
+  "message": "If the email exists, a password reset link has been sent"
+}
+```
+
+**Notes:**
+- For security, the response is the same whether the email exists or not
+- Reset tokens expire after 1 hour
+- Only one active reset token per user (previous tokens are invalidated)
+- In development mode, the token and reset link are included in the response
+- In production, the token should be sent via email
+
+---
+
+### 11. Reset Password
+Reset password using a valid reset token.
+
+- **URL:** `/reset-password`
+- **Method:** `POST`
+- **Rate Limit:** 5 requests per 15 minutes per IP
+- **Content-Type:** `application/json`
+- **Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "token": "01942f3e-8b7a-7890-b123-456789abcdef",
+  "new_password": "newPassword123",
+  "confirm_password": "newPassword123"
+}
+```
+
+**Validation Rules:**
+| Field | Type | Rules |
+|-------|------|-------|
+| token | string | Required, non-empty |
+| new_password | string | Min 6 chars |
+| confirm_password | string | Must match new_password |
+
+**Example Request:**
+```bash
+curl -X POST /v1/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "01942f3e-8b7a-7890-b123-456789abcdef",
+    "new_password": "newPassword123",
+    "confirm_password": "newPassword123"
+  }'
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Password has been reset successfully"
+  },
+  "message": "Password has been reset successfully"
+}
+```
+
+**Error Response (400 - Invalid Token):**
+```json
+{
+  "success": false,
+  "error": "Invalid or expired reset token"
+}
+```
+
+**Error Response (400 - Expired Token):**
+```json
+{
+  "success": false,
+  "error": "Reset token has expired"
+}
+```
+
+**Notes:**
+- Reset tokens can only be used once
+- After successful password reset, all existing user sessions are invalidated
+- Tokens expire after 1 hour
+- Used tokens cannot be reused
+
+---
+
 ## Error Responses
 
 All endpoints return consistent error responses:
@@ -316,8 +448,13 @@ All endpoints return consistent error responses:
 
 ## Security Notes
 
-- Passwords are hashed using bcrypt before storage
+- Passwords are hashed using bcrypt (cost factor 12) before storage
 - JWT tokens expire after 5 hours (set in cookie)
 - GitHub OAuth uses strict same-site cookie policy
 - Login attempts are rate-limited (7 per 15 minutes)
+- Password reset requests are rate-limited (3 per 15 minutes)
+- Password reset tokens expire after 1 hour
+- Reset tokens can only be used once
+- All user sessions are invalidated after password reset
 - Never expose tokens in client-side code or URLs
+- Password reset responses don't reveal if email exists (security best practice)
