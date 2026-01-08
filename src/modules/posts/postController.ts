@@ -187,3 +187,52 @@ postController.post("/upload/image", auth, async (c) => {
 
   return sendSuccess(c, { url }, "Image uploaded successfully", 201);
 });
+
+// Chart endpoints
+postController.get("/charts/posts-over-time", async (c) => {
+  const days = parseInt(c.req.query("days") || "30");
+  const groupBy = (c.req.query("groupBy") || "day") as 'day' | 'week' | 'month';
+  
+  const data = await postService.getPostsOverTime(days, groupBy);
+  return sendSuccess(c, data, "Posts over time data fetched successfully");
+});
+
+postController.get("/charts/posts-by-tag", async (c) => {
+  const limit = parseInt(c.req.query("limit") || "10");
+  
+  const data = await postService.getPostsByTagDistribution(limit);
+  return sendSuccess(c, data, "Posts by tag distribution fetched successfully");
+});
+
+postController.get("/charts/top-by-views", async (c) => {
+  const limit = parseInt(c.req.query("limit") || "10");
+  
+  const data = await postService.getTopPostsByViews(limit);
+  return sendSuccess(c, data, "Top posts by views fetched successfully");
+});
+
+postController.get("/charts/top-by-likes", async (c) => {
+  const limit = parseInt(c.req.query("limit") || "10");
+  
+  const data = await postService.getTopPostsByLikes(limit);
+  return sendSuccess(c, data, "Top posts by likes fetched successfully");
+});
+
+postController.get("/charts/user-activity", async (c) => {
+  const limit = parseInt(c.req.query("limit") || "10");
+  
+  const data = await postService.getUserActivity(limit);
+  return sendSuccess(c, data, "User activity data fetched successfully");
+});
+
+postController.get("/charts/engagement-metrics", async (c) => {
+  const data = await postService.getEngagementMetrics();
+  return sendSuccess(c, data, "Engagement metrics fetched successfully");
+});
+
+postController.get("/charts/engagement-comparison", async (c) => {
+  const limit = parseInt(c.req.query("limit") || "20");
+  
+  const data = await postService.getEngagementComparison(limit);
+  return sendSuccess(c, data, "Engagement comparison data fetched successfully");
+});
