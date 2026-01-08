@@ -1,4 +1,4 @@
-import { pgTable, uniqueIndex, foreignKey, serial, timestamp, uuid, text, bigint, varchar, integer, index, unique, boolean, check, smallserial, bigserial, smallint, char, numeric, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, uniqueIndex, index, foreignKey, serial, timestamp, uuid, text, bigint, varchar, integer, unique, boolean, check, smallserial, bigserial, smallint, char, numeric, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -10,10 +10,17 @@ export const likes = pgTable("likes", {
 	userId: uuid("user_id"),
 }, (table) => [
 	uniqueIndex("idx_like_post_id_created_by").using("btree", table.postId.asc().nullsLast().op("uuid_ops"), table.userId.asc().nullsLast().op("uuid_ops")),
+	index("idx_likes_post_id").using("btree", table.postId.asc().nullsLast().op("uuid_ops")),
+	index("idx_likes_user_id").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [users.id],
 			name: "likes_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.postId],
+			foreignColumns: [posts.id],
+			name: "likes_post_id_posts_id_fk"
 		}).onDelete("cascade"),
 ]);
 
@@ -25,9 +32,13 @@ export const postComments = pgTable("post_comments", {
 	text: text(),
 	postId: uuid("post_id"),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	parrentCommentId: bigint("parrent_comment_id", { mode: "number" }),
+	parentCommentId: bigint("parent_comment_id", { mode: "number" }),
 	createdBy: uuid("created_by"),
 }, (table) => [
+	index("idx_post_comments_created_by").using("btree", table.createdBy.asc().nullsLast().op("uuid_ops")),
+	index("idx_post_comments_deleted_at").using("btree", table.deletedAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_post_comments_parent_id").using("btree", table.parentCommentId.asc().nullsLast().op("int8_ops")),
+	index("idx_post_comments_post_id").using("btree", table.postId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.createdBy],
 			foreignColumns: [users.id],
@@ -41,31 +52,47 @@ export const postComments = pgTable("post_comments", {
 ]);
 
 export const chatConversations = pgTable("chat_conversations", {
-	id: uuid().primaryKey().notNull(),
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).notNull(),
+	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	deletedAt: timestamp("deleted_at", { precision: 6, withTimezone: true, mode: 'string' }),
 	title: varchar({ length: 255 }).notNull(),
 	userId: uuid("user_id").notNull(),
-});
+}, (table) => [
+	index("idx_chat_conversations_deleted_at").using("btree", table.deletedAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_chat_conversations_user_id").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "chat_conversations_user_id_users_id_fk"
+		}).onDelete("cascade"),
+]);
 
 export const chatMessages = pgTable("chat_messages", {
-	id: uuid().primaryKey().notNull(),
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).notNull(),
+	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	conversationId: uuid("conversation_id").notNull(),
 	userId: uuid("user_id").notNull(),
 	role: varchar({ length: 20 }).notNull(),
 	content: text().notNull(),
 	model: varchar({ length: 100 }),
-	promptTokens: integer("prompt_tokens"),
-	completionTokens: integer("completion_tokens"),
-	totalTokens: integer("total_tokens"),
+	promptTokens: integer("prompt_tokens").default(0),
+	completionTokens: integer("completion_tokens").default(0),
+	totalTokens: integer("total_tokens").default(0),
 }, (table) => [
+	index("idx_chat_messages_conversation_id").using("btree", table.conversationId.asc().nullsLast().op("uuid_ops")),
+	index("idx_chat_messages_created_at").using("btree", table.createdAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_chat_messages_user_id").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.conversationId],
 			foreignColumns: [chatConversations.id],
 			name: "chat_messages_conversation_id_chat_conversations_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "chat_messages_user_id_users_id_fk"
 		}).onDelete("cascade"),
 ]);
 
@@ -85,8 +112,11 @@ export const posts = pgTable("posts", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	likeCount: bigint("like_count", { mode: "number" }).default(0),
 }, (table) => [
-	index("posts_created_by_idx").using("btree", table.createdBy.asc().nullsLast().op("bool_ops"), table.slug.asc().nullsLast().op("bool_ops"), table.published.asc().nullsLast().op("uuid_ops"), table.deletedAt.asc().nullsLast().op("uuid_ops")),
-	index("posts_deleted_at_idx").using("btree", table.deletedAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_posts_created_at").using("btree", table.createdAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_posts_created_by").using("btree", table.createdBy.asc().nullsLast().op("uuid_ops")),
+	index("idx_posts_deleted_at").using("btree", table.deletedAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_posts_published").using("btree", table.published.asc().nullsLast().op("bool_ops")),
+	index("idx_posts_slug").using("btree", table.slug.asc().nullsLast().op("text_ops")),
 	foreignKey({
 			columns: [table.createdBy],
 			foreignColumns: [users.id],
@@ -102,6 +132,8 @@ export const sessions = pgTable("sessions", {
 	userAgent: text("user_agent"),
 	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }),
 }, (table) => [
+	index("idx_sessions_expires_at").using("btree", table.expiresAt.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_sessions_user_id").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [users.id],
@@ -146,6 +178,8 @@ export const files = pgTable("files", {
 	type: varchar({ length: 255 }),
 	createdBy: uuid("created_by"),
 }, (table) => [
+	index("idx_files_created_by").using("btree", table.createdBy.asc().nullsLast().op("uuid_ops")),
+	index("idx_files_deleted_at").using("btree", table.deletedAt.asc().nullsLast().op("timestamptz_ops")),
 	foreignKey({
 			columns: [table.createdBy],
 			foreignColumns: [users.id],
@@ -172,10 +206,28 @@ export const users = pgTable("users", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	followingCount: bigint("following_count", { mode: "number" }).default(0),
 }, (table) => [
+	index("idx_users_created_at").using("btree", table.createdAt.asc().nullsLast().op("timestamptz_ops")),
 	uniqueIndex("idx_users_email").using("btree", table.email.asc().nullsLast().op("text_ops")),
 	uniqueIndex("idx_users_username").using("btree", table.username.asc().nullsLast().op("text_ops")),
 	index("users_deleted_at_idx").using("btree", table.deletedAt.asc().nullsLast().op("timestamptz_ops")),
 	unique("users_github_id_unique").on(table.githubId),
+]);
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	userId: uuid("user_id").notNull(),
+	token: varchar({ length: 255 }).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }).notNull(),
+	usedAt: timestamp("used_at", { withTimezone: true, mode: 'string' }),
+}, (table) => [
+	uniqueIndex("idx_password_reset_tokens_token").using("btree", table.token.asc().nullsLast().op("text_ops")),
+	index("idx_password_reset_tokens_user_id").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "password_reset_tokens_user_id_users_id_fk"
+		}).onDelete("cascade"),
 ]);
 
 export const postViews = pgTable("post_views", {
@@ -309,8 +361,9 @@ export const holdings = pgTable("holdings", {
 	month: integer().default(1).notNull(),
 	year: integer().default(2025).notNull(),
 }, (table) => [
+	index("idx_holdings_holding_type_id").using("btree", table.holdingTypeId.asc().nullsLast().op("int2_ops")),
+	index("idx_holdings_month_year").using("btree", table.year.asc().nullsLast().op("int4_ops"), table.month.asc().nullsLast().op("int4_ops")),
 	index("idx_holdings_user").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
-	uniqueIndex("uq_holdings_user_platform_name_currency").using("btree", table.userId.asc().nullsLast().op("bpchar_ops"), table.platform.asc().nullsLast().op("bpchar_ops"), table.name.asc().nullsLast().op("bpchar_ops"), table.currency.asc().nullsLast().op("bpchar_ops")),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [users.id],
@@ -327,6 +380,8 @@ export const postsToTags = pgTable("posts_to_tags", {
 	postId: uuid("post_id").notNull(),
 	tagId: integer("tag_id").notNull(),
 }, (table) => [
+	index("idx_posts_to_tags_post_id").using("btree", table.postId.asc().nullsLast().op("uuid_ops")),
+	index("idx_posts_to_tags_tag_id").using("btree", table.tagId.asc().nullsLast().op("int4_ops")),
 	foreignKey({
 			columns: [table.tagId],
 			foreignColumns: [tags.id],

@@ -1,20 +1,27 @@
 import { relations } from "drizzle-orm/relations";
-import { users, likes, postComments, posts, chatConversations, chatMessages, sessions, profiles, files, postViews, userFollows, postLikes, postBookmarks, holdings, holdingTypes, tags, postsToTags } from "./schema";
+import { users, likes, posts, postComments, chatConversations, chatMessages, sessions, profiles, files, passwordResetTokens, postViews, userFollows, postLikes, postBookmarks, holdings, holdingTypes, tags, postsToTags } from "./schema";
 
 export const likesRelations = relations(likes, ({one}) => ({
 	user: one(users, {
 		fields: [likes.userId],
 		references: [users.id]
 	}),
+	post: one(posts, {
+		fields: [likes.postId],
+		references: [posts.id]
+	}),
 }));
 
 export const usersRelations = relations(users, ({many}) => ({
 	likes: many(likes),
 	postComments: many(postComments),
+	chatConversations: many(chatConversations),
+	chatMessages: many(chatMessages),
 	posts: many(posts),
 	sessions: many(sessions),
 	profiles: many(profiles),
 	files: many(files),
+	passwordResetTokens: many(passwordResetTokens),
 	postViews: many(postViews),
 	userFollows_followerId: many(userFollows, {
 		relationName: "userFollows_followerId_users_id"
@@ -25,6 +32,19 @@ export const usersRelations = relations(users, ({many}) => ({
 	postLikes: many(postLikes),
 	postBookmarks: many(postBookmarks),
 	holdings: many(holdings),
+}));
+
+export const postsRelations = relations(posts, ({one, many}) => ({
+	likes: many(likes),
+	postComments: many(postComments),
+	user: one(users, {
+		fields: [posts.createdBy],
+		references: [users.id]
+	}),
+	postViews: many(postViews),
+	postLikes: many(postLikes),
+	postBookmarks: many(postBookmarks),
+	postsToTags: many(postsToTags),
 }));
 
 export const postCommentsRelations = relations(postComments, ({one}) => ({
@@ -38,16 +58,12 @@ export const postCommentsRelations = relations(postComments, ({one}) => ({
 	}),
 }));
 
-export const postsRelations = relations(posts, ({one, many}) => ({
-	postComments: many(postComments),
+export const chatConversationsRelations = relations(chatConversations, ({one, many}) => ({
 	user: one(users, {
-		fields: [posts.createdBy],
+		fields: [chatConversations.userId],
 		references: [users.id]
 	}),
-	postViews: many(postViews),
-	postLikes: many(postLikes),
-	postBookmarks: many(postBookmarks),
-	postsToTags: many(postsToTags),
+	chatMessages: many(chatMessages),
 }));
 
 export const chatMessagesRelations = relations(chatMessages, ({one}) => ({
@@ -55,10 +71,10 @@ export const chatMessagesRelations = relations(chatMessages, ({one}) => ({
 		fields: [chatMessages.conversationId],
 		references: [chatConversations.id]
 	}),
-}));
-
-export const chatConversationsRelations = relations(chatConversations, ({many}) => ({
-	chatMessages: many(chatMessages),
+	user: one(users, {
+		fields: [chatMessages.userId],
+		references: [users.id]
+	}),
 }));
 
 export const sessionsRelations = relations(sessions, ({one}) => ({
@@ -78,6 +94,13 @@ export const profilesRelations = relations(profiles, ({one}) => ({
 export const filesRelations = relations(files, ({one}) => ({
 	user: one(users, {
 		fields: [files.createdBy],
+		references: [users.id]
+	}),
+}));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({one}) => ({
+	user: one(users, {
+		fields: [passwordResetTokens.userId],
 		references: [users.id]
 	}),
 }));
