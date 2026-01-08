@@ -143,7 +143,7 @@ describe('UserService', () => {
 
             const result = await userService.deleteUser('1');
 
-            expect(result).toEqual([{ id: '1' }]);
+            expect(result).toEqual({ id: '1' });
             expect(mockUpdate).toHaveBeenCalled();
         });
 
@@ -166,6 +166,9 @@ describe('UserService', () => {
                 is_super_admin: false
             };
 
+            // Mock username and email count checks
+            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // username check
+            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // email check
             mockReturning.mockResolvedValue([{ id: 'new-user-id' }]);
 
             const result = await userService.addUser(userData);
@@ -181,10 +184,13 @@ describe('UserService', () => {
                 username: 'admin',
                 email: 'admin@example.com',
                 password: 'adminpass',
-                image: null,
+                image: '/images/default.jpg',
                 is_super_admin: true
             };
 
+            // Mock username and email count checks
+            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // username check
+            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // email check
             mockReturning.mockResolvedValue([{ id: 'admin-id', is_super_admin: true }]);
 
             const result = await userService.addUser(userData);
@@ -367,7 +373,7 @@ describe('UserService', () => {
 
             const result = await userService.updatePassword('1', 'newhash');
 
-            expect(result[0]).toHaveProperty('id', '1');
+            expect(result).toHaveProperty('id', '1');
             expect(mockUpdate).toHaveBeenCalled();
         });
     });
