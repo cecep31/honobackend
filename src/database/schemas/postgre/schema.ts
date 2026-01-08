@@ -38,6 +38,7 @@ export const post_comments = pgTable("post_comments", {
 	index("idx_post_comments_created_by").using("btree", table.created_by.asc().nullsLast().op("uuid_ops")),
 	index("idx_post_comments_parent_id").using("btree", table.parent_comment_id.asc().nullsLast().op("int8_ops")),
 	index("idx_post_comments_deleted_at").using("btree", table.deleted_at.asc().nullsLast().op("timestamptz_ops")),
+	index("idx_post_comments_post_parent").using("btree", table.post_id.asc().nullsLast().op("uuid_ops"), table.parent_comment_id.asc().nullsLast().op("int8_ops")),
 	foreignKey({
 			columns: [table.created_by],
 			foreignColumns: [users.id],
@@ -120,6 +121,7 @@ export const posts = pgTable("posts", {
 			name: "fk_posts_creator"
 		}).onUpdate("cascade").onDelete("set null"),
 	unique("creator and slug inique").on(table.created_by, table.slug),
+	check("chk_posts_counts_positive", sql`view_count >= 0 AND like_count >= 0`),
 ]);
 
 export const sessions = pgTable("sessions", {
@@ -167,7 +169,7 @@ export const profiles = pgTable("profiles", {
 	id: serial().primaryKey().notNull(),
 	user_id: uuid("user_id").notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	bio: text(),
 	website: text(),
 	phone: varchar({ length: 50 }),
@@ -182,9 +184,9 @@ export const profiles = pgTable("profiles", {
 ]);
 
 export const files = pgTable("files", {
-	id: uuid().primaryKey().notNull(),
-	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }),
-	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	deleted_at: timestamp("deleted_at", { withTimezone: true, mode: 'string' }),
 	name: varchar({ length: 255 }),
 	path: text(),
@@ -252,7 +254,7 @@ export const post_views = pgTable("post_views", {
 ]);
 
 export const user_follows = pgTable("user_follows", {
-	id: uuid().primaryKey().notNull(),
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	follower_id: uuid("follower_id").notNull(),
 	following_id: uuid("following_id").notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
@@ -278,7 +280,7 @@ export const user_follows = pgTable("user_follows", {
 ]);
 
 export const post_likes = pgTable("post_likes", {
-	id: uuid().primaryKey().notNull(),
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	post_id: uuid("post_id").notNull(),
 	user_id: uuid("user_id").notNull(),
 	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
@@ -303,7 +305,7 @@ export const post_likes = pgTable("post_likes", {
 ]);
 
 export const post_bookmarks = pgTable("post_bookmarks", {
-	id: uuid().primaryKey().notNull(),
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
 	post_id: uuid("post_id").notNull(),
 	user_id: uuid("user_id").notNull(),
 	created_at: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
@@ -377,16 +379,42 @@ export const holdings = pgTable("holdings", {
 	index("idx_holdings_user").using("btree", table.user_id.asc().nullsLast().op("uuid_ops")),
 	index("idx_holdings_holding_type_id").using("btree", table.holding_type_id.asc().nullsLast().op("int2_ops")),
 	index("idx_holdings_month_year").using("btree", table.year.asc().nullsLast().op("int4_ops"), table.month.asc().nullsLast().op("int4_ops")),
+	index("idx_holdings_user_month_year").using("btree", table.user_id.asc().nullsLast().op("uuid_ops"), table.year.asc().nullsLast().op("int4_ops"), table.month.asc().nullsLast().op("int4_ops")),
 	foreignKey({
 			columns: [table.user_id],
 			foreignColumns: [users.id],
 			name: "holdings_user_id_fkey"
-		}),
+		}).onDelete("cascade"),
 	foreignKey({
 			columns: [table.holding_type_id],
 			foreignColumns: [holding_types.id],
 			name: "holdings_holding_type_id_fkey"
-		}),
+		}).onDelete("restrict"),
+	check("chk_holdings_positive_amounts", sql`invested_amount >= 0 AND current_value >= 0`),
+	check("chk_holdings_valid_month", sql`month >= 1 AND month <= 12`),
+	check("chk_holdings_valid_year", sql`year >= 2000`),
+]);
+
+export const notifications = pgTable("notifications", {
+	id: uuid().default(sql`uuid_generate_v4()`).primaryKey().notNull(),
+	user_id: uuid("user_id").notNull(),
+	type: varchar({ length: 50 }).notNull(),
+	title: varchar({ length: 255 }).notNull(),
+	message: text(),
+	read: boolean().default(false).notNull(),
+	data: text(),
+	created_at: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updated_at: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	index("idx_notifications_user_id").using("btree", table.user_id.asc().nullsLast().op("uuid_ops")),
+	index("idx_notifications_read").using("btree", table.read.asc().nullsLast().op("bool_ops")),
+	index("idx_notifications_created_at").using("btree", table.created_at.desc().nullsLast().op("timestamptz_ops")),
+	index("idx_notifications_user_read").using("btree", table.user_id.asc().nullsLast().op("uuid_ops"), table.read.asc().nullsLast().op("bool_ops")),
+	foreignKey({
+			columns: [table.user_id],
+			foreignColumns: [users.id],
+			name: "notifications_user_id_users_id_fk"
+		}).onDelete("cascade"),
 ]);
 
 
@@ -414,6 +442,7 @@ export const usersRelations = relations(users, ({many}) => ({
 	post_likes: many(post_likes),
 	post_bookmarks: many(post_bookmarks),
 	password_reset_tokens: many(password_reset_tokens),
+	notifications: many(notifications),
 }));
 
 export const post_comments_relations = relations(post_comments, ({one}) => ({
@@ -552,4 +581,11 @@ export const holdingsRelations = relations(holdings, ({one}) => ({
 
 export const holding_types_relations = relations(holding_types, ({many}) => ({
 	holdings: many(holdings),
+}));
+
+export const notificationsRelations = relations(notifications, ({one}) => ({
+	user: one(users, {
+		fields: [notifications.user_id],
+		references: [users.id]
+	}),
 }));
