@@ -1,6 +1,9 @@
 {
   "name": "honobackend",
+  "version": "1.0.0",
+  "description": "Hono/TypeScript backend API with PostgreSQL and Drizzle ORM",
   "module": "index.ts",
+  "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "bun --hot index.ts",
@@ -8,13 +11,18 @@
     "db:migrate": "drizzle-kit migrate",
     "db:pull": "drizzle-kit pull",
     "db:push": "drizzle-kit push",
-    "studio": "drizzle-kit studio",
+    "db:studio": "drizzle-kit studio",
     "start": "bun run index.ts",
     "build": "tsc --noEmit && bun build index.ts --minify --outdir dist --target bun",
     "build:compile": "tsc --noEmit && bun build index.ts --minify --outfile bin/honobackend --compile --target bun",
     "start:prod": "bun run dist/index.js",
     "test": "bun test",
-    "clean": "rm -rf dist bin"
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "clean": "rm -rf dist bin",
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "bun run typecheck"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
@@ -25,8 +33,23 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "^1.1.15",
     "drizzle-kit": "^0.31.8",
     "typescript": "^5.9.3"
-  }
+  },
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "hono",
+    "typescript",
+    "backend",
+    "api",
+    "postgresql",
+    "drizzle-orm",
+    "bun"
+  ],
+  "author": "",
+  "license": "MIT"
 }
