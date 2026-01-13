@@ -1,143 +1,194 @@
-# Hono Backend Project - Development Context
+# Hono Backend - Project Context
 
 ## Project Overview
 
-This is a full-stack web backend application built with TypeScript and the Bun runtime. The project uses the Hono framework to create a RESTful API with PostgreSQL as the database backend, utilizing Drizzle ORM for database operations. The application provides features for user management, content management, authentication, chat functionality, and investment holdings tracking.
+This is a high-performance backend API built with **Hono** running on the **Bun** runtime, featuring **PostgreSQL** with **Drizzle ORM**. The application provides a comprehensive social media platform with features including authentication, content management, social features, and financial portfolio tracking.
 
-## Architecture & Technologies
-
-- **Runtime**: Bun (JavaScript/TypeScript runtime)
-- **Framework**: Hono (web framework for building APIs)
+### Key Technologies
+- **Runtime**: Bun (v1.x)
+- **Framework**: Hono (v4.11.3)
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT-based authentication with refresh tokens
-- **Validation**: Zod for request validation
-- **Rate Limiting**: Hono-rate-limiter
-- **Containerization**: Docker and Docker Compose
-- **Deployment**: Fly.io (based on fly.toml)
+- **Language**: TypeScript
+- **Validation**: Zod
+- **Authentication**: JWT-based with OAuth support
+- **Deployment**: Docker, Fly.io
 
-## Project Structure
+### Architecture
+- **Service-oriented**: Business logic and data access integrated in the service layer
+- **Modular structure**: Organized by feature modules (auth, posts, users, chat, holdings, etc.)
+- **Type-safe**: Request validation with Zod
+- **Database**: PostgreSQL with Drizzle ORM for schema management
 
-The project follows a modular architecture with the following key directories:
+## Features
 
-- `src/config/` - Application configuration and environment variables
-- `src/database/` - Database schema definitions and connection setup
-- `src/middlewares/` - Hono middleware functions (auth, logging, CORS, etc.)
-- `src/modules/` - API modules containing controllers, services, and validation
-- `src/pkg/` - Business logic services
-- `src/router/` - API route definitions
-- `src/server/` - Server initialization and configuration
-- `src/types/` - TypeScript type definitions
-- `src/utils/` - Utility functions
+### Core Features
+- **Authentication**: Secure user auth flows with JWT tokens, refresh tokens, and GitHub OAuth
+- **Content Management**: Posts, Tags, and Likes with rich text support
+- **Social Features**: Comments, Bookmarks, Follow system, and Chat (via OpenRouter)
+- **Financial Tracking**: Holdings management with portfolio tracking capabilities
+- **User Profiles**: Complete user profile management with followers/following system
+- **Notifications**: Real-time notification system
 
-## Key Features
-
-- RESTful API with versioning (v1)
-- User management (CRUD operations)
-- Authentication system (OAuth with GitHub)
-- Posts and content management
-- Chat functionality
-- Holdings tracking (investment/portfolio management)
-- Tagging system
-- Like and bookmark functionality
-- File management
-- Rate limiting
-- Logging and error handling
-- CORS support
-- Request ID tracking
+### Advanced Features
+- **Rate Limiting**: Built-in rate limiting middleware
+- **File Uploads**: S3-compatible file storage
+- **Analytics**: Post engagement metrics and charts
+- **Search**: Tag-based and user-based content discovery
+- **API Documentation**: Comprehensive REST API endpoints
 
 ## Database Schema
 
-The application uses PostgreSQL with the following main entities:
-- Users (with profiles, sessions, and follow relationships)
-- Posts (with comments, likes, bookmarks, and views)
-- Tags (with posts-to-tags relationships)
-- Chat conversations and messages
-- Holdings (investment tracking)
-- Post views, likes, and bookmarks
+The application uses PostgreSQL with the following major entities:
+- **Users**: Core user accounts with authentication and profile data
+- **Posts**: Content management with titles, bodies, slugs, and publishing controls
+- **Tags**: Categorization system for posts
+- **Likes**: Social engagement tracking
+- **Comments**: Post discussion system
+- **Chat**: Conversation and message history
+- **Holdings**: Financial portfolio tracking
+- **Files**: File upload management
+- **Notifications**: User notification system
+- **Sessions**: Authentication session management
 
-## Environment Variables
+## Project Structure
 
-The application requires the following environment variables (refer to `.env.example` for a complete list):
-- `DATABASE_URL` - PostgreSQL database connection string
-- `JWT_SECRET` - Secret for JWT token generation
-- `PORT` - Server port (default: 3001)
-- Various other configuration variables for external services (GitHub OAuth, S3, OpenRouter, etc.)
+```
+src/
+├── config/           # Configuration files
+├── database/         # Database schemas and connection
+├── middlewares/      # Application middleware
+├── modules/          # Feature modules (auth, posts, users, etc.)
+├── router/           # Main route definitions
+├── server/           # Server initialization
+├── services/         # Business logic services
+├── test/             # Test files
+├── types/            # TypeScript type definitions
+└── utils/            # Utility functions
+```
 
-## Building and Running Instructions
-
-### Prerequisites
-- Node.js with Bun runtime installed
-- PostgreSQL database
-- Bun package manager
-
-### Setup
-1. Install dependencies: `bun install`
-2. Set up environment variables (copy from `.env.example`)
-3. Configure your PostgreSQL database connection in the `DATABASE_URL` environment variable
+## Building and Running
 
 ### Development
-- Run in development mode: `bun run dev`
-- The server will start on port 3001 by default
-- Access the application at: http://localhost:3001
+```bash
+# Install dependencies
+bun install
 
-### Building
-- Build the project: `bun run build`
-- This compiles TypeScript and bundles the application
+# Configure environment
+cp .env.example .env
+# Fill in your database credentials and other secrets
+
+# Run development server
+bun run dev
+# Access at: http://localhost:3001
+```
 
 ### Database Management
-- Generate database schema: `bun run db:generate`
-- Migrate database: `bun run db:migrate`
-- Pull database schema: `bun run db:pull`
-- Push schema to database: `bun run db:push`
-- Open Drizzle Studio: `bun run studio`
+```bash
+# Generate migrations
+bun run db:generate
 
-### Testing
-- Run tests: `bun test`
+# Apply migrations
+bun run db:migrate
+
+# Push schema changes directly
+bun run db:push
+
+# Database Studio (visual interface)
+bun run studio
+```
 
 ### Production
-- Start production build: `bun run start:prod`
+```bash
+# Type checking
+bun run typecheck
+
+# Build application
+bun run build
+
+# Start production server
+bun run start:prod
+```
+
+### Testing
+```bash
+# Run test suite
+bun test
+
+# Watch mode
+bun test --watch
+
+# Coverage report
+bun test --coverage
+```
+
+## Deployment
 
 ### Docker
-- The project includes a `docker-compose.yml` for containerized deployment
-- Builds a Docker image with the application and runs it with PostgreSQL
+The project includes a multi-stage Dockerfile for optimized builds:
+```dockerfile
+# Builds a compiled binary in the first stage
+# Runs the binary in the second stage for minimal footprint
+```
+
+### Fly.io
+Deployed on Fly.io with the following configuration:
+- Region: Singapore (cost-effective)
+- VM: 256MB memory, 1 shared CPU
+- Auto-scaling: Stops when idle, starts on request
+- HTTPS enforcement
 
 ## Development Conventions
 
-- API routes are versioned under `/v1`
-- Controllers are organized within each module in the `src/modules/` directory
-- Controllers follow a consistent pattern with proper error handling
-- Request validation is done using Zod schemas
-- Authentication is handled via middleware
-- Services are organized in the `pkg` directory with clear separation of concerns
-- TypeScript is used throughout the project for type safety
-- Proper error handling with consistent response format
-- Logging includes request IDs for traceability
+### Coding Standards
+- **Type Safety**: Extensive use of TypeScript with strict mode
+- **Validation**: All API requests validated with Zod schemas
+- **Error Handling**: Centralized error handling with custom error types
+- **Logging**: Structured logging with context information
+- **Async/Await**: Proper error handling for asynchronous operations
 
-## API Endpoints
+### API Design
+- **RESTful**: Follows REST principles with consistent endpoints
+- **Authentication**: JWT-based with refresh token rotation
+- **Rate Limiting**: Configurable rate limits per IP/user
+- **Pagination**: Standard pagination for list endpoints
+- **Response Format**: Consistent JSON response structure
 
-The application provides the following main API routes:
-- `/v1/auth` - Authentication endpoints
-- `/v1/users` - User management
-- `/v1/posts` - Post management
-- `/v1/tags` - Tag management
-- `/v1/likes` - Like functionality
-- `/v1/writers` - Writer-specific functionality
-- `/v1/chat` - Chat functionality
-- `/v1/holdings` - Investment holdings tracking
-- `/v1/bookmarks` - Bookmark functionality
+### Security
+- **Input Validation**: All inputs validated using Zod
+- **SQL Injection Prevention**: Drizzle ORM parameterized queries
+- **Authentication**: Secure JWT implementation with proper expiration
+- **Rate Limiting**: Protection against abuse
+- **File Uploads**: Strict validation of file types and sizes
 
-## Error Handling
+## Environment Variables
 
-The application implements a centralized error handling mechanism that:
-- Catches unhandled exceptions and rejections
-- Provides consistent error response format
-- Includes request IDs for debugging
-- Logs errors appropriately
+Key configuration variables include:
+- `DATABASE_URL`: PostgreSQL connection string
+- `JWT_SECRET`: Secret for JWT signing
+- `S3_*`: S3-compatible storage configuration
+- `GITHUB_*`: OAuth integration
+- `OPENROUTER_*`: AI chat integration
+- `EMAIL_*`: Email service configuration
 
-## Security Features
+## Key Dependencies
 
-- Rate limiting to prevent abuse
-- CORS configuration with specific allowed origins
-- JWT-based authentication
-- Input validation using Zod
-- Proper handling of sensitive data in environment variables
+### Runtime Dependencies
+- `hono`: Web framework
+- `drizzle-orm`: Database ORM
+- `zod`: Validation library
+- `@hono/zod-validator`: Hono-Zod integration
+- `postgres`: PostgreSQL driver
+- `hono-rate-limiter`: Rate limiting middleware
+
+### Dev Dependencies
+- `@types/bun`: Bun type definitions
+- `drizzle-kit`: Database toolkit
+- `typescript`: Type checker
+
+## Special Notes
+
+1. **BigInt Serialization**: Custom BigInt serialization fix for JSON responses
+2. **Graceful Shutdown**: Proper cleanup on process termination
+3. **Memory Management**: Configurable database connection pool settings
+4. **Monitoring**: Structured logging for operational insights
+5. **Performance**: Optimized for high throughput with proper timeout configurations
