@@ -1,4 +1,23 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
+
+// Mock Config - Must be before other imports that use config
+mock.module('../config', () => ({
+    default: {
+        jwt: {
+            secret: 'test-secret',
+            expiresIn: '1d',
+        },
+        github: {
+            CLIENT_ID: 'test-id',
+            CLIENT_SECRET: 'test-secret',
+            REDIRECT_URI: 'test-uri',
+        },
+        frontend: {
+            resetPasswordUrl: 'http://localhost:3000/reset-password'
+        }
+    },
+}));
+
 import { AuthService } from '../modules/auth/authService';
 import { UserService } from '../modules/users/userService';
 
