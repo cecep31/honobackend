@@ -17,7 +17,7 @@ export const optionalAuth = createMiddleware<{ Variables: Variables }>(async (c,
 
     if (token) {
       try {
-        const payload = await verify(token, config.jwt.secret);
+        const payload = await verify(token, config.jwt.secret, "HS256");
         const userPayload = payload as unknown as jwtPayload;
         c.set("user", userPayload);
       } catch {

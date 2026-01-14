@@ -19,7 +19,7 @@ export const auth = createMiddleware(async (c, next) => {
       throw Errors.Unauthorized();
     }
 
-    const decodedPayload = await verify(token, config.jwt.secret);
+    const decodedPayload = await verify(token, config.jwt.secret, "HS256");
     c.set("user", decodedPayload);
 
     await next();
