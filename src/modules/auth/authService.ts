@@ -123,7 +123,7 @@ export class AuthService {
 
       return await tokenResponse.data.access_token;
     } catch (error) {
-      console.log("failet get token");
+      console.error("Failed to get GitHub token");
       throw Errors.ExternalServiceError("GitHub");
     }
   }
@@ -205,7 +205,8 @@ export class AuthService {
     if (!user) {
       // Return success even if user doesn't exist (security best practice)
       return {
-        message: "If the email exists, a password reset link has been sent"
+        message: "If the email exists, a password reset link has been sent",
+        ...(process.env.NODE_ENV === "development" && { token: null, resetLink: null })
       };
     }
 
@@ -234,10 +235,7 @@ export class AuthService {
     // TODO: Send email with reset link
     // For now, we'll return the token (in production, this should be sent via email)
     // Example reset link: https://yourapp.com/reset-password?token=${token}
-    
     const resetLink = `${config.frontend.resetPasswordUrl}?token=${token}`;
-    console.log(`Password reset token for ${email}: ${token}`);
-    console.log(`Reset link: ${resetLink}`);
 
     return {
       message: "If the email exists, a password reset link has been sent",

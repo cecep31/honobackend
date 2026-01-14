@@ -142,3 +142,16 @@ This file provides guidance to agentic coding tools when working with this Hono/
 - Include descriptive error messages
 - Validate both body and query parameters
 - Share common validation patterns across routes
+
+### Drizzle Validation
+- Use `drizzle-orm` validation helpers for database-level validation
+- Validate data before inserting/updating records
+- Use `inferSelectSchema` and `inferInsertSchema` for type safety
+- Handle validation errors consistently with application errors
+
+### Hono Framework Patterns
+- Register routes on the app instance using `.get()`, `.post()`, etc.
+- Use `c.var()` for request-scoped variables
+- Apply middleware with `.use()` for cross-cutting concerns
+- Return `c.json()` for JSON responses
+- Access request data via `c.req.parseBody()`, `c.req.query()`, etc.

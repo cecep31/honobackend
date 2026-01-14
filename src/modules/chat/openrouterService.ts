@@ -51,7 +51,12 @@ export class OpenRouterService {
     });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
+      let errorText = "";
+      try {
+        errorText = await response.text();
+      } catch {
+        errorText = "Unable to read error response";
+      }
       console.error(
         `OpenRouter API Error (${response.status} ${response.statusText}):`,
         errorText

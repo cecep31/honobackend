@@ -16,7 +16,8 @@ export type ErrorCode =
   | "DB_001" | "DB_002" | "DB_003" // Database errors
   | "EXT_001" | "EXT_002" // External service errors
   | "BIZ_001" | "BIZ_002" // Business logic errors
-  | "SYS_001" | "SYS_002"; // System errors
+  | "SYS_001" | "SYS_002" // System errors
+  | "RATE_001"; // Rate limit errors
 
 /**
  * Custom API error class for consistent error handling
@@ -31,6 +32,7 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = "ApiError";
+    this.cause = details;
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
     }
@@ -104,6 +106,9 @@ export function createErrorResponse(
 
   // Handle unknown errors
   const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+  if (!(error instanceof ApiError) && !(error instanceof HTTPException)) {
+    console.error('Unexpected error:', error);
+  }
   return {
     success: false,
     message: errorMessage,
@@ -135,7 +140,10 @@ export const Errors = {
   
   // Business logic errors
   BusinessRuleViolation: (rule: string) => errorHttp(`Business rule violation: ${rule}`, 409, 'BIZ_001'),
-  
+
+  // Rate limiting
+  TooManyRequests: (retryAfter = 60) => errorHttp('Too many requests', 429, 'RATE_001', { retry_after: retryAfter }),
+
   // System errors
   InternalServerError: () => errorHttp('Internal server error', 500, 'SYS_001'),
   ServiceUnavailable: () => errorHttp('Service unavailable', 503, 'SYS_002')
