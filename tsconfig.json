@@ -19,17 +19,6 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-
-    // Interop and module resolution
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-
-    // Bun-specific
-    "types": ["bun-types"],
-
-    // Stricter flags (removed noPropertyAccessFromIndexSignature - too strict for backend)
-    "noUnusedLocals": true,
-    "noUnusedParameters": true
   },
   "include": [
     "src/**/*",

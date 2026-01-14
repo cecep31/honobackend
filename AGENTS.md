@@ -4,10 +4,23 @@ This file provides guidance to agentic coding tools when working with this Hono/
 
 ## Build/Lint/Test Commands
 - `bun run typecheck` - Run TypeScript type checking
+- `bun run lint` - Run TypeScript linting (same as typecheck)
+- `bun run format` - Format code with Prettier
 - `bun test` - Run all tests
 - `bun test <file>` - Run single test file (e.g., `bun test src/test/authservice.test.ts`)
-- `bun run build` - Build production version
-- `bun run dev` - Start development server
+- `bun test --watch` - Run tests in watch mode
+- `bun test --coverage` - Run tests with coverage report
+- `bun run build` - Build production version to dist/
+- `bun run build:compile` - Compile to standalone binary
+- `bun run dev` - Start development server with hot reload
+- `bun run start` - Start server using bun run
+- `bun run start:prod` - Start production server from dist/
+- `bun run db:generate` - Generate Drizzle migrations
+- `bun run db:migrate` - Run database migrations
+- `bun run db:push` - Push schema changes to database
+- `bun run db:pull` - Pull schema from database
+- `bun run db:studio` - Open Drizzle Studio
+- `bun run clean` - Remove build artifacts
 
 ## Code Style Guidelines
 
@@ -122,3 +135,10 @@ This file provides guidance to agentic coding tools when working with this Hono/
 - Document why each dependency is needed
 - Prefer smaller, focused libraries
 - Avoid adding unnecessary dependencies
+
+### Zod Validation
+- Use `@hono/zod-validator` for request validation
+- Define schemas in separate files for reusability
+- Include descriptive error messages
+- Validate both body and query parameters
+- Share common validation patterns across routes
