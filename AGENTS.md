@@ -26,7 +26,7 @@ This file provides guidance to agentic coding tools when working with this Hono/
 
 ### Imports
 - Use ES modules (`import/export` syntax)
-- Group imports by source (framework, local, types)
+- Group imports by source (framework, local, types): framework first, then local modules, then types
 - Avoid wildcard imports
 
 ### Formatting
@@ -35,6 +35,7 @@ This file provides guidance to agentic coding tools when working with this Hono/
 - Semicolons at end of statements
 - Maximum line length: 100 characters
 - Consistent spacing around operators and after commas
+- Use `bun run format` to format code with Prettier (configured in .prettierrc)
 
 ### Types
 - Use TypeScript interfaces for complex types
@@ -50,12 +51,31 @@ This file provides guidance to agentic coding tools when working with this Hono/
 - **Boolean variables**: Prefix with `is`, `has`, `can` (e.g., `isActive`, `hasPermission`)
 - **Private class members**: Prefix with underscore (e.g., `_userService`)
 
+### Error Codes Classification
+- Use structured error codes with prefixes:
+  - `1xxx`: Authentication/Authorization errors
+  - `2xxx`: Validation errors
+  - `3xxx`: Database errors
+  - `4xxx`: External service errors
+  - `5xxx`: Business logic errors
+  - `6xxx`: System/Infrastructure errors
+- Example: `AUTH_001`, `DB_001`, `VALID_001`
+
 ### Error Handling
 - Use try/catch blocks for async operations
 - Return consistent error response format with `requestId`
 - Use the `Errors` utility class for common error types
 - Include appropriate HTTP status codes
 - Log errors in development, avoid exposing sensitive information in production
+
+### JWT Tokens
+- JWT payload should include: `user_id`, `email`, `is_super_admin`, `exp`
+- Set expiration to 5 hours (5 * 60 * 60 seconds)
+- Use `hono/jwt` for token operations
+
+### Development Helpers
+- Use conditional spreads for development-only data: `...(process.env.NODE_ENV === "development" && { token, resetLink })`
+- This pattern keeps production responses clean while providing debug info in development
 
 ### Testing
 - Use Bun's test runner with mocking

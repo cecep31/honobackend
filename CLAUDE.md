@@ -69,6 +69,7 @@ src/
 
 **Lazy Service Pattern:**
 - Services are instantiated lazily using a Proxy pattern to prevent circular dependencies
+- Services can depend on other services (e.g., `AuthService` depends on `UserService`, `ChatService` depends on `OpenRouterService`)
 - `src/services/index.ts` exports: `authService`, `userService`, `postService`, `tagService`, `likeService`, `bookmarkService`, `commentService`, `chatService`, `holdingService`, `writerService`, `openrouterService`
 
 **Database Design:**
@@ -86,8 +87,15 @@ src/
 
 **Validation & Error Handling:**
 - Request validation using Zod schemas with `@hono/zod-validator`
-- Standardized errors via `Errors` utility in `src/utils/error.ts` with ApiError class
-- Error codes: AUTH_xxx, VALID_xxx, DB_xxx, EXT_xxx, BIZ_xxx, SYS_xxx
+- Standardized errors via `Errors` utility in `src/utils/error.ts` with `ApiError` class
+- Error codes follow a pattern: `AUTH_xxx` (auth), `VALID_xxx` (validation), `DB_xxx` (database), `EXT_xxx` (external), `BIZ_xxx` (business), `SYS_xxx` (system), `RATE_xxx` (rate limiting)
+- Global error handler provides request IDs for tracing
+
+**App Configuration:**
+- `BigInt.prototype.toJSON` is patched for JSON serialization
+- 30-second timeout middleware on all requests
+- Gzip compression enabled
+- Rate limiting with custom memory-safe store (configurable via `RATE_LIMITER` env var)
 
 ### Core Domains
 - **Auth**: Login, register, refresh tokens, GitHub OAuth, password reset

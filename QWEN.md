@@ -6,7 +6,7 @@ This is a high-performance backend API built with **Hono** running on the **Bun*
 
 ### Key Technologies
 - **Runtime**: Bun (v1.x)
-- **Framework**: Hono (v4.11.3)
+- **Framework**: Hono (v4.11.4)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Language**: TypeScript
 - **Validation**: Zod
@@ -69,7 +69,7 @@ src/
 ## Building and Running
 
 ### Development
-```bash
+```sh
 # Install dependencies
 bun install
 
@@ -83,7 +83,7 @@ bun run dev
 ```
 
 ### Database Management
-```bash
+```sh
 # Generate migrations
 bun run db:generate
 
@@ -98,7 +98,7 @@ bun run studio
 ```
 
 ### Production
-```bash
+```sh
 # Type checking
 bun run typecheck
 
@@ -110,7 +110,7 @@ bun run start:prod
 ```
 
 ### Testing
-```bash
+```sh
 # Run test suite
 bun test
 
