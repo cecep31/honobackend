@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { authService } from "../../services/index";
+import { authService, userService } from "../../services/index";
 import { auth } from "../../middlewares/auth";
 import config from "../../config";
 import axios from "axios";
@@ -133,6 +133,17 @@ authController.post("/logout", auth, async (c) => {
     path: "/",
   });
   return sendSuccess(c, null, "Logged out successfully");
+});
+
+authController.get("/profile", auth, async (c) => {
+  const user = c.get("user");
+  const userProfile = await userService.getUserProfile(user.user_id);
+
+  if (!userProfile) {
+    throw Errors.NotFound("User");
+  }
+
+  return sendSuccess(c, userProfile, "User profile retrieved successfully");
 });
 
 authController.patch(
