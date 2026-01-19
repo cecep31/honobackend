@@ -6,7 +6,7 @@ import {
   users as usersModel,
   user_follows,
 } from "../../database/schemas/postgre/schema";
-import type { UserCreateBody, UserUpdateBody } from "./validation/user";
+import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from "./validation/user";
 import type { UserSignup } from "../auth/validation/auth";
 import type { GetPaginationParams } from "../../types/paginate";
 import { getPaginationMetadata } from "../../utils/paginate";
@@ -217,6 +217,36 @@ export class UserService {
     }
   }
 
+  /**
+   * Update user profile information
+   * @param userId User ID to update
+   * @param body Profile update data
+   * @returns Updated profile
+   */
+  async updateProfile(userId: string, body: UpdateProfileBody) {
+    try {
+      // Check if user exists
+      const existingUser = await this.getUser(userId);
+      if (!existingUser) {
+        throw Errors.NotFound("User");
+      }
+
+      const [updatedProfile] = await db
+        .update(profiles)
+        .set({ ...body, updated_at: new Date().toISOString() })
+        .where(eq(profiles.user_id, userId))
+        .returning();
+
+      return updatedProfile;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        throw error;
+      }
+      console.error("Error updating profile:", error);
+      throw Errors.DatabaseError({ message: "Failed to update profile", error });
+    }
+  }
+
   // ============================================
   // Authentication & Authorization Helper Methods
   // ============================================
@@ -385,6 +415,27 @@ export class UserService {
     } catch (error) {
       console.error("Error updating password:", error);
       throw Errors.DatabaseError({ message: "Failed to update password", error });
+    }
+  }
+
+  /**
+   * Update user email
+   * @param id User ID
+   * @param email New email
+   * @returns Updated user ID
+   */
+  async updateEmail(id: string, email: string) {
+    try {
+      const [result] = await db
+        .update(usersModel)
+        .set({ email, updated_at: new Date().toISOString() })
+        .where(eq(usersModel.id, id))
+        .returning({ id: usersModel.id });
+
+      return result;
+    } catch (error) {
+      console.error("Error updating email:", error);
+      throw Errors.DatabaseError({ message: "Failed to update email", error });
     }
   }
 

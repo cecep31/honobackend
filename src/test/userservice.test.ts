@@ -46,6 +46,10 @@ describe('UserService', () => {
         mockValues.mockClear();
     });
 
+    afterEach(() => {
+        mockUpdate.mockImplementation(() => ({ set: mockSet }));
+    });
+
     describe('getUsers', () => {
         it('returns data and meta', async () => {
             const mockData = [{ id: '1', username: 'user1' }];
@@ -532,6 +536,89 @@ describe('UserService', () => {
             const result = await userService.isFollowing('user1', 'user2');
 
             expect(result).toBe(false);
+        });
+    });
+
+    describe('updateProfile', () => {
+        beforeEach(() => {
+            mockFindFirst.mockClear();
+            mockUpdate.mockClear();
+            mockReturning.mockClear();
+            mockSet.mockClear();
+        });
+
+        it('should update user profile successfully', async () => {
+            const userId = 'user-123';
+            const updateData = {
+                bio: 'Updated bio',
+                phone: '+1234567890',
+                location: 'New York'
+            };
+
+            const mockUser = { id: userId, email: 'test@example.com' };
+            const mockUpdatedProfile = { id: 1, user_id: userId, ...updateData };
+
+            mockFindFirst.mockResolvedValue(mockUser);
+            mockReturning.mockResolvedValue([mockUpdatedProfile]);
+
+            const result = await userService.updateProfile(userId, updateData);
+
+            expect(result).toEqual(mockUpdatedProfile);
+            expect(mockFindFirst).toHaveBeenCalledWith({
+                where: expect.anything(),
+                columns: { password: false }
+            });
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ ...updateData, updated_at: expect.any(String) }));
+            expect(mockUpdate).toHaveBeenCalled();
+        });
+
+        it('should throw NotFound error when user does not exist', async () => {
+            const userId = 'nonexistent-user';
+            const updateData = { bio: 'Updated bio' };
+
+            mockFindFirst.mockResolvedValue(null);
+
+            await expect(userService.updateProfile(userId, updateData))
+                .rejects.toThrow('User');
+        });
+
+        it('should handle database errors gracefully', async () => {
+            const userId = 'user-123';
+            const updateData = { bio: 'Updated bio' };
+
+            const mockUser = { id: userId, email: 'test@example.com' };
+            mockFindFirst.mockResolvedValue(mockUser);
+            mockUpdate.mockImplementation(() => {
+                throw new Error('Database connection failed');
+            });
+
+            await expect(userService.updateProfile(userId, updateData))
+                .rejects.toThrow('Database operation failed');
+        });
+
+        it('should handle partial updates', async () => {
+            const userId = 'user-123';
+            const updateData = { bio: 'Just bio update' };
+
+            const mockUser = { id: userId, email: 'test@example.com' };
+            const mockUpdatedProfile = { 
+                id: 1, 
+                user_id: userId, 
+                bio: 'Just bio update',
+                created_at: null,
+                updated_at: null,
+                website: null,
+                phone: null,
+                location: null
+            };
+
+            mockFindFirst.mockResolvedValue(mockUser);
+            mockReturning.mockResolvedValue([mockUpdatedProfile]);
+
+            const result = await userService.updateProfile(userId, updateData);
+
+            expect(result).toEqual(mockUpdatedProfile);
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ ...updateData, updated_at: expect.any(String) }));
         });
     });
 });

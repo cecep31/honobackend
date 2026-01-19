@@ -36,6 +36,13 @@ export const followUserSchema = z.object({
   following_id: z.string().uuid(),
 });
 
+export const updateProfileSchema = z.object({
+  bio: z.string().max(500, "Bio must be at most 500 characters").optional(),
+  phone: z.string().max(50, "Phone must be at most 50 characters").optional(),
+  location: z.string().max(255, "Location must be at most 255 characters").optional(),
+});
+
 export type UserCreateBody = z.infer<typeof createUserSchema>;
 export type UserUpdateBody = z.infer<typeof updateUserSchema>;
 export type FollowUserBody = z.infer<typeof followUserSchema>;
+export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;

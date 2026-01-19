@@ -15,6 +15,7 @@ import {
   loginSchema,
   registerSchema,
   updatePasswordSchema,
+  updateUserSchema,
   usernameSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
@@ -204,5 +205,29 @@ authController.post(
       body.new_password
     );
     return sendSuccess(c, result, result.message);
+  }
+);
+
+// Update user (username, email, or password)
+authController.patch(
+  "/user",
+  auth,
+  validateRequest("json", updateUserSchema),
+  async (c) => {
+    const body = c.req.valid("json");
+    const user = c.get("user");
+
+    if (body.password && body.confirm_password) {
+      // If password is being updated, use updatePassword (requires old password)
+      // This endpoint is for non-sensitive updates only
+      throw Errors.InvalidInput("password", "Password update requires old password verification");
+    }
+
+    await authService.updateUser(user.user_id, {
+      username: body.username,
+      email: body.email,
+    });
+
+    return sendSuccess(c, null, "User updated successfully");
   }
 );

@@ -10,7 +10,8 @@ import { Errors } from "../../utils/error";
 import {
   createUserSchema,
   updateUserSchema,
-  userIdSchema
+  userIdSchema,
+  updateProfileSchema
 } from "./validation/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
@@ -37,6 +38,21 @@ export const userController = new Hono<{ Variables: Variables }>()
     
     return sendSuccess(c, user, "User profile fetched successfully");
   })
+
+  /**
+   * PATCH /users/me/profile - Update current authenticated user's profile
+   */
+  .patch(
+    "/me/profile",
+    auth,
+    validateRequest("json", updateProfileSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const body = c.req.valid("json");
+      const profile = await userService.updateProfile(authUser.user_id, body);
+      return sendSuccess(c, profile, "Profile updated successfully");
+    }
+  )
 
   /**
    * GET /users/:id - Get user by ID

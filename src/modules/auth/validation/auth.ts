@@ -53,3 +53,47 @@ export const resetPasswordSchema = z
     message: "Passwords do not match",
     path: ["confirm_password"],
   });
+
+export const updateEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const updateUserSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters long")
+      .max(20, "Username must not exceed 20 characters")
+      .regex(
+        /^[a-zA-Z0-9_]+$/,
+        "Username can only contain letters, numbers, and underscores"
+      )
+      .optional(),
+    email: z.string().email("Invalid email address").optional(),
+    password: z.string().min(6).optional(),
+    confirm_password: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.password && data.confirm_password) {
+        return data.password === data.confirm_password;
+      }
+      return true;
+    },
+    {
+      message: "Passwords do not match",
+      path: ["confirm_password"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.password || data.confirm_password) {
+        return !!(data.password && data.confirm_password);
+      }
+      return true;
+    },
+    {
+      message: "Both password and confirm_password are required",
+      path: ["password"],
+    }
+  );
