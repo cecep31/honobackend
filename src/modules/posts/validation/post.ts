@@ -14,7 +14,7 @@ export const createPostSchema = z.object({
   body: z.string().min(20).max(10000),
   slug: z.string().min(5).max(255),
   tags: z.array(z.string()).optional().default([]),
-  photo_url: z.string().optional().default("/images/default.jpg"),
+  photo_url: z.string().optional().nullable(),
   published: z.boolean().optional().default(true),
 });
 
