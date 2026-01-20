@@ -1,206 +1,415 @@
-# Comments Module
+# Comments API Documentation
 
 ## Overview
-The Comments module provides functionality for creating, reading, updating, and deleting comments on posts. It supports nested/threaded comments through parent-child relationships.
+The Comments API allows users to create, read, update, and delete comments on posts. It supports nested/threaded comments through the `parent_comment_id` field.
 
-## Structure
+## Base URL
+```
+/v1/comments
+```
 
+## Endpoints
+
+### 1. Create Comment
+Create a new comment on a post.
+
+**Endpoint:** `POST /v1/comments`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "text": "This is a comment",
+  "post_id": "uuid-of-post",
+  "parent_comment_id": 123  // Optional, for replies
+}
 ```
-src/modules/comments/
-├── commentController.ts    # HTTP request handlers
-├── commentService.ts       # Business logic
-├── validation/
-│   └── comment.ts         # Zod validation schemas
-└── README.md              # This file
+
+**Validation:**
+- `text`: Required, 1-5000 characters
+- `post_id`: Required, valid UUID
+- `parent_comment_id`: Optional, positive integer
+
+**Response:** `201 Created`
+```json
+{
+  "success": true,
+  "message": "Comment created successfully",
+  "data": {
+    "id": "comment-uuid",
+    "text": "This is a comment",
+    "post_id": "post-uuid",
+    "parent_comment_id": null,
+    "created_by": "user-uuid",
+    "created_at": "2026-01-08T08:00:00Z",
+    "updated_at": "2026-01-08T08:00:00Z",
+    "deleted_at": null,
+    "user": {
+      "id": "user-uuid",
+      "username": "johndoe",
+      "first_name": "John",
+      "last_name": "Doe",
+      "image": "https://example.com/avatar.jpg"
+    }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
+}
 ```
+
+**Error Responses:**
+- `400 Bad Request`: Validation failed
+- `401 Unauthorized`: Not authenticated
+- `404 Not Found`: Post or parent comment not found
+
+---
+
+### 2. Get Comments by Post
+Retrieve all top-level comments for a specific post (paginated).
+
+**Endpoint:** `GET /v1/comments/post/:post_id`
+
+**Authentication:** Not required
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 20)
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Comments fetched successfully",
+  "data": [
+    {
+      "id": "comment-uuid",
+      "text": "Great post!",
+      "post_id": "post-uuid",
+      "parent_comment_id": null,
+      "created_by": "user-uuid",
+      "created_at": "2026-01-08T08:00:00Z",
+      "updated_at": "2026-01-08T08:00:00Z",
+      "deleted_at": null,
+      "user": {
+        "id": "user-uuid",
+        "username": "johndoe",
+        "first_name": "John",
+        "last_name": "Doe",
+        "image": "https://example.com/avatar.jpg"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "totalPages": 3
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
+}
+```
+
+---
+
+### 3. Get Comment Replies
+Retrieve all replies to a specific comment.
+
+**Endpoint:** `GET /v1/comments/:comment_id/replies`
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Comment replies fetched successfully",
+  "data": [
+    {
+      "id": "reply-uuid",
+      "text": "I agree!",
+      "post_id": "post-uuid",
+      "parent_comment_id": 123,
+      "created_by": "user-uuid",
+      "created_at": "2026-01-08T08:05:00Z",
+      "updated_at": "2026-01-08T08:05:00Z",
+      "deleted_at": null,
+      "user": {
+        "id": "user-uuid",
+        "username": "janedoe",
+        "first_name": "Jane",
+        "last_name": "Doe",
+        "image": "https://example.com/avatar2.jpg"
+      }
+    }
+  ],
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:05:00.000Z"
+}
+```
+
+---
+
+### 4. Get Single Comment
+Retrieve a specific comment by ID.
+
+**Endpoint:** `GET /v1/comments/:comment_id`
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Comment fetched successfully",
+  "data": {
+    "id": "comment-uuid",
+    "text": "This is a comment",
+    "post_id": "post-uuid",
+    "parent_comment_id": null,
+    "created_by": "user-uuid",
+    "created_at": "2026-01-08T08:00:00Z",
+    "updated_at": "2026-01-08T08:00:00Z",
+    "deleted_at": null,
+    "user": {
+      "id": "user-uuid",
+      "username": "johndoe",
+      "first_name": "John",
+      "last_name": "Doe",
+      "image": "https://example.com/avatar.jpg"
+    }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- `404 Not Found`: Comment not found
+
+---
+
+### 5. Update Comment
+Update an existing comment (only by the comment owner).
+
+**Endpoint:** `PUT /v1/comments/:comment_id`
+
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "text": "Updated comment text"
+}
+```
+
+**Validation:**
+- `text`: Required, 1-5000 characters
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Comment updated successfully",
+  "data": {
+    "id": "comment-uuid",
+    "text": "Updated comment text",
+    "post_id": "post-uuid",
+    "parent_comment_id": null,
+    "created_by": "user-uuid",
+    "created_at": "2026-01-08T08:00:00Z",
+    "updated_at": "2026-01-08T08:10:00Z",
+    "deleted_at": null,
+    "user": {
+      "id": "user-uuid",
+      "username": "johndoe",
+      "first_name": "John",
+      "last_name": "Doe",
+      "image": "https://example.com/avatar.jpg"
+    }
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:10:00.000Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Validation failed
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not the comment owner
+- `404 Not Found`: Comment not found
+
+---
+
+### 6. Delete Comment
+Soft delete a comment (only by the comment owner).
+
+**Endpoint:** `DELETE /v1/comments/:comment_id`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Comment deleted successfully",
+  "data": {
+    "id": "comment-uuid",
+    "text": "This is a comment",
+    "post_id": "post-uuid",
+    "parent_comment_id": null,
+    "created_by": "user-uuid",
+    "created_at": "2026-01-08T08:00:00Z",
+    "updated_at": "2026-01-08T08:00:00Z",
+    "deleted_at": "2026-01-08T08:15:00Z"
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:15:00.000Z"
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized`: Not authenticated
+- `403 Forbidden`: Not the comment owner
+- `404 Not Found`: Comment not found
+
+---
+
+### 7. Get Comments by User
+Retrieve all comments made by a specific user (paginated).
+
+**Endpoint:** `GET /v1/comments/user/:user_id`
+
+**Authentication:** Not required
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 20)
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "User comments fetched successfully",
+  "data": [
+    {
+      "id": "comment-uuid",
+      "text": "Great post!",
+      "post_id": "post-uuid",
+      "parent_comment_id": null,
+      "created_by": "user-uuid",
+      "created_at": "2026-01-08T08:00:00Z",
+      "updated_at": "2026-01-08T08:00:00Z",
+      "deleted_at": null,
+      "user": {
+        "id": "user-uuid",
+        "username": "johndoe",
+        "first_name": "John",
+        "last_name": "Doe",
+        "image": "https://example.com/avatar.jpg"
+      },
+      "post": {
+        "id": "post-uuid",
+        "title": "Post Title",
+        "slug": "post-title"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 15,
+    "totalPages": 1
+  },
+  "request_id": "req-uuid",
+  "timestamp": "2026-01-08T08:00:00.000Z"
+}
+```
+
+---
 
 ## Features
 
-- ✅ Create comments on posts
-- ✅ Create nested replies to comments
-- ✅ Get comments by post (paginated)
-- ✅ Get replies to a comment
-- ✅ Get single comment by ID
-- ✅ Update own comments
-- ✅ Delete own comments (soft delete)
-- ✅ Get all comments by user (paginated)
-- ✅ Authorization checks (ownership validation)
-- ✅ Comprehensive error handling
-- ✅ Full test coverage
+### Nested Comments
+Comments support threading through the `parent_comment_id` field:
+- Top-level comments have `parent_comment_id: null`
+- Replies have `parent_comment_id` set to the parent comment's ID
+- Use the `/replies` endpoint to fetch nested comments
 
-## API Endpoints
+### Soft Deletion
+Comments are soft-deleted (marked with `deleted_at` timestamp) rather than permanently removed from the database.
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/v1/comments` | ✓ | Create a new comment |
-| GET | `/v1/comments/post/:post_id` | ✗ | Get comments for a post |
-| GET | `/v1/comments/:comment_id/replies` | ✗ | Get replies to a comment |
-| GET | `/v1/comments/:comment_id` | ✗ | Get single comment |
-| PUT | `/v1/comments/:comment_id` | ✓ | Update comment (owner only) |
-| DELETE | `/v1/comments/:comment_id` | ✓ | Delete comment (owner only) |
-| GET | `/v1/comments/user/:user_id` | ✗ | Get user's comments |
+### Pagination
+List endpoints support pagination with `page` and `limit` query parameters.
+
+### Authorization
+- Creating comments requires authentication
+- Updating/deleting comments requires ownership (user must be the comment creator)
+- Reading comments is public (no authentication required)
 
 ## Database Schema
 
-The module uses the `post_comments` table:
-
-```typescript
-{
-  id: uuid (primary key)
-  created_at: timestamp
-  updated_at: timestamp
-  deleted_at: timestamp (for soft delete)
-  text: text
-  post_id: uuid (foreign key to posts)
-  parent_comment_id: bigint (for nested comments)
-  created_by: uuid (foreign key to users)
-}
+```sql
+CREATE TABLE post_comments (
+  id UUID PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  deleted_at TIMESTAMP WITH TIME ZONE,
+  text TEXT,
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  parent_comment_id BIGINT,
+  created_by UUID REFERENCES users(id),
+  -- Indexes for performance
+  INDEX idx_post_comments_post_id (post_id),
+  INDEX idx_post_comments_created_by (created_by),
+  INDEX idx_post_comments_parent_id (parent_comment_id),
+  INDEX idx_post_comments_deleted_at (deleted_at)
+);
 ```
 
-### Indexes
-- `idx_post_comments_post_id` - Fast lookup by post
-- `idx_post_comments_created_by` - Fast lookup by user
-- `idx_post_comments_parent_id` - Fast lookup of replies
-- `idx_post_comments_deleted_at` - Efficient soft delete filtering
+## Example Usage
 
-## Usage Examples
-
-### Creating a Comment
-
-```typescript
-// POST /v1/comments
-{
-  "text": "Great article!",
-  "post_id": "550e8400-e29b-41d4-a716-446655440000"
-}
+### Creating a Top-Level Comment
+```bash
+curl -X POST http://localhost:3000/v1/comments \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This is an insightful post!",
+    "post_id": "550e8400-e29b-41d4-a716-446655440000"
+  }'
 ```
 
 ### Creating a Reply
-
-```typescript
-// POST /v1/comments
-{
-  "text": "I agree!",
-  "post_id": "550e8400-e29b-41d4-a716-446655440000",
-  "parent_comment_id": 123
-}
-```
-
-### Getting Comments
-
-```typescript
-// GET /v1/comments/post/550e8400-e29b-41d4-a716-446655440000?page=1&limit=20
-```
-
-## Service Methods
-
-### `createComment(data, user_id)`
-Creates a new comment or reply.
-- Validates post exists
-- Validates parent comment exists (if replying)
-- Returns comment with user details
-
-### `getCommentsByPost(post_id, page, limit)`
-Gets top-level comments for a post (paginated).
-- Only returns comments with no parent
-- Includes user details
-- Returns pagination metadata
-
-### `getCommentReplies(parent_comment_id)`
-Gets all replies to a specific comment.
-- Returns nested comments
-- Includes user details
-
-### `getCommentById(comment_id)`
-Gets a single comment by ID.
-- Returns comment with user details
-- Throws 404 if not found
-
-### `updateComment(comment_id, data, user_id)`
-Updates a comment.
-- Validates ownership
-- Updates text and timestamp
-- Returns updated comment with user details
-
-### `deleteComment(comment_id, user_id)`
-Soft deletes a comment.
-- Validates ownership
-- Sets deleted_at timestamp
-- Returns deleted comment
-
-### `getCommentsByUser(user_id, page, limit)`
-Gets all comments by a user (paginated).
-- Includes post details
-- Returns pagination metadata
-
-## Validation
-
-### Create Comment Schema
-```typescript
-{
-  text: string (1-5000 chars, required)
-  post_id: uuid (required)
-  parent_comment_id: number (optional, positive integer)
-}
-```
-
-### Update Comment Schema
-```typescript
-{
-  text: string (1-5000 chars, required)
-}
-```
-
-## Error Handling
-
-The module uses standardized error responses:
-
-- `400 Bad Request` - Validation errors
-- `401 Unauthorized` - Authentication required
-- `403 Forbidden` - Not authorized (not comment owner)
-- `404 Not Found` - Comment or post not found
-- `500 Internal Server Error` - Server errors
-
-## Testing
-
-Run tests with:
 ```bash
-bun test src/test/commentservice.test.ts
+curl -X POST http://localhost:3000/v1/comments \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "I agree with your point!",
+    "post_id": "550e8400-e29b-41d4-a716-446655440000",
+    "parent_comment_id": 123
+  }'
 ```
 
-Test coverage includes:
-- ✅ Creating comments
-- ✅ Creating replies
-- ✅ Getting comments by post
-- ✅ Getting comment by ID
-- ✅ Updating comments
-- ✅ Deleting comments
-- ✅ Authorization checks
-- ✅ Error scenarios
+### Getting Comments for a Post
+```bash
+curl http://localhost:3000/v1/comments/post/550e8400-e29b-41d4-a716-446655440000?page=1&limit=20
+```
 
-## Dependencies
+### Updating a Comment
+```bash
+curl -X PUT http://localhost:3000/v1/comments/comment-uuid \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Updated comment text"
+  }'
+```
 
-- `drizzle-orm` - Database ORM
-- `zod` - Schema validation
-- `hono` - Web framework
-- `bun` - Runtime and UUID generation
-
-## Integration
-
-The module is integrated into the main application through:
-
-1. **Service Registration** - [`src/services/index.ts`](../../services/index.ts)
-2. **Route Registration** - [`src/router/index.ts`](../../router/index.ts)
-3. **Middleware** - Uses `auth` and `validateRequest` middlewares
-
-## Future Enhancements
-
-Potential improvements:
-- [ ] Comment reactions/likes
-- [ ] Comment moderation features
-- [ ] Comment notifications
-- [ ] Rich text/markdown support
-- [ ] Comment edit history
-- [ ] Comment reporting
-- [ ] Pagination for nested replies
-- [ ] Comment search functionality
+### Deleting a Comment
+```bash
+curl -X DELETE http://localhost:3000/v1/comments/comment-uuid \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```

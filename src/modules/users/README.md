@@ -116,7 +116,7 @@ curl -X GET /v1/users/me \
     "username": "johndoe",
     "email": "john@example.com",
     "first_name": "John",
-    "last_name": "Doe",
+    "last_name.doe",
     "avatar_url": "https://example.com/avatars/johndoe.jpg",
     "bio": "Full stack developer",
     "website": "https://johndoe.com",
@@ -341,7 +341,7 @@ curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
 ---
 
 ### 8. Get User Followers
-Get a paginated list of users following the specified user.
+Get a paginated list of users following to specified user.
 
 - **URL:** `/:id/followers`
 - **Method:** `GET`
@@ -389,7 +389,7 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?page=1&lim
 ---
 
 ### 9. Get User Following
-Get a paginated list of users that the specified user is following.
+Get a paginated list of users that specified user is following.
 
 - **URL:** `/:id/following`
 - **Method:** `GET`
@@ -414,7 +414,7 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?page=1&lim
   "data": [
     {
       "id": "following-user-id",
-      "username": "following1",
+      "username": "follwing1",
       "first_name": "Jane",
       "last_name": "Smith",
       "email": "following@example.com",

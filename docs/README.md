@@ -2,6 +2,8 @@
 
 Welcome to the Hono/TypeScript Backend API documentation. This documentation provides comprehensive details about all available API endpoints.
 
+> **Note:** Module-specific documentation has been moved to the respective module directories in `src/modules/`. Each module contains its own `README.md` with detailed API documentation.
+
 ## Base URL
 
 ```
@@ -55,18 +57,30 @@ Most endpoints require authentication via JWT Bearer token:
 Authorization: Bearer <your_jwt_token>
 ```
 
-See [Authentication API](auth.md) for details on:
-- Login/Register
-- Token refresh
-- OAuth with GitHub
-- Password management
-
 ---
 
 ## Modules
 
-### [Auth API](auth.md)
-User authentication and authorization endpoints.
+Each module has its own README.md with detailed documentation:
+
+| Module | Location | Description |
+|--------|----------|-------------|
+| Auth | [`src/modules/auth/README.md`](../src/modules/auth/README.md) | User authentication and authorization |
+| Posts | [`src/modules/posts/README.md`](../src/modules/posts/README.md) | Blog post management |
+| Users | [`src/modules/users/README.md`](../src/modules/users/README.md) | User profile management |
+| Writers | [`src/modules/writers/README.md`](../src/modules/writers/README.md) | Public writer profiles |
+| Tags | [`src/modules/tags/README.md`](../src/modules/tags/README.md) | Tag retrieval |
+| Likes | [`src/modules/likes/README.md`](../src/modules/likes/README.md) | Post like management |
+| Bookmarks | [`src/modules/bookmarks/README.md`](../src/modules/bookmarks/README.md) | Post bookmark management |
+| Comments | [`src/modules/comments/README.md`](../src/modules/comments/README.md) | Comment management |
+| Holdings | [`src/modules/holdings/README.md`](../src/modules/holdings/README.md) | Investment portfolio tracking |
+| Chat | [`src/modules/chat/README.md`](../src/modules/chat/README.md) | AI-powered chat |
+
+---
+
+## Quick Reference
+
+### Auth Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
@@ -79,11 +93,10 @@ User authentication and authorization endpoints.
 | `/refresh-token` | POST | Refresh access token | No |
 | `/logout` | POST | User logout | Yes |
 | `/password` | PATCH | Update password | Yes |
+| `/forgot-password` | POST | Request password reset | No |
+| `/reset-password` | POST | Reset password | No |
 
----
-
-### [Posts API](posts.md)
-Blog post management and retrieval.
+### Posts Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
@@ -103,23 +116,7 @@ Blog post management and retrieval.
 | `/posts/:id` | DELETE | Delete post | Yes |
 | `/posts/upload/image` | POST | Upload post image | Yes |
 
-#### [Posts Charts API](posts-charts.md)
-Analytics and visualization endpoints for posts.
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/posts/charts/posts-over-time` | GET | Posts over time |
-| `/posts/charts/posts-by-tag` | GET | Posts by tag distribution |
-| `/posts/charts/top-by-views` | GET | Top posts by views |
-| `/posts/charts/top-by-likes` | GET | Top posts by likes |
-| `/posts/charts/user-activity` | GET | User activity stats |
-| `/posts/charts/engagement-metrics` | GET | Engagement metrics |
-| `/posts/charts/engagement-comparison` | GET | Views vs likes comparison |
-
----
-
-### [Users API](users.md)
-User profile management.
+### Users Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
@@ -128,80 +125,79 @@ User profile management.
 | `/users/:id` | GET | Get user by ID | Yes |
 | `/users` | POST | Create user | Yes (Super Admin) |
 | `/users/:id` | DELETE | Delete user | Yes (Super Admin) |
+| `/users/:id/follow` | POST | Follow user | Yes |
+| `/users/:id/follow` | DELETE | Unfollow user | Yes |
+| `/users/:id/followers` | GET | Get user followers | Yes |
+| `/users/:id/following` | GET | Get user following | Yes |
+| `/users/:id/is-following` | GET | Check follow status | Yes |
 
----
-
-### [Writers API](writers.md)
-Public writer profile endpoints.
+### Writers Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/writers/:username` | GET | Get writer profile | No |
 | `/writers/:username/posts` | GET | Get writer's posts | No |
 
----
-
-### [Tags API](tags.md)
-Tag retrieval endpoints.
+### Tags Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/tags` | GET | Get all tags | No |
 
----
-
-### [Likes API](likes.md)
-Post like management.
+### Likes Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/likes/:post_id` | POST | Toggle like | Yes |
 | `/likes/:post_id` | GET | Get post likes | Yes |
 
----
-
-### [Bookmarks API](bookmarks.md)
-Post bookmark management.
+### Bookmarks Endpoints
 
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/bookmarks/:post_id` | POST | Toggle bookmark | Yes |
 | `/bookmarks` | GET | Get user bookmarks | Yes |
 
----
+### Comments Endpoints
 
-### [Holdings API](holdings.md)
-Investment portfolio tracking.
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/comments` | POST | Create comment | Yes |
+| `/comments/post/:post_id` | GET | Get comments for post | No |
+| `/comments/:comment_id/replies` | GET | Get comment replies | No |
+| `/comments/:comment_id` | GET | Get single comment | No |
+| `/comments/:comment_id` | PUT | Update comment | Yes |
+| `/comments/:comment_id` | DELETE | Delete comment | Yes |
+| `/comments/user/:user_id` | GET | Get user's comments | No |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/holdings` | GET | Get all holdings |
-| `/holdings/summary` | GET | Get holdings summary |
-| `/holdings/trends` | GET | Get holdings trends |
-| `/holdings/compare` | GET | Compare months |
-| `/holdings/types` | GET | Get holding types |
-| `/holdings/:id` | GET | Get single holding |
-| `/holdings` | POST | Create holding |
-| `/holdings/duplicate` | POST | Duplicate holdings |
-| `/holdings/:id` | PUT | Update holding |
-| `/holdings/:id` | DELETE | Delete holding |
+### Holdings Endpoints
 
----
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/holdings` | GET | Get all holdings | Yes |
+| `/holdings/summary` | GET | Get holdings summary | Yes |
+| `/holdings/trends` | GET | Get holdings trends | Yes |
+| `/holdings/compare` | GET | Compare months | Yes |
+| `/holdings/types` | GET | Get holding types | Yes |
+| `/holdings/:id` | GET | Get single holding | Yes |
+| `/holdings` | POST | Create holding | Yes |
+| `/holdings/duplicate` | POST | Duplicate holdings | Yes |
+| `/holdings/:id` | PUT | Update holding | Yes |
+| `/holdings/:id` | DELETE | Delete holding | Yes |
 
-### [Chat API](chat.md)
-AI-powered chat with OpenRouter integration.
+### Chat Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/chat/conversations` | GET | List conversations |
-| `/chat/conversations` | POST | Create conversation |
-| `/chat/conversations/:id` | GET | Get conversation |
-| `/chat/conversations/:id` | DELETE | Delete conversation |
-| `/chat/conversations/:id/messages` | POST | Send message (sync) |
-| `/chat/conversations/:id/messages/stream` | POST | Send message (streaming) |
-| `/chat/conversations/stream` | POST | Create + stream message |
-| `/chat/messages/:id` | GET | Get message |
-| `/chat/messages/:id` | DELETE | Delete message |
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/chat/conversations` | GET | List conversations | Yes |
+| `/chat/conversations` | POST | Create conversation | Yes |
+| `/chat/conversations/:id` | GET | Get conversation | Yes |
+| `/chat/conversations/:id` | DELETE | Delete conversation | Yes |
+| `/chat/conversations/:id/messages` | POST | Send message (sync) | Yes |
+| `/chat/conversations/:id/messages/stream` | POST | Send message (streaming) | Yes |
+| `/chat/conversations/stream` | POST | Create + stream message | Yes |
+| `/chat/messages/:id` | GET | Get message | Yes |
+| `/chat/messages/:id` | DELETE | Delete message | Yes |
 
 ---
 
@@ -278,36 +274,9 @@ data: {"type": "ai_complete", "message": {...}}
 
 ---
 
-## SDKs & Libraries
-
-### JavaScript/TypeScript
-
-```typescript
-import { Client } from '@pilput/sdk';
-
-const client = new Client({
-  baseUrl: 'https://api.pilput.me/v1',
-  apiKey: process.env.API_KEY
-});
-
-// Example: Fetch posts
-const posts = await client.posts.list();
-```
-
-### Python (Coming Soon)
-
-```python
-from pilput import Client
-
-client = Client(base_url='https://api.pilput.me/v1')
-posts = client.posts.list()
-```
-
----
-
 ## Support
 
-- **Documentation:** See individual module docs
+- **Documentation:** See individual module docs in `src/modules/`
 - **Issues:** Report bugs via GitHub issues
 - **Email:** api-support@pilput.me
 

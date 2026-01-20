@@ -164,7 +164,7 @@ Tags are used in posts to categorize content. To fetch posts by tag:
 curl -X GET /v1/posts/tag/typescript
 ```
 
-See [Posts API](posts.md) for more information.
+See [Posts API](../posts/README.md) for more information.
 
 ---
 

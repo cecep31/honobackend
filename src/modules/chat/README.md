@@ -147,4 +147,3 @@ Delete a specific message.
 
 - **URL:** `/messages/:id`
 - **Method:** `DELETE`
-
