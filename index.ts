@@ -1,12 +1,5 @@
 import { app } from './src/server/app';
-import { logger } from './src/middlewares/logger';
 import { shutdownMiddlewares } from './src/middlewares';
-
-// Setup application
-logger.info('Starting application...', {
-  phase: 'application_startup',
-  environment: process.env.NODE_ENV || 'development'
-});
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -27,11 +20,8 @@ const shutdown = async (signal: string) => {
   // Cleanup rate limiter store to prevent memory leak
   shutdownMiddlewares();
   
-  // Give a small delay for any pending logs or requests
-  setTimeout(() => {
-    console.log('Server shutdown complete.');
-    process.exit(0);
-  }, 500);
+  console.log('Server shutdown complete.');
+  process.exit(0);
 };
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

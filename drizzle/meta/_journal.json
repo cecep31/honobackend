@@ -57,6 +57,13 @@
       "when": 1767883406955,
       "tag": "0007_wandering_firedrake",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768878524379,
+      "tag": "0008_funny_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }
