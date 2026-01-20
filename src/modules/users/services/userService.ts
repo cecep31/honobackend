@@ -1,16 +1,16 @@
 import { randomUUIDv7 } from "bun";
-import { db } from "../../database/drizzle";
+import { db } from "../../../database/drizzle";
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import {
   profiles,
   users as usersModel,
   user_follows,
-} from "../../database/schemas/postgre/schema";
-import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from "./validation/user";
-import type { UserSignup } from "../auth/validation/auth";
-import type { GetPaginationParams } from "../../types/paginate";
-import { getPaginationMetadata } from "../../utils/paginate";
-import { Errors } from "../../utils/error";
+} from "../../../database/schemas/postgre/schema";
+import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from "../validation/user";
+import type { UserSignup } from "../../auth/validation/auth";
+import type { GetPaginationParams } from "../../../types/paginate";
+import { getPaginationMetadata } from "../../../utils/paginate";
+import { Errors } from "../../../utils/error";
 
 /**
  * Service class for managing user operations

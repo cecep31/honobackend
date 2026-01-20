@@ -1,9 +1,9 @@
-import { post_comments, posts } from "../../database/schemas/postgre/schema";
-import { db } from "../../database/drizzle";
+import { post_comments, posts } from "../../../database/schemas/postgre/schema";
+import { db } from "../../../database/drizzle";
 import { and, eq, isNull, desc, sql } from "drizzle-orm";
-import { Errors } from "../../utils/error";
+import { Errors } from "../../../utils/error";
 import { randomUUIDv7 } from "bun";
-import type { CreateCommentInput, UpdateCommentInput } from "./validation/comment";
+import type { CreateCommentInput, UpdateCommentInput } from "../validation/comment";
 
 export class CommentService {
   async createComment(data: CreateCommentInput, user_id: string) {

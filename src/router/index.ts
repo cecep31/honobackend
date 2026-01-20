@@ -1,14 +1,14 @@
 import { Hono } from "hono";
-import { userController } from "../modules/users/userController";
-import { authController } from "../modules/auth/authController";
-import { postController } from "../modules/posts/postController";
-import { tagController } from "../modules/tags/tagController";
-import { likeController } from "../modules/likes/likeController";
-import { writerController } from "../modules/writers/writerController";
-import { chatController } from "../modules/chat/chatController";
-import { holdingController } from "../modules/holdings/holdingController";
-import { bookmarkController } from "../modules/bookmarks/bookmarkController";
-import { commentController } from "../modules/comments/commentController";
+import { userController } from "../modules/users/controllers/userController";
+import { authController } from "../modules/auth/controllers/authController";
+import { postController } from "../modules/posts/controllers/postController";
+import { tagController } from "../modules/tags/controllers/tagController";
+import { likeController } from "../modules/likes/controllers/likeController";
+import { writerController } from "../modules/writers/controllers/writerController";
+import { chatController } from "../modules/chat/controllers/chatController";
+import { holdingController } from "../modules/holdings/controllers/holdingController";
+import { bookmarkController } from "../modules/bookmarks/controllers/bookmarkController";
+import { commentController } from "../modules/comments/controllers/commentController";
 import type { Variables } from "../types/context";
 
 const setupRouter = (app: Hono<{ Variables: Variables }>) => {

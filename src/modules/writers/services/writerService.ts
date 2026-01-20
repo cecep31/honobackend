@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { Errors } from "../../utils/error";
-import { db } from "../../database/drizzle";
-import { users as usersModel } from "../../database/schemas/postgre/schema";
+import { Errors } from "../../../utils/error";
+import { db } from "../../../database/drizzle";
+import { users as usersModel } from "../../../database/schemas/postgre/schema";
 
 export class WriterService {
   async getWriterByUsername(username: string) {

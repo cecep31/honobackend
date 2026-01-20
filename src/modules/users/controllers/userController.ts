@@ -1,18 +1,18 @@
 import { Hono } from "hono";
-import { userService } from "../../services/index";
-import { auth } from "../../middlewares/auth";
-import { superAdminMiddleware } from "../../middlewares/superAdmin";
-import { validateRequest } from "../../middlewares/validateRequest";
-import type { Variables } from "../../types/context";
-import { getPaginationParams } from "../../utils/paginate";
-import { sendSuccess } from "../../utils/response";
-import { Errors } from "../../utils/error";
+import { userService } from "../../../services/index";
+import { auth } from "../../../middlewares/auth";
+import { superAdminMiddleware } from "../../../middlewares/superAdmin";
+import { validateRequest } from "../../../middlewares/validateRequest";
+import type { Variables } from "../../../types/context";
+import { getPaginationParams } from "../../../utils/paginate";
+import { sendSuccess } from "../../../utils/response";
+import { Errors } from "../../../utils/error";
 import {
   createUserSchema,
   updateUserSchema,
   userIdSchema,
   updateProfileSchema
-} from "./validation/user";
+} from "../validation/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
   /**

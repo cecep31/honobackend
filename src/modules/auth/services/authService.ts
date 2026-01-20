@@ -1,16 +1,16 @@
 import { sign } from "hono/jwt";
 import { and, eq, lt, isNull } from "drizzle-orm";
-import type { UserService } from "../../modules/users/userService";
-import type { UserSignup } from "./validation/auth";
-import config from "../../config";
+import type { UserService } from "../../users/services/userService";
+import type { UserSignup } from "../validation/auth";
+import config from "../../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
-import { Errors } from "../../utils/error";
-import { db } from "../../database/drizzle";
+import { Errors } from "../../../utils/error";
+import { db } from "../../../database/drizzle";
 import {
   sessions as sessionModel,
   password_reset_tokens as passwordResetTokensModel
-} from "../../database/schemas/postgre/schema";
+} from "../../../database/schemas/postgre/schema";
 
 export class AuthService {
   constructor(

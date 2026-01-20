@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { auth } from "../../middlewares/auth";
-import { bookmarkService } from "../../services/index";
-import type { Variables } from "../../types/context";
-import { sendSuccess } from "../../utils/response";
+import { auth } from "../../../middlewares/auth";
+import { bookmarkService } from "../../../services/index";
+import type { Variables } from "../../../types/context";
+import { sendSuccess } from "../../../utils/response";
 
 export const bookmarkController = new Hono<{ Variables: Variables }>();
 

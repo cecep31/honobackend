@@ -1,12 +1,12 @@
-import { db } from "../../database/drizzle";
+import { db } from "../../../database/drizzle";
 import { and, asc, desc, eq, inArray, sql, count } from "drizzle-orm";
-import { holdings, holding_types } from "../../database/schemas/postgre/schema";
+import { holdings, holding_types } from "../../../database/schemas/postgre/schema";
 import type {
   DuplicateHoldingPayload,
   HoldingCreate,
   HoldingUpdate,
-} from "./validation/holding";
-import { Errors } from "../../utils/error";
+} from "../validation/holding";
+import { Errors } from "../../../utils/error";
 
 export class HoldingService {
   async createHolding(userId: string, data: HoldingCreate) {

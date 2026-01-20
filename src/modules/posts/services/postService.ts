@@ -1,17 +1,17 @@
 import { and, count, desc, eq, isNull, sql, gte } from "drizzle-orm";
-import { db } from "../../database/drizzle";
+import { db } from "../../../database/drizzle";
 import {
   users as usersModel,
   posts as postsModel,
   posts_to_tags,
   tags as tagsModel,
-} from "../../database/schemas/postgre/schema";
+} from "../../../database/schemas/postgre/schema";
 import { PostQueryHelpers } from "./postQueryHelpers";
 import { PostTagManager } from "./postTagManager";
-import type { PostCreateBody } from "./validation/post";
-import type { GetPaginationParams } from "../../types/paginate";
-import { getPaginationMetadata } from "../../utils/paginate";
-import { Errors } from "../../utils/error";
+import type { PostCreateBody } from "../validation/post";
+import type { GetPaginationParams } from "../../../types/paginate";
+import { getPaginationMetadata } from "../../../utils/paginate";
+import { Errors } from "../../../utils/error";
 
 export class PostService {
   constructor() {}

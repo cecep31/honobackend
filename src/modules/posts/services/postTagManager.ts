@@ -1,9 +1,9 @@
 import { eq, inArray } from "drizzle-orm";
-import { db } from "../../database/drizzle";
+import { db } from "../../../database/drizzle";
 import {
   posts_to_tags,
   tags as tagsModel,
-} from "../../database/schemas/postgre/schema";
+} from "../../../database/schemas/postgre/schema";
 
 export class PostTagManager {
   static async linkTagsToPost(postId: string, tagNames: string[], tx: any) {

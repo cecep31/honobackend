@@ -1,7 +1,7 @@
-import { post_bookmarks } from "../../database/schemas/postgre/schema";
-import { db } from "../../database/drizzle";
+import { post_bookmarks } from "../../../database/schemas/postgre/schema";
+import { db } from "../../../database/drizzle";
 import { and, eq } from "drizzle-orm";
-import { Errors } from "../../utils/error";
+import { Errors } from "../../../utils/error";
 import { randomUUIDv7 } from "bun";
 
 export class BookmarkService {

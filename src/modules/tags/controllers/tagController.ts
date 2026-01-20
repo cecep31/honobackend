@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { tagService } from "../../services/index";
-import type { Variables } from "../../types/context";
-import { sendSuccess } from "../../utils/response";
+import { tagService } from "../../../services/index";
+import type { Variables } from "../../../types/context";
+import { sendSuccess } from "../../../utils/response";
 
 export const tagController = new Hono<{ Variables: Variables }>();
 

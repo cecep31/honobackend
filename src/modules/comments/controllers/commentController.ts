@@ -1,14 +1,14 @@
 import { Hono } from "hono";
-import { auth } from "../../middlewares/auth";
-import { commentService } from "../../services/index";
-import type { Variables } from "../../types/context";
-import { sendSuccess } from "../../utils/response";
-import { validateRequest } from "../../middlewares/validateRequest";
+import { auth } from "../../../middlewares/auth";
+import { commentService } from "../../../services/index";
+import type { Variables } from "../../../types/context";
+import { sendSuccess } from "../../../utils/response";
+import { validateRequest } from "../../../middlewares/validateRequest";
 import {
   createCommentSchema,
   updateCommentSchema,
   getCommentsQuerySchema,
-} from "./validation/comment";
+} from "../validation/comment";
 
 export const commentController = new Hono<{ Variables: Variables }>();
 

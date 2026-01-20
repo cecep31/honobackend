@@ -1,7 +1,7 @@
-import { likes } from "../../database/schemas/postgre/schema";
-import { db } from "../../database/drizzle";
+import { likes } from "../../../database/schemas/postgre/schema";
+import { db } from "../../../database/drizzle";
 import { and, eq } from "drizzle-orm";
-import { Errors } from "../../utils/error";
+import { Errors } from "../../../utils/error";
 
 export class LikeService {
   async updateLike(post_id: string, authId: string) {

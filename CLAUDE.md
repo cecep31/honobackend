@@ -40,17 +40,11 @@ src/
 ├── server/app.ts          # Main Hono app with error handling
 ├── router/index.ts        # API router setup (v1 endpoints)
 ├── middlewares/           # Custom middleware (auth, logging, validation)
-├── modules/               # Feature modules (controller + service per domain)
-│   ├── auth/              # Authentication & GitHub OAuth
-│   ├── users/             # User profiles, follow/unfollow
-│   ├── posts/             # Blog posts with tags, comments, likes
-│   ├── tags/              # Post categorization
-│   ├── likes/             # User reactions
-│   ├── writers/           # Writer profiles
-│   ├── chat/              # AI chat via OpenRouter
-│   ├── holdings/          # Portfolio holdings tracking
-│   ├── bookmarks/         # Post bookmarks
-│   └── comments/          # Post comments
+├── modules/               # Feature modules
+│   └── */                 # Each domain has:
+│       ├── controllers/   # HTTP handlers (*Controller.ts)
+│       ├── services/      # Business logic (*Service.ts)
+│       └── validation/    # Zod schemas
 ├── services/index.ts      # Lazy-loaded service instances
 ├── database/
 │   ├── drizzle.ts         # Database connection setup
@@ -63,7 +57,10 @@ src/
 ### Key Architectural Patterns
 
 **Module Structure (Controller + Service):**
-- Each domain in `modules/` has a `*Controller.ts` (HTTP handlers) and `*Service.ts` (business logic)
+- Each domain in `modules/` has:
+  - `controllers/*Controller.ts` - HTTP handlers
+  - `services/*Service.ts` - Business logic
+  - `validation/*.ts` - Zod schemas
 - Controllers import services from `services/index.ts` using lazy-loaded singletons
 - Services access the database via `db` from `database/drizzle.ts`
 
