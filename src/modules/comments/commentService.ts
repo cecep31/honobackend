@@ -25,7 +25,7 @@ export class CommentService {
           .from(post_comments)
           .where(
             and(
-              eq(post_comments.id, data.parent_comment_id.toString()),
+              eq(post_comments.id, data.parent_comment_id),
               isNull(post_comments.deleted_at)
             )
           );
@@ -132,7 +132,7 @@ export class CommentService {
     try {
       const replies = await db.query.post_comments.findMany({
         where: and(
-          eq(post_comments.parent_comment_id, Number(parent_comment_id)),
+          eq(post_comments.parent_comment_id, parent_comment_id),
           isNull(post_comments.deleted_at)
         ),
         with: {
