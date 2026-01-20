@@ -20,7 +20,6 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "clean": "rm -rf dist bin",
-    "lint": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {

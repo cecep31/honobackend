@@ -4,7 +4,6 @@ This file provides guidance to agentic coding tools when working with this Hono/
 
 ## Build/Lint/Test Commands
 - `bun run typecheck` - Run TypeScript type checking
-- `bun run lint` - Run TypeScript linting (same as typecheck)
 - `bun run format` - Format code with Prettier
 - `bun test` - Run all tests
 - `bun test <file>` - Run single test file (e.g., `bun test src/test/authservice.test.ts`)
