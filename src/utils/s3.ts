@@ -102,21 +102,12 @@ class S3Helper {
 
     try {
       await this.client.write(fullPath, body);
-      return this.getObjectUrl(key);
+      return key;
     } catch (error) {
       return this.handleError("upload", key, error);
     }
   }
 
-  /**
-   * Get the URL for an S3 object
-   * @param key The key/name of the file in S3
-   * @returns The public URL of the object
-   */
-  getObjectUrl(key: string): string {
-    const normalizedKey = this.normalizeKey(key);
-    return `${this.endpointBase}/${this.config.bucketName}/${normalizedKey}`;
-  }
 
   /**
    * Download a file from S3

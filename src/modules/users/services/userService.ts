@@ -7,7 +7,11 @@ import {
   users as usersModel,
   user_follows,
 } from "../../../database/schemas/postgre/schema";
-import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from "../validation/user";
+import type {
+  UserCreateBody,
+  UserUpdateBody,
+  UpdateProfileBody,
+} from "../validation/user";
 import type { UserSignup } from "../../auth/validation/auth";
 import type { GetPaginationParams } from "../../../types/paginate";
 import { getPaginationMetadata } from "../../../utils/paginate";
@@ -86,7 +90,10 @@ export class UserService {
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user profile", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch user profile",
+        error,
+      });
     }
   }
 
@@ -210,7 +217,11 @@ export class UserService {
 
       return updatedUser;
     } catch (error) {
-      if (error instanceof Error && (error.message.includes("not found") || error.message.includes("already exists"))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("not found") ||
+          error.message.includes("already exists"))
+      ) {
         throw error;
       }
       console.error("Error updating user:", error);
@@ -244,7 +255,10 @@ export class UserService {
         throw error;
       }
       console.error("Error updating profile:", error);
-      throw Errors.DatabaseError({ message: "Failed to update profile", error });
+      throw Errors.DatabaseError({
+        message: "Failed to update profile",
+        error,
+      });
     }
   }
 
@@ -262,12 +276,15 @@ export class UserService {
       return await db.query.users.findFirst({
         where: and(
           eq(usersModel.github_id, githubId),
-          isNull(usersModel.deleted_at)
+          isNull(usersModel.deleted_at),
         ),
       });
     } catch (error) {
       console.error("Error fetching user by GitHub ID:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user by GitHub ID", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch user by GitHub ID",
+        error,
+      });
     }
   }
 
@@ -282,12 +299,15 @@ export class UserService {
         .select({ count: count() })
         .from(usersModel)
         .where(
-          and(eq(usersModel.username, username), isNull(usersModel.deleted_at))
+          and(eq(usersModel.username, username), isNull(usersModel.deleted_at)),
         );
       return result[0].count;
     } catch (error) {
       console.error("Error counting users by username:", error);
-      throw Errors.DatabaseError({ message: "Failed to count users by username", error });
+      throw Errors.DatabaseError({
+        message: "Failed to count users by username",
+        error,
+      });
     }
   }
 
@@ -301,13 +321,14 @@ export class UserService {
       const result = await db
         .select({ count: count() })
         .from(usersModel)
-        .where(
-          and(eq(usersModel.email, email), isNull(usersModel.deleted_at))
-        );
+        .where(and(eq(usersModel.email, email), isNull(usersModel.deleted_at)));
       return result[0].count;
     } catch (error) {
       console.error("Error counting users by email:", error);
-      throw Errors.DatabaseError({ message: "Failed to count users by email", error });
+      throw Errors.DatabaseError({
+        message: "Failed to count users by email",
+        error,
+      });
     }
   }
 
@@ -362,7 +383,10 @@ export class UserService {
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user profile", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch user profile",
+        error,
+      });
     }
   }
 
@@ -378,7 +402,10 @@ export class UserService {
       });
     } catch (error) {
       console.error("Error fetching user by email:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user by email", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch user by email",
+        error,
+      });
     }
   }
 
@@ -390,11 +417,17 @@ export class UserService {
   async getUserByUsernameRaw(username: string) {
     try {
       return await db.query.users.findFirst({
-        where: and(eq(usersModel.username, username), isNull(usersModel.deleted_at)),
+        where: and(
+          eq(usersModel.username, username),
+          isNull(usersModel.deleted_at),
+        ),
       });
     } catch (error) {
       console.error("Error fetching user by username:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user by username", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch user by username",
+        error,
+      });
     }
   }
 
@@ -415,7 +448,10 @@ export class UserService {
       return result;
     } catch (error) {
       console.error("Error updating password:", error);
-      throw Errors.DatabaseError({ message: "Failed to update password", error });
+      throw Errors.DatabaseError({
+        message: "Failed to update password",
+        error,
+      });
     }
   }
 
@@ -455,17 +491,21 @@ export class UserService {
           const oldKey = user.image.substring(user.image.lastIndexOf("/") + 1);
           await s3.deleteFile(`avatars/${oldKey}`);
         } catch (error) {
-          console.warn("Old image deletion failed, continuing with upload:", error);
+          console.warn(
+            "Old image deletion failed, continuing with upload:",
+            error,
+          );
         }
       }
 
       const imageId = randomUUIDv7();
       const imageKey = `avatars/${userId}/${imageId}.${imageFile.type.split("/")[1]}`;
-      const imageUrl = await s3.uploadFile(imageKey, imageFile);
+      
+      await s3.uploadFile(imageKey, imageFile);
 
       const [updatedUser] = await db
         .update(usersModel)
-        .set({ image: imageUrl, updated_at: new Date().toISOString() })
+        .set({ image: imageKey, updated_at: new Date().toISOString() })
         .where(eq(usersModel.id, userId))
         .returning({
           id: usersModel.id,
@@ -478,7 +518,10 @@ export class UserService {
         throw error;
       }
       console.error("Error updating user image:", error);
-      throw Errors.DatabaseError({ message: "Failed to update user image", error });
+      throw Errors.DatabaseError({
+        message: "Failed to update user image",
+        error,
+      });
     }
   }
 
@@ -510,7 +553,7 @@ export class UserService {
         where: and(
           eq(user_follows.follower_id, follower_id),
           eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at)
+          isNull(user_follows.deleted_at),
         ),
       });
 
@@ -547,7 +590,11 @@ export class UserService {
 
       return follow;
     } catch (error) {
-      if (error instanceof Error && (error.message.includes("not found") || error.message.includes("Already following"))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("not found") ||
+          error.message.includes("Already following"))
+      ) {
         throw error;
       }
       console.error("Error following user:", error);
@@ -568,7 +615,7 @@ export class UserService {
         where: and(
           eq(user_follows.follower_id, follower_id),
           eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at)
+          isNull(user_follows.deleted_at),
         ),
       });
 
@@ -616,7 +663,10 @@ export class UserService {
    * @param params Pagination parameters
    * @returns Paginated list of followers
    */
-  async getFollowers(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
+  async getFollowers(
+    userId: string,
+    params: GetPaginationParams = { offset: 0, limit: 10 },
+  ) {
     try {
       const { limit, offset } = params;
 
@@ -639,8 +689,8 @@ export class UserService {
           and(
             eq(user_follows.following_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
+            isNull(usersModel.deleted_at),
+          ),
         )
         .orderBy(desc(user_follows.created_at))
         .limit(limit)
@@ -655,15 +705,18 @@ export class UserService {
           and(
             eq(user_follows.following_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
+            isNull(usersModel.deleted_at),
+          ),
         );
 
       const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
       return { data: followers, meta };
     } catch (error) {
       console.error("Error fetching followers:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch followers", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch followers",
+        error,
+      });
     }
   }
 
@@ -673,7 +726,10 @@ export class UserService {
    * @param params Pagination parameters
    * @returns Paginated list of following users
    */
-  async getFollowing(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
+  async getFollowing(
+    userId: string,
+    params: GetPaginationParams = { offset: 0, limit: 10 },
+  ) {
     try {
       const { limit, offset } = params;
 
@@ -696,8 +752,8 @@ export class UserService {
           and(
             eq(user_follows.follower_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
+            isNull(usersModel.deleted_at),
+          ),
         )
         .orderBy(desc(user_follows.created_at))
         .limit(limit)
@@ -712,15 +768,18 @@ export class UserService {
           and(
             eq(user_follows.follower_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
+            isNull(usersModel.deleted_at),
+          ),
         );
 
       const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
       return { data: following, meta };
     } catch (error) {
       console.error("Error fetching following:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch following", error });
+      throw Errors.DatabaseError({
+        message: "Failed to fetch following",
+        error,
+      });
     }
   }
 
@@ -730,20 +789,26 @@ export class UserService {
    * @param following_id ID of the potential following
    * @returns Boolean indicating if following
    */
-  async isFollowing(follower_id: string, following_id: string): Promise<boolean> {
+  async isFollowing(
+    follower_id: string,
+    following_id: string,
+  ): Promise<boolean> {
     try {
       const follow = await db.query.user_follows.findFirst({
         where: and(
           eq(user_follows.follower_id, follower_id),
           eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at)
+          isNull(user_follows.deleted_at),
         ),
       });
 
       return !!follow;
     } catch (error) {
       console.error("Error checking follow status:", error);
-      throw Errors.DatabaseError({ message: "Failed to check follow status", error });
+      throw Errors.DatabaseError({
+        message: "Failed to check follow status",
+        error,
+      });
     }
   }
 }
