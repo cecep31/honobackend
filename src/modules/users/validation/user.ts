@@ -42,7 +42,21 @@ export const updateProfileSchema = z.object({
   location: z.string().max(255, "Location must be at most 255 characters").optional(),
 });
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+export const updateUserImageSchema = z.object({
+  image: z
+    .instanceof(File, { message: "Image is required" })
+    .refine((file) => file.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+    .refine(
+      (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
+      ".jpg, .jpeg, .png and .webp files are accepted."
+    ),
+});
+
 export type UserCreateBody = z.infer<typeof createUserSchema>;
 export type UserUpdateBody = z.infer<typeof updateUserSchema>;
 export type FollowUserBody = z.infer<typeof followUserSchema>;
 export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;
+export type UpdateUserImageBody = z.infer<typeof updateUserImageSchema>;

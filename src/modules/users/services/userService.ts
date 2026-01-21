@@ -1,3 +1,4 @@
+import { getS3Helper } from "../../../utils/s3";
 import { randomUUIDv7 } from "bun";
 import { db } from "../../../database/drizzle";
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
@@ -436,6 +437,48 @@ export class UserService {
     } catch (error) {
       console.error("Error updating email:", error);
       throw Errors.DatabaseError({ message: "Failed to update email", error });
+    }
+  }
+
+  async updateUserImage(userId: string, imageFile: File) {
+    try {
+      const s3 = getS3Helper();
+      const user = await this.getUser(userId);
+
+      if (!user) {
+        throw Errors.NotFound("User not found");
+      }
+
+      // If user has an old image, delete it from S3
+      if (user.image) {
+        try {
+          const oldKey = user.image.substring(user.image.lastIndexOf("/") + 1);
+          await s3.deleteFile(`avatars/${oldKey}`);
+        } catch (error) {
+          console.warn("Old image deletion failed, continuing with upload:", error);
+        }
+      }
+
+      const imageId = randomUUIDv7();
+      const imageKey = `avatars/${userId}/${imageId}.${imageFile.type.split("/")[1]}`;
+      const imageUrl = await s3.uploadFile(imageKey, imageFile);
+
+      const [updatedUser] = await db
+        .update(usersModel)
+        .set({ image: imageUrl, updated_at: new Date().toISOString() })
+        .where(eq(usersModel.id, userId))
+        .returning({
+          id: usersModel.id,
+          image: usersModel.image,
+        });
+
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        throw error;
+      }
+      console.error("Error updating user image:", error);
+      throw Errors.DatabaseError({ message: "Failed to update user image", error });
     }
   }
 

@@ -11,7 +11,8 @@ import {
   createUserSchema,
   updateUserSchema,
   userIdSchema,
-  updateProfileSchema
+  updateProfileSchema,
+  updateUserImageSchema
 } from "../validation/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
@@ -51,6 +52,22 @@ export const userController = new Hono<{ Variables: Variables }>()
       const body = c.req.valid("json");
       const profile = await userService.updateProfile(authUser.user_id, body);
       return sendSuccess(c, profile, "Profile updated successfully");
+    }
+  )
+
+  /**
+   * PATCH /users/me/image - Update current authenticated user's profile image
+   */
+  .patch(
+    "/me/image",
+    auth,
+    validateRequest("form", updateUserImageSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { image } = c.req.valid("form");
+
+      const updatedUser = await userService.updateUserImage(authUser.user_id, image);
+      return sendSuccess(c, updatedUser, "Profile image updated successfully");
     }
   )
 

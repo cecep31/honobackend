@@ -3,7 +3,7 @@ import type { z } from "zod";
 import { Errors } from "../utils/error";
 
 export function validateRequest(
-  typereq: "json" | "query" | "param" | "cookie" | "header",
+  typereq: "json" | "query" | "param" | "cookie" | "header" | "form",
   schema: z.Schema<any>
 ) {
   return validator(typereq, (value) => {
