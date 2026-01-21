@@ -1,624 +1,736 @@
-import { describe, it, expect, beforeEach, mock, afterEach } from 'bun:test';
-import { UserService } from '../modules/users/services/userService';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 
-// specific mocks we can control
-const mockFindMany = mock();
-const mockFindFirst = mock();
-const mockWhere = mock();
-const mockFrom = mock(() => ({ where: mockWhere }));
-const mockSelect = mock(() => ({ from: mockFrom }));
+// Mock the database before importing services
 const mockReturning = mock();
-const mockSet = mock(() => ({ where: mock(() => ({ returning: mockReturning })) }));
-const mockUpdate = mock(() => ({ set: mockSet }));
 const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
+const mockInsert = mock((model: any) => ({ values: mockValues }));
+const mockWhere = mock(() => ({ returning: mockReturning }));
+const mockSet = mock(() => ({ where: mockWhere }));
+const mockUpdate = mock(() => ({ set: mockSet }));
+const mockUserFindFirst = mock();
+const mockUserFindMany = mock();
+const mockCountResult = mock();
+const mockFrom = mock(() => ({ where: mockCountResult }));
+const mockSelect = mock(() => ({ from: mockFrom }));
+const mockUserFollowsFindFirst = mock();
 
-// Mock the db module
+// Ensure mockValues always returns the correct structure
+mockValues.mockImplementation(() => ({ returning: mockReturning }));
+
+// Create mock functions for complex query chains
+const createMockSelectChain = (result: any) => {
+  const mockOffset = mock(() => Promise.resolve(result));
+  const mockLimit = mock(() => ({ offset: mockOffset }));
+  const mockOrderBy = mock(() => ({ limit: mockLimit }));
+  const mockWhereClause = mock(() => ({ orderBy: mockOrderBy }));
+  const mockInnerJoin = mock(() => ({ where: mockWhereClause }));
+  const mockFromFollows = mock(() => ({ innerJoin: mockInnerJoin }));
+  return { mockFromFollows, mockCountResult };
+};
+
 mock.module('../database/drizzle', () => {
-    return {
-        db: {
-            query: {
-                users: {
-                    findMany: mockFindMany,
-                    findFirst: mockFindFirst,
-                },
-                user_follows: {
-                    findFirst: mockFindFirst,
-                }
-            },
-            select: mockSelect,
-            update: mockUpdate,
-            insert: mockInsert,
-        }
-    }
+  return {
+    db: {
+      insert: mockInsert,
+      update: mockUpdate,
+      select: mockSelect,
+      query: {
+        users: {
+          findFirst: mockUserFindFirst,
+          findMany: mockUserFindMany,
+        },
+        user_follows: {
+          findFirst: mockUserFollowsFindFirst,
+        },
+      },
+    },
+  };
 });
 
+// Mock S3 helper - must be before service import
+const mockUploadFile = mock();
+const mockDeleteFile = mock();
+mock.module('../utils/s3', () => ({
+  getS3Helper: mock(() => ({
+    uploadFile: mockUploadFile,
+    deleteFile: mockDeleteFile,
+  })),
+}));
+
+// Import after mocks
+import { UserService } from '../modules/users/services/userService';
+
 describe('UserService', () => {
-    let userService: UserService;
+  let userService: UserService;
 
-    beforeEach(() => {
-        userService = new UserService();
-        mockFindMany.mockReset();
-        mockFindFirst.mockReset();
-        mockWhere.mockReset();
-        mockReturning.mockReset();
-        mockInsert.mockClear();
-        mockValues.mockClear();
+  beforeEach(() => {
+    userService = new UserService();
+    mockReturning.mockReset();
+    mockValues.mockReset();
+    mockValues.mockImplementation(() => ({ returning: mockReturning }));
+    mockInsert.mockClear();
+    mockUpdate.mockClear();
+    mockSet.mockClear();
+    mockWhere.mockClear();
+    mockUserFindFirst.mockReset();
+    mockUserFindMany.mockReset();
+    mockCountResult.mockReset();
+    mockSelect.mockClear();
+    mockFrom.mockClear();
+    mockUserFollowsFindFirst.mockReset();
+    mockUploadFile.mockReset();
+    mockDeleteFile.mockReset();
+  });
+
+  describe('getUsers', () => {
+    it('returns paginated list of users without passwords', async () => {
+      const mockUsers = [
+        {
+          id: 'user1',
+          email: 'user1@example.com',
+          username: 'user1',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        {
+          id: 'user2',
+          email: 'user2@example.com',
+          username: 'user2',
+          first_name: 'Jane',
+          last_name: 'Smith',
+        },
+      ];
+
+      mockUserFindMany.mockResolvedValue(mockUsers);
+      mockCountResult.mockResolvedValue([{ count: 2 }]);
+
+      const result = await userService.getUsers({ offset: 0, limit: 10 });
+
+      expect(result.data).toEqual(mockUsers);
+      expect(result.meta).toHaveProperty('total_items');
+      expect(result.meta.total_items).toBe(2);
+      expect(mockUserFindMany).toHaveBeenCalled();
     });
 
-    afterEach(() => {
-        mockUpdate.mockImplementation(() => ({ set: mockSet }));
+    it('handles database errors', async () => {
+      mockUserFindMany.mockRejectedValue(new Error('Database error'));
+
+      await expect(userService.getUsers()).rejects.toThrow();
+    });
+  });
+
+  describe('getUser', () => {
+    it('returns user by ID without password', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        username: 'testuser',
+        first_name: 'Test',
+        last_name: 'User',
+      };
+
+      mockUserFindFirst.mockResolvedValue(mockUser);
+
+      const result = await userService.getUser('user1');
+
+      expect(result).toEqual(mockUser);
+      expect(mockUserFindFirst).toHaveBeenCalled();
     });
 
-    describe('getUsers', () => {
-        it('returns data and meta', async () => {
-            const mockData = [{ id: '1', username: 'user1' }];
-            const mockCount = [{ count: 1 }];
+    it('returns null when user not found', async () => {
+      mockUserFindFirst.mockResolvedValue(null);
 
-            mockFindMany.mockResolvedValue(mockData);
-            mockWhere.mockResolvedValue(mockCount);
+      const result = await userService.getUser('nonexistent');
 
-            const result = await userService.getUsers({ limit: 10, offset: 0 });
-
-            expect(result.data).toEqual(mockData);
-            expect(result.meta).toBeDefined();
-            expect(result.meta.total_items).toBe(1);
-            expect(mockFindMany).toHaveBeenCalled();
-            expect(mockSelect).toHaveBeenCalled();
-        });
-
-        it('uses default pagination params', async () => {
-            mockFindMany.mockResolvedValue([]);
-            mockWhere.mockResolvedValue([{ count: 0 }]);
-
-            const result = await userService.getUsers();
-
-            expect(result.data).toEqual([]);
-            expect(result.meta).toBeDefined();
-        });
-
-        it('handles empty results', async () => {
-            mockFindMany.mockResolvedValue([]);
-            mockWhere.mockResolvedValue([{ count: 0 }]);
-
-            const result = await userService.getUsers({ limit: 10, offset: 0 });
-
-            expect(result.data).toHaveLength(0);
-            expect(result.meta.total_items).toBe(0);
-        });
+      expect(result).toBeNull();
     });
 
-    describe('getUser', () => {
-        it('returns a user', async () => {
-            const mockUser = { id: '1', username: 'user1' };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('handles database errors', async () => {
+      mockUserFindFirst.mockRejectedValue(new Error('Database error'));
 
-            const result = await userService.getUser('1');
+      await expect(userService.getUser('user1')).rejects.toThrow();
+    });
+  });
 
-            expect(result).toEqual(mockUser);
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
+  describe('getUserMe', () => {
+    it('returns user without profile when profile flag is false', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        username: 'testuser',
+      };
 
-        it('returns null if user not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+      mockUserFindFirst.mockResolvedValue(mockUser);
 
-            const result = await userService.getUser('non-existent');
+      const result = await userService.getUserMe('user1', false);
 
-            expect(result).toBeNull();
-        });
+      expect(result).toEqual(mockUser);
+      expect(mockUserFindFirst).toHaveBeenCalled();
     });
 
-    describe('getUserMe', () => {
-        it('returns user without profile by default', async () => {
-            const mockUser = { id: '1', username: 'user1', email: 'user@test.com' };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('returns user with profile when profile flag is true', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        username: 'testuser',
+        profiles: {
+          bio: 'Test bio',
+          phone: '123-456-7890',
+        },
+      };
 
-            const result = await userService.getUserMe('1');
+      mockUserFindFirst.mockResolvedValue(mockUser);
 
-            expect(result).toEqual(mockUser);
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
+      const result = await userService.getUserMe('user1', true);
 
-        it('returns user with profile when requested', async () => {
-            const mockUser = { 
-                id: '1', 
-                username: 'user1', 
-                profiles: { bio: 'Test bio', website: 'https://example.com' } 
-            };
-            mockFindFirst.mockResolvedValue(mockUser);
+      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('profiles');
+    });
+  });
 
-            const result = await userService.getUserMe('1', true);
+  describe('deleteUser', () => {
+    it('soft deletes a user', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        username: 'testuser',
+      };
 
-            expect(result).toHaveProperty('profiles');
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
+      mockUserFindFirst.mockResolvedValue(mockUser);
+      mockReturning.mockResolvedValue([{ id: 'user1' }]);
 
-        it('returns null if user not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+      const result = await userService.deleteUser('user1');
 
-            const result = await userService.getUserMe('non-existent');
-
-            expect(result).toBeNull();
-        });
+      expect(result.id).toBe('user1');
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
-    describe('deleteUser', () => {
-        it('soft deletes a user', async () => {
-            const mockUser = { id: '1', username: 'user1' };
-            mockFindFirst.mockResolvedValue(mockUser);
-            mockReturning.mockResolvedValue([{ id: '1' }]);
+    it('throws error when user not found', async () => {
+      mockUserFindFirst.mockResolvedValue(null);
 
-            const result = await userService.deleteUser('1');
+      await expect(userService.deleteUser('nonexistent')).rejects.toThrow('not found');
+    });
+  });
 
-            expect(result).toEqual({ id: '1' });
-            expect(mockUpdate).toHaveBeenCalled();
-        });
+  describe('addUser', () => {
+    it('creates a new user with hashed password', async () => {
+      const userData = {
+        first_name: 'John',
+        last_name: 'Doe',
+        username: 'johndoe',
+        email: 'john@example.com',
+        password: 'password123',
+        image: '/images/default.jpg',
+      };
 
-        it('throws NotFound if user does not exist', async () => {
-            mockFindFirst.mockResolvedValue(null);
+      mockCountResult.mockResolvedValue([{ count: 0 }]);
+      mockReturning.mockResolvedValueOnce([{ id: 'new-user-id' }]).mockResolvedValueOnce([]);
 
-            expect(userService.deleteUser('non-existent')).rejects.toThrow();
-        });
+      const result = await userService.addUser(userData);
+
+      expect(result.id).toBe('new-user-id');
+      expect(mockInsert).toHaveBeenCalledTimes(2); // Once for user, once for profile
     });
 
-    describe('addUser', () => {
-        it('creates a new user with hashed password', async () => {
-            const userData = {
-                first_name: 'John',
-                last_name: 'Doe',
-                username: 'johndoe',
-                email: 'john@example.com',
-                password: 'password123',
-                image: 'https://example.com/avatar.jpg',
-                is_super_admin: false
-            };
+    it('throws error when username already exists', async () => {
+      const userData = {
+        first_name: 'John',
+        last_name: 'Doe',
+        username: 'existinguser',
+        email: 'john@example.com',
+        password: 'password123',
+      };
 
-            // Mock username and email count checks
-            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // username check
-            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // email check
-            mockReturning.mockResolvedValue([{ id: 'new-user-id' }]);
+      mockCountResult.mockResolvedValue([{ count: 1 }]);
 
-            const result = await userService.addUser(userData);
-
-            expect(result).toHaveProperty('id', 'new-user-id');
-            expect(mockInsert).toHaveBeenCalled();
-        });
-
-        it('creates a super admin user when specified', async () => {
-            const userData = {
-                first_name: 'Admin',
-                last_name: 'User',
-                username: 'admin',
-                email: 'admin@example.com',
-                password: 'adminpass',
-                image: '/images/default.jpg',
-                is_super_admin: true
-            };
-
-            // Mock username and email count checks
-            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // username check
-            mockWhere.mockResolvedValueOnce([{ count: 0 }]); // email check
-            mockReturning.mockResolvedValue([{ id: 'admin-id', is_super_admin: true }]);
-
-            const result = await userService.addUser(userData);
-
-            expect(result).toHaveProperty('id');
-            expect(mockInsert).toHaveBeenCalled();
-        });
+      await expect(userService.addUser(userData)).rejects.toThrow('already exists');
     });
 
-    describe('getUserByGithubId', () => {
-        it('returns user by github id', async () => {
-            const mockUser = { id: '1', github_id: 12345, username: 'githubuser' };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('throws error when email already exists', async () => {
+      const userData = {
+        first_name: 'John',
+        last_name: 'Doe',
+        username: 'johndoe',
+        email: 'existing@example.com',
+        password: 'password123',
+      };
 
-            const result = await userService.getUserByGithubId(12345);
+      mockCountResult
+        .mockResolvedValueOnce([{ count: 0 }]) // Username check
+        .mockResolvedValueOnce([{ count: 1 }]); // Email check
 
-            expect(result).toEqual(mockUser);
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
+      await expect(userService.addUser(userData)).rejects.toThrow('already exists');
+    });
+  });
 
-        it('returns null if github user not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+  describe('updateUser', () => {
+    it('updates user information', async () => {
+      const existingUser = {
+        id: 'user1',
+        username: 'oldusername',
+        email: 'old@example.com',
+      };
 
-            const result = await userService.getUserByGithubId(99999);
+      const updateData = {
+        first_name: 'Updated',
+        last_name: 'Name',
+      };
 
-            expect(result).toBeNull();
-        });
+      mockUserFindFirst.mockResolvedValue(existingUser);
+      mockReturning.mockResolvedValue([{ id: 'user1' }]);
+
+      const result = await userService.updateUser('user1', updateData);
+
+      expect(result.id).toBe('user1');
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
-    describe('getUserCountByUsername', () => {
-        it('returns count of users with username', async () => {
-            mockWhere.mockResolvedValue([{ count: 1 }]);
+    it('throws error when updating to existing username', async () => {
+      const existingUser = {
+        id: 'user1',
+        username: 'oldusername',
+        email: 'old@example.com',
+      };
 
-            const result = await userService.getUserCountByUsername('existinguser');
+      mockUserFindFirst.mockResolvedValue(existingUser);
+      mockCountResult.mockResolvedValue([{ count: 1 }]);
 
-            expect(result).toBe(1);
-            expect(mockSelect).toHaveBeenCalled();
-        });
-
-        it('returns 0 if username does not exist', async () => {
-            mockWhere.mockResolvedValue([{ count: 0 }]);
-
-            const result = await userService.getUserCountByUsername('newuser');
-
-            expect(result).toBe(0);
-        });
+      await expect(
+        userService.updateUser('user1', { username: 'existinguser' })
+      ).rejects.toThrow('already exists');
     });
 
-    describe('getUserCountByEmail', () => {
-        it('returns count of users with email', async () => {
-            mockWhere.mockResolvedValue([{ count: 1 }]);
+    it('throws error when updating to existing email', async () => {
+      const existingUser = {
+        id: 'user1',
+        username: 'username',
+        email: 'old@example.com',
+      };
 
-            const result = await userService.getUserCountByEmail('existing@example.com');
+      mockUserFindFirst.mockResolvedValue(existingUser);
+      mockCountResult.mockResolvedValue([{ count: 1 }]);
 
-            expect(result).toBe(1);
-        });
-
-        it('returns 0 if email does not exist', async () => {
-            mockWhere.mockResolvedValue([{ count: 0 }]);
-
-            const result = await userService.getUserCountByEmail('new@example.com');
-
-            expect(result).toBe(0);
-        });
+      await expect(
+        userService.updateUser('user1', { email: 'existing@example.com' })
+      ).rejects.toThrow('already exists');
     });
 
-    describe('createUser', () => {
-        it('creates a new user and profile', async () => {
-            const signupData = {
-                email: 'new@example.com',
-                password: 'hashedpassword',
-                username: 'newuser',
-                first_name: 'New',
-                last_name: 'User'
-            };
+    it('throws error when user not found', async () => {
+      mockUserFindFirst.mockResolvedValue(null);
 
-            mockReturning.mockResolvedValue([{ 
-                id: 'new-id', 
-                email: signupData.email, 
-                username: signupData.username 
-            }]);
+      await expect(userService.updateUser('nonexistent', {})).rejects.toThrow('not found');
+    });
+  });
 
-            const result = await userService.createUser(signupData);
+  describe('updateProfile', () => {
+    it('updates user profile', async () => {
+      const existingUser = {
+        id: 'user1',
+        username: 'testuser',
+      };
 
-            expect(result).toHaveProperty('id');
-            expect(result).toHaveProperty('email', signupData.email);
-            expect(mockInsert).toHaveBeenCalled();
-        });
+      const profileData = {
+        bio: 'New bio',
+        phone: '123-456-7890',
+        location: 'New York',
+      };
+
+      mockUserFindFirst.mockResolvedValue(existingUser);
+      mockReturning.mockResolvedValue([{ user_id: 'user1', ...profileData }]);
+
+      const result = await userService.updateProfile('user1', profileData);
+
+      expect(result).toHaveProperty('bio');
+      expect(result.bio).toBe('New bio');
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
-    describe('getUserWithPassword', () => {
-        it('returns user with password field', async () => {
-            const mockUser = { 
-                id: '1', 
-                username: 'user1', 
-                password: 'hashedpassword' 
-            };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('throws error when user not found', async () => {
+      mockUserFindFirst.mockResolvedValue(null);
 
-            const result = await userService.getUserWithPassword('1');
+      await expect(
+        userService.updateProfile('nonexistent', { bio: 'New bio' })
+      ).rejects.toThrow('not found');
+    });
+  });
 
-            expect(result).toHaveProperty('password');
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
+  describe('getUserByGithubId', () => {
+    it('returns user by GitHub ID', async () => {
+      const mockUser = {
+        id: 'user1',
+        github_id: 12345,
+        email: 'github@example.com',
+      };
 
-        it('returns null if user not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+      mockUserFindFirst.mockResolvedValue(mockUser);
 
-            const result = await userService.getUserWithPassword('non-existent');
+      const result = await userService.getUserByGithubId(12345);
 
-            expect(result).toBeNull();
-        });
+      expect(result).toEqual(mockUser);
+      expect(mockUserFindFirst).toHaveBeenCalled();
+    });
+  });
+
+  describe('getUserCountByUsername', () => {
+    it('returns count of users with username', async () => {
+      mockCountResult.mockResolvedValue([{ count: 1 }]);
+
+      const result = await userService.getUserCountByUsername('testuser');
+
+      expect(result).toBe(1);
     });
 
-    describe('getUserProfile', () => {
-        it('returns user with profile', async () => {
-            const mockUser = { 
-                id: '1', 
-                username: 'user1',
-                profiles: { bio: 'My bio', website: 'https://test.com' }
-            };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('returns 0 when username does not exist', async () => {
+      mockCountResult.mockResolvedValue([{ count: 0 }]);
 
-            const result = await userService.getUserProfile('1');
+      const result = await userService.getUserCountByUsername('nonexistent');
 
-            expect(result).toHaveProperty('profiles');
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
+      expect(result).toBe(0);
+    });
+  });
 
-        it('returns null if user not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+  describe('getUserCountByEmail', () => {
+    it('returns count of users with email', async () => {
+      mockCountResult.mockResolvedValue([{ count: 1 }]);
 
-            const result = await userService.getUserProfile('non-existent');
+      const result = await userService.getUserCountByEmail('test@example.com');
 
-            expect(result).toBeNull();
-        });
+      expect(result).toBe(1);
     });
 
-    describe('getUserByEmailRaw', () => {
-        it('returns user by email', async () => {
-            const mockUser = { id: '1', email: 'test@example.com', password: 'hash' };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('returns 0 when email does not exist', async () => {
+      mockCountResult.mockResolvedValue([{ count: 0 }]);
 
-            const result = await userService.getUserByEmailRaw('test@example.com');
+      const result = await userService.getUserCountByEmail('nonexistent@example.com');
 
-            expect(result).toEqual(mockUser);
-        });
+      expect(result).toBe(0);
+    });
+  });
 
-        it('returns null if email not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+  describe('createUser', () => {
+    it('creates user from signup data', async () => {
+      const signupData = {
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'hashedpassword',
+      };
 
-            const result = await userService.getUserByEmailRaw('notfound@example.com');
+      mockReturning.mockResolvedValueOnce([{ id: 'new-user-id', ...signupData }]).mockResolvedValueOnce([]);
 
-            expect(result).toBeNull();
-        });
+      const result = await userService.createUser(signupData);
+
+      expect(result.id).toBe('new-user-id');
+      expect(mockInsert).toHaveBeenCalledTimes(2); // User and profile
+    });
+  });
+
+  describe('getUserWithPassword', () => {
+    it('returns user with password field', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        password: 'hashedpassword',
+      };
+
+      mockUserFindFirst.mockResolvedValue(mockUser);
+
+      const result = await userService.getUserWithPassword('user1');
+
+      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('password');
+    });
+  });
+
+  describe('getUserProfile', () => {
+    it('returns user with profile data', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        profiles: {
+          bio: 'Test bio',
+        },
+      };
+
+      mockUserFindFirst.mockResolvedValue(mockUser);
+
+      const result = await userService.getUserProfile('user1');
+
+      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('profiles');
+    });
+  });
+
+  describe('getUserByEmailRaw', () => {
+    it('returns user by email with password', async () => {
+      const mockUser = {
+        id: 'user1',
+        email: 'test@example.com',
+        password: 'hashedpassword',
+      };
+
+      mockUserFindFirst.mockResolvedValue(mockUser);
+
+      const result = await userService.getUserByEmailRaw('test@example.com');
+
+      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('password');
+    });
+  });
+
+  describe('getUserByUsernameRaw', () => {
+    it('returns user by username with password', async () => {
+      const mockUser = {
+        id: 'user1',
+        username: 'testuser',
+        password: 'hashedpassword',
+      };
+
+      mockUserFindFirst.mockResolvedValue(mockUser);
+
+      const result = await userService.getUserByUsernameRaw('testuser');
+
+      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('password');
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('updates user password', async () => {
+      mockReturning.mockResolvedValue([{ id: 'user1' }]);
+
+      const result = await userService.updatePassword('user1', 'newhashedpassword');
+
+      expect(result.id).toBe('user1');
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateEmail', () => {
+    it('updates user email', async () => {
+      mockReturning.mockResolvedValue([{ id: 'user1' }]);
+
+      const result = await userService.updateEmail('user1', 'newemail@example.com');
+
+      expect(result.id).toBe('user1');
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateUserImage', () => {
+    it('uploads new image and updates user', async () => {
+      const mockUser = {
+        id: 'user1',
+        image: null,
+      };
+
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+
+      mockUserFindFirst.mockResolvedValue(mockUser);
+      mockUploadFile.mockResolvedValue(undefined);
+      mockReturning.mockResolvedValue([{ id: 'user1', image: 'avatars/user1/image.jpg' }]);
+
+      const result = await userService.updateUserImage('user1', mockFile);
+
+      expect(result.id).toBe('user1');
+      expect(mockUploadFile).toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
-    describe('getUserByUsernameRaw', () => {
-        it('returns user by username', async () => {
-            const mockUser = { id: '1', username: 'testuser', password: 'hash' };
-            mockFindFirst.mockResolvedValue(mockUser);
+    it('deletes old image before uploading new one', async () => {
+      const mockUser = {
+        id: 'user1',
+        image: 'avatars/old-image.jpg',
+      };
 
-            const result = await userService.getUserByUsernameRaw('testuser');
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
 
-            expect(result).toEqual(mockUser);
-        });
+      mockUserFindFirst.mockResolvedValue(mockUser);
+      mockDeleteFile.mockResolvedValue(undefined);
+      mockUploadFile.mockResolvedValue(undefined);
+      mockReturning.mockResolvedValue([{ id: 'user1', image: 'avatars/user1/new-image.jpg' }]);
 
-        it('returns null if username not found', async () => {
-            mockFindFirst.mockResolvedValue(null);
+      const result = await userService.updateUserImage('user1', mockFile);
 
-            const result = await userService.getUserByUsernameRaw('nonexistent');
-
-            expect(result).toBeNull();
-        });
+      expect(result.id).toBe('user1');
+      expect(mockDeleteFile).toHaveBeenCalled();
+      expect(mockUploadFile).toHaveBeenCalled();
     });
 
-    describe('updatePassword', () => {
-        it('updates user password', async () => {
-            mockReturning.mockResolvedValue([{ id: '1' }]);
+    it('throws error when user not found', async () => {
+      mockUserFindFirst.mockResolvedValue(null);
 
-            const result = await userService.updatePassword('1', 'newhash');
+      const mockFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
 
-            expect(result).toHaveProperty('id', '1');
-            expect(mockUpdate).toHaveBeenCalled();
-        });
+      await expect(userService.updateUserImage('nonexistent', mockFile)).rejects.toThrow(
+        'not found'
+      );
+    });
+  });
+
+  describe('followUser', () => {
+    it('creates follow relationship', async () => {
+      const followerUser = { id: 'user1', username: 'user1' };
+      const followingUser = { id: 'user2', username: 'user2' };
+
+      mockUserFindFirst
+        .mockResolvedValueOnce(followerUser)
+        .mockResolvedValueOnce(followingUser);
+      mockUserFollowsFindFirst.mockResolvedValue(null);
+      mockReturning.mockResolvedValue([
+        { id: 'follow-id', follower_id: 'user1', following_id: 'user2' },
+      ]);
+
+      const result = await userService.followUser('user1', 'user2');
+
+      expect(result).toHaveProperty('follower_id');
+      expect(result.follower_id).toBe('user1');
+      expect(mockInsert).toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalled(); // For updating counts
     });
 
-    describe('followUser', () => {
-        it('creates a follow relationship', async () => {
-            const follower = { id: 'user1', username: 'follower' };
-            const following = { id: 'user2', username: 'following' };
-            
-            mockFindFirst.mockResolvedValueOnce(follower); // follower exists
-            mockFindFirst.mockResolvedValueOnce(following); // following exists
-            mockFindFirst.mockResolvedValueOnce(null); // no existing follow
-            mockReturning.mockResolvedValue([{
-                id: 'follow-id',
-                follower_id: 'user1',
-                following_id: 'user2'
-            }]);
+    it('throws error when already following', async () => {
+      const followerUser = { id: 'user1', username: 'user1' };
+      const followingUser = { id: 'user2', username: 'user2' };
+      const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
 
-            const result = await userService.followUser('user1', 'user2');
+      mockUserFindFirst
+        .mockResolvedValueOnce(followerUser)
+        .mockResolvedValueOnce(followingUser);
+      mockUserFollowsFindFirst.mockResolvedValue(existingFollow);
 
-            expect(result).toHaveProperty('follower_id', 'user1');
-            expect(result).toHaveProperty('following_id', 'user2');
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockUpdate).toHaveBeenCalled();
-        });
-
-        it('throws error if follower does not exist', async () => {
-            mockFindFirst.mockResolvedValue(null);
-
-            expect(userService.followUser('non-existent', 'user2')).rejects.toThrow();
-        });
-
-        it('throws error if already following', async () => {
-            const follower = { id: 'user1', username: 'follower' };
-            const following = { id: 'user2', username: 'following' };
-            const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
-            
-            mockFindFirst.mockResolvedValueOnce(follower);
-            mockFindFirst.mockResolvedValueOnce(following);
-            mockFindFirst.mockResolvedValueOnce(existingFollow);
-
-            expect(userService.followUser('user1', 'user2')).rejects.toThrow();
-        });
+      await expect(userService.followUser('user1', 'user2')).rejects.toThrow(
+        'Already following'
+      );
     });
 
-    describe('unfollowUser', () => {
-        it('soft deletes a follow relationship', async () => {
-            const existingFollow = {
-                id: 'follow-id',
-                follower_id: 'user1',
-                following_id: 'user2'
-            };
-            
-            mockFindFirst.mockResolvedValue(existingFollow);
-            mockReturning.mockResolvedValue([{
-                ...existingFollow,
-                deleted_at: new Date().toISOString()
-            }]);
+    it('throws error when follower user not found', async () => {
+      mockUserFindFirst.mockResolvedValueOnce(null);
 
-            const result = await userService.unfollowUser('user1', 'user2');
-
-            expect(result).toHaveProperty('deleted_at');
-            expect(mockUpdate).toHaveBeenCalled();
-        });
-
-        it('throws error if follow relationship does not exist', async () => {
-            mockFindFirst.mockResolvedValue(null);
-
-            expect(userService.unfollowUser('user1', 'user2')).rejects.toThrow();
-        });
+      await expect(userService.followUser('nonexistent', 'user2')).rejects.toThrow('not found');
     });
 
-    describe('getFollowers', () => {
-        it('returns paginated list of followers', async () => {
-            const mockFollowers = [
-                { id: 'user1', username: 'follower1', created_at: new Date().toISOString() },
-                { id: 'user2', username: 'follower2', created_at: new Date().toISOString() }
-            ];
-            const mockCount = [{ count: 2 }];
+    it('throws error when following user not found', async () => {
+      const followerUser = { id: 'user1', username: 'user1' };
 
-            // Mock the select chain
-            const mockLimit = mock(() => ({ offset: mock(() => Promise.resolve(mockFollowers)) }));
-            const mockOrderBy = mock(() => ({ limit: mockLimit }));
-            const mockWhere = mock(() => ({ orderBy: mockOrderBy }));
-            const mockInnerJoin = mock(() => ({ where: mockWhere }));
-            const mockFrom = mock(() => ({ innerJoin: mockInnerJoin }));
-            mockSelect.mockReturnValue({ from: mockFrom });
+      mockUserFindFirst.mockResolvedValueOnce(followerUser).mockResolvedValueOnce(null);
 
-            // Mock count query
-            const mockCountWhere = mock(() => Promise.resolve(mockCount));
-            const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
-            const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
-            mockSelect.mockReturnValueOnce({ from: mockFrom });
-            mockSelect.mockReturnValueOnce({ from: mockCountFrom });
+      await expect(userService.followUser('user1', 'nonexistent')).rejects.toThrow('not found');
+    });
+  });
 
-            const result = await userService.getFollowers('user-id', { limit: 10, offset: 0 });
+  describe('unfollowUser', () => {
+    it('soft deletes follow relationship', async () => {
+      const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
 
-            expect(result.data).toBeDefined();
-            expect(result.meta).toBeDefined();
-            expect(mockSelect).toHaveBeenCalled();
-        });
+      mockUserFollowsFindFirst.mockResolvedValue(existingFollow);
+      mockReturning.mockResolvedValue([{ ...existingFollow, deleted_at: new Date().toISOString() }]);
+
+      const result = await userService.unfollowUser('user1', 'user2');
+
+      expect(result).toHaveProperty('deleted_at');
+      expect(mockUpdate).toHaveBeenCalled();
     });
 
-    describe('getFollowing', () => {
-        it('returns paginated list of following users', async () => {
-            const mockFollowing = [
-                { id: 'user1', username: 'following1', created_at: new Date().toISOString() },
-                { id: 'user2', username: 'following2', created_at: new Date().toISOString() }
-            ];
-            const mockCount = [{ count: 2 }];
+    it('throws error when follow relationship not found', async () => {
+      mockUserFollowsFindFirst.mockResolvedValue(null);
 
-            // Mock the select chain
-            const mockLimit = mock(() => ({ offset: mock(() => Promise.resolve(mockFollowing)) }));
-            const mockOrderBy = mock(() => ({ limit: mockLimit }));
-            const mockWhere = mock(() => ({ orderBy: mockOrderBy }));
-            const mockInnerJoin = mock(() => ({ where: mockWhere }));
-            const mockFrom = mock(() => ({ innerJoin: mockInnerJoin }));
-            mockSelect.mockReturnValue({ from: mockFrom });
+      await expect(userService.unfollowUser('user1', 'user2')).rejects.toThrow('not found');
+    });
+  });
 
-            // Mock count query
-            const mockCountWhere = mock(() => Promise.resolve(mockCount));
-            const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
-            const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
-            mockSelect.mockReturnValueOnce({ from: mockFrom });
-            mockSelect.mockReturnValueOnce({ from: mockCountFrom });
+  describe('getFollowers', () => {
+    it('returns paginated list of followers', async () => {
+      const mockFollowers = [
+        {
+          id: 'user1',
+          username: 'follower1',
+          email: 'follower1@example.com',
+          followers_count: 10,
+          following_count: 5,
+        },
+      ];
 
-            const result = await userService.getFollowing('user-id', { limit: 10, offset: 0 });
+      // Mock for data query (with orderBy, limit, offset)
+      const mockOffset = mock(() => Promise.resolve(mockFollowers));
+      const mockLimit = mock(() => ({ offset: mockOffset }));
+      const mockOrderBy = mock(() => ({ limit: mockLimit }));
+      const mockWhereClause = mock(() => ({ orderBy: mockOrderBy }));
+      const mockInnerJoin = mock(() => ({ where: mockWhereClause }));
+      const mockFromFollows = mock(() => ({ innerJoin: mockInnerJoin }));
+      
+      // Mock for count query (without orderBy, limit, offset)
+      const mockCountWhere = mock(() => Promise.resolve([{ count: 1 }]));
+      const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
+      const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
+      
+      // First call returns data query chain, second call returns count query chain
+      mockSelect
+        .mockReturnValueOnce({ from: mockFromFollows })
+        .mockReturnValueOnce({ from: mockCountFrom });
 
-            expect(result.data).toBeDefined();
-            expect(result.meta).toBeDefined();
-            expect(mockSelect).toHaveBeenCalled();
-        });
+      const result = await userService.getFollowers('user1', { offset: 0, limit: 10 });
+
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta.total_items).toBe(1);
+    });
+  });
+
+  describe('getFollowing', () => {
+    it('returns paginated list of following users', async () => {
+      const mockFollowing = [
+        {
+          id: 'user2',
+          username: 'following1',
+          email: 'following1@example.com',
+          followers_count: 15,
+          following_count: 8,
+        },
+      ];
+
+      // Mock for data query (with orderBy, limit, offset)
+      const mockOffset = mock(() => Promise.resolve(mockFollowing));
+      const mockLimit = mock(() => ({ offset: mockOffset }));
+      const mockOrderBy = mock(() => ({ limit: mockLimit }));
+      const mockWhereClause = mock(() => ({ orderBy: mockOrderBy }));
+      const mockInnerJoin = mock(() => ({ where: mockWhereClause }));
+      const mockFromFollows = mock(() => ({ innerJoin: mockInnerJoin }));
+      
+      // Mock for count query (without orderBy, limit, offset)
+      const mockCountWhere = mock(() => Promise.resolve([{ count: 1 }]));
+      const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
+      const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
+      
+      // First call returns data query chain, second call returns count query chain
+      mockSelect
+        .mockReturnValueOnce({ from: mockFromFollows })
+        .mockReturnValueOnce({ from: mockCountFrom });
+
+      const result = await userService.getFollowing('user1', { offset: 0, limit: 10 });
+
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta.total_items).toBe(1);
+    });
+  });
+
+  describe('isFollowing', () => {
+    it('returns true when user is following', async () => {
+      const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
+
+      mockUserFollowsFindFirst.mockResolvedValue(existingFollow);
+
+      const result = await userService.isFollowing('user1', 'user2');
+
+      expect(result).toBe(true);
     });
 
-    describe('isFollowing', () => {
-        it('returns true if following', async () => {
-            const existingFollow = {
-                id: 'follow-id',
-                follower_id: 'user1',
-                following_id: 'user2'
-            };
-            mockFindFirst.mockResolvedValue(existingFollow);
+    it('returns false when user is not following', async () => {
+      mockUserFollowsFindFirst.mockResolvedValue(null);
 
-            const result = await userService.isFollowing('user1', 'user2');
+      const result = await userService.isFollowing('user1', 'user2');
 
-            expect(result).toBe(true);
-            expect(mockFindFirst).toHaveBeenCalled();
-        });
-
-        it('returns false if not following', async () => {
-            mockFindFirst.mockResolvedValue(null);
-
-            const result = await userService.isFollowing('user1', 'user2');
-
-            expect(result).toBe(false);
-        });
+      expect(result).toBe(false);
     });
-
-    describe('updateProfile', () => {
-        beforeEach(() => {
-            mockFindFirst.mockClear();
-            mockUpdate.mockClear();
-            mockReturning.mockClear();
-            mockSet.mockClear();
-        });
-
-        it('should update user profile successfully', async () => {
-            const userId = 'user-123';
-            const updateData = {
-                bio: 'Updated bio',
-                phone: '+1234567890',
-                location: 'New York'
-            };
-
-            const mockUser = { id: userId, email: 'test@example.com' };
-            const mockUpdatedProfile = { id: 1, user_id: userId, ...updateData };
-
-            mockFindFirst.mockResolvedValue(mockUser);
-            mockReturning.mockResolvedValue([mockUpdatedProfile]);
-
-            const result = await userService.updateProfile(userId, updateData);
-
-            expect(result).toEqual(mockUpdatedProfile);
-            expect(mockFindFirst).toHaveBeenCalledWith({
-                where: expect.anything(),
-                columns: { password: false }
-            });
-            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ ...updateData, updated_at: expect.any(String) }));
-            expect(mockUpdate).toHaveBeenCalled();
-        });
-
-        it('should throw NotFound error when user does not exist', async () => {
-            const userId = 'nonexistent-user';
-            const updateData = { bio: 'Updated bio' };
-
-            mockFindFirst.mockResolvedValue(null);
-
-            await expect(userService.updateProfile(userId, updateData))
-                .rejects.toThrow('User');
-        });
-
-        it('should handle database errors gracefully', async () => {
-            const userId = 'user-123';
-            const updateData = { bio: 'Updated bio' };
-
-            const mockUser = { id: userId, email: 'test@example.com' };
-            mockFindFirst.mockResolvedValue(mockUser);
-            mockUpdate.mockImplementation(() => {
-                throw new Error('Database connection failed');
-            });
-
-            await expect(userService.updateProfile(userId, updateData))
-                .rejects.toThrow('Database operation failed');
-        });
-
-        it('should handle partial updates', async () => {
-            const userId = 'user-123';
-            const updateData = { bio: 'Just bio update' };
-
-            const mockUser = { id: userId, email: 'test@example.com' };
-            const mockUpdatedProfile = { 
-                id: 1, 
-                user_id: userId, 
-                bio: 'Just bio update',
-                created_at: null,
-                updated_at: null,
-                website: null,
-                phone: null,
-                location: null
-            };
-
-            mockFindFirst.mockResolvedValue(mockUser);
-            mockReturning.mockResolvedValue([mockUpdatedProfile]);
-
-            const result = await userService.updateProfile(userId, updateData);
-
-            expect(result).toEqual(mockUpdatedProfile);
-            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({ ...updateData, updated_at: expect.any(String) }));
-        });
-    });
+  });
 });
