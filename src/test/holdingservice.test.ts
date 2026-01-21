@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { HoldingService } from '../modules/holdings/holdingService';
+import { holdingService } from '../services';
 
 // Mock DB
 const mockReturning = mock();
@@ -103,10 +103,7 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('HoldingService', () => {
-    let holdingService: HoldingService;
-
     beforeEach(() => {
-        holdingService = new HoldingService();
         mockReturning.mockReset();
         mockInsert.mockClear();
         mockUpdate.mockClear();

@@ -1,14 +1,21 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { ChatService } from '../modules/chat/chatService';
-import type { OpenRouterService } from '../modules/chat/openrouterService';
+import { chatService, openrouterService } from '../services';
 
 // Mock OpenRouterService
 const mockGenerateResponse = mock();
 const mockGenerateStream = mock();
-const mockOpenRouterService = {
-    generateResponse: mockGenerateResponse,
-    generateStream: mockGenerateStream,
-} as unknown as OpenRouterService;
+mock.module('../modules/chat/services/openrouterService', () => {
+    return {
+        __esModule: true,
+        default: mock(() => {
+            return {
+                generateResponse: mockGenerateResponse,
+                generateStream: mockGenerateStream,
+            }
+        }),
+    }
+});
+
 
 // Mock DB with flexible chain
 const mockReturning = mock();
@@ -44,10 +51,7 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('ChatService', () => {
-    let chatService: ChatService;
-
     beforeEach(() => {
-        chatService = new ChatService(mockOpenRouterService);
         mockReturning.mockReset();
         mockDeleteReturning.mockReset();
         mockGenerateResponse.mockReset();

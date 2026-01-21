@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { TagService } from '../modules/tags/tagService';
+import { tagService } from '../services';
 
 const mockFindMany = mock();
 const mockFindFirst = mock();
@@ -38,10 +38,7 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('TagService', () => {
-    let tagService: TagService;
-
     beforeEach(() => {
-        tagService = new TagService();
         mockFindMany.mockReset();
         mockFindFirst.mockReset();
         mockReturning.mockReset();

@@ -295,27 +295,4 @@ export class AuthService {
       .delete(passwordResetTokensModel)
       .where(lt(passwordResetTokensModel.expires_at, now));
   }
-
-  async updateUser(
-    userId: string,
-    data: { username?: string; email?: string; password?: string }
-  ) {
-    // Check for username/email conflicts if being updated
-    if (data.username) {
-      const usernameCount = await this.userService.getUserCountByUsername(data.username);
-      if (usernameCount > 0) {
-        throw Errors.BusinessRuleViolation("Username already exists");
-      }
-    }
-
-    if (data.email) {
-      const emailCount = await this.userService.getUserCountByEmail(data.email);
-      if (emailCount > 0) {
-        throw Errors.BusinessRuleViolation("Email already exists");
-      }
-    }
-
-    // Update user data
-    return this.userService.updateUser(userId, data);
-  }
 }

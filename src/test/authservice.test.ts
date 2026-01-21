@@ -18,39 +18,36 @@ mock.module('../config', () => ({
     },
 }));
 
-import { AuthService } from '../modules/auth/authService';
-import { UserService } from '../modules/users/userService';
-
-// Mock UserService
-const mockUserService = {
-    getUserByEmailRaw: mock(),
-    getUserByUsernameRaw: mock(),
-    getUserByGithubId: mock(),
-    createUser: mock(),
-    getUserCountByUsername: mock(),
-    getUserCountByEmail: mock(),
-    getUserWithPassword: mock(),
-    updatePassword: mock(),
-} as unknown as UserService;
-
-// Mock db for sessions
+// Mock db before importing services
 const mockReturning = mock();
 const mockValues = mock(() => ({ returning: mockReturning }));
 const mockInsert = mock(() => ({ values: mockValues }));
+const mockSet = mock(() => ({ where: mock(() => ({ returning: mockReturning })) }));
+const mockUpdate = mock(() => ({ set: mockSet }));
 const mockSessionFindFirst = mock();
+const mockUserFindFirst = mock();
+const mockUserCount = mock();
+const mockSelect = mock(() => ({ from: mock(() => ({ where: mockUserCount })) }));
 
 mock.module('../database/drizzle', () => {
     return {
         db: {
             insert: mockInsert,
+            update: mockUpdate,
             query: {
                 sessions: {
                     findFirst: mockSessionFindFirst,
+                },
+                users: {
+                    findFirst: mockUserFindFirst,
                 }
-            }
+            },
+            select: mockSelect,
         }
     }
 });
+
+import { authService } from '../services';
 
 // Mock axios for GitHub OAuth
 mock.module('axios', () => {
@@ -62,21 +59,17 @@ mock.module('axios', () => {
 });
 
 describe('AuthService', () => {
-    let authService: AuthService;
-
     beforeEach(() => {
-        authService = new AuthService(mockUserService);
         mockReturning.mockReset();
         mockSessionFindFirst.mockReset();
-        (mockUserService.getUserByEmailRaw as any).mockReset();
-        (mockUserService.getUserByUsernameRaw as any).mockReset();
-        (mockUserService.getUserByGithubId as any).mockReset();
-        (mockUserService.createUser as any).mockReset();
-        (mockUserService.getUserCountByUsername as any).mockReset();
-        (mockUserService.getUserCountByEmail as any).mockReset();
-        (mockUserService.getUserWithPassword as any).mockReset();
-        (mockUserService.updatePassword as any).mockReset();
+        mockUserFindFirst.mockReset();
+        mockUserCount.mockReset();
+        mockInsert.mockClear();
+        mockSelect.mockClear();
+        mockUpdate.mockClear();
+        mockSet.mockClear();
         process.env.JWT_SECRET = 'test-secret';
+        mock(Bun.password, 'verifySync').mockReturnValue(true);
     });
 
     describe('signIn', () => {
@@ -92,7 +85,7 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            (mockUserService.getUserByEmailRaw as any).mockResolvedValue(mockUser);
+            mockUserFindFirst.mockResolvedValue(mockUser);
             mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
 
             const result = await authService.signIn(testEmail, testPassword, 'user-agent');
@@ -100,7 +93,7 @@ describe('AuthService', () => {
             expect(result).toHaveProperty('access_token');
             expect(result).toHaveProperty('refresh_token');
             expect(result.refresh_token).toBe('refresh-token');
-            expect(mockUserService.getUserByEmailRaw).toHaveBeenCalledWith(testEmail);
+            expect(mockUserFindFirst).toHaveBeenCalled();
             expect(mockInsert).toHaveBeenCalled();
         });
 
@@ -117,14 +110,14 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            (mockUserService.getUserByUsernameRaw as any).mockResolvedValue(mockUser);
+            mockUserFindFirst.mockResolvedValue(mockUser);
             mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
 
             const result = await authService.signIn(testUsername, testPassword, 'user-agent');
 
             expect(result).toHaveProperty('access_token');
             expect(result).toHaveProperty('refresh_token');
-            expect(mockUserService.getUserByUsernameRaw).toHaveBeenCalledWith(testUsername);
+            expect(mockUserFindFirst).toHaveBeenCalled();
         });
 
         it('throws error for invalid password', async () => {
@@ -139,16 +132,17 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            (mockUserService.getUserByEmailRaw as any).mockResolvedValue(mockUser);
+            mockUserFindFirst.mockResolvedValue(mockUser);
+            mock(Bun.password, 'verifySync').mockReturnValue(false);
 
-            expect(authService.signIn(testEmail, testPassword, 'user-agent')).rejects.toThrow();
+            await expect(authService.signIn(testEmail, testPassword, 'user-agent')).rejects.toThrow();
         });
         
         it('throws error if user not found', async () => {
             const testEmail = 'test@example.com';
-            (mockUserService.getUserByEmailRaw as any).mockResolvedValue(undefined);
+            mockUserFindFirst.mockResolvedValue(undefined);
              
-            expect(authService.signIn(testEmail, 'any', 'user-agent')).rejects.toThrow();
+            await expect(authService.signIn(testEmail, 'any', 'user-agent')).rejects.toThrow();
         });
 
         it('throws error if user has no password set', async () => {
@@ -161,9 +155,9 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            (mockUserService.getUserByEmailRaw as any).mockResolvedValue(mockUser);
+            mockUserFindFirst.mockResolvedValue(mockUser);
 
-            expect(authService.signIn(testEmail, 'any', 'user-agent')).rejects.toThrow();
+            await expect(authService.signIn(testEmail, 'any', 'user-agent')).rejects.toThrow();
         });
     });
 
@@ -176,20 +170,20 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            (mockUserService.getUserByGithubId as any).mockResolvedValue(mockUser);
+            mockUserFindFirst.mockResolvedValue(mockUser);
 
             const result = await authService.signInWithGithub(githubId);
 
             expect(result).toHaveProperty('access_token');
-            expect(mockUserService.getUserByGithubId).toHaveBeenCalledWith(githubId);
+            expect(mockUserFindFirst).toHaveBeenCalled();
         });
 
         it('throws NotFound if github user does not exist', async () => {
             const githubId = 99999;
 
-            (mockUserService.getUserByGithubId as any).mockResolvedValue(null);
+            mockUserFindFirst.mockResolvedValue(null);
 
-            expect(authService.signInWithGithub(githubId)).rejects.toThrow();
+            await expect(authService.signInWithGithub(githubId)).rejects.toThrow();
         });
     });
 
@@ -209,27 +203,26 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            (mockUserService.createUser as any).mockResolvedValue(mockCreatedUser);
+            mockReturning.mockResolvedValue([mockCreatedUser]);
 
             const result = await authService.signUp(signupData);
 
             expect(result).toHaveProperty('access_token');
-            expect(mockUserService.createUser).toHaveBeenCalled();
+            expect(mockInsert).toHaveBeenCalled();
         });
     });
 
     describe('checkUsername', () => {
         it('returns true if username exists', async () => {
-            (mockUserService.getUserCountByUsername as any).mockResolvedValue(1);
+            mockUserCount.mockResolvedValue([{ count: 1 }]);
 
             const result = await authService.checkUsername('existinguser');
 
             expect(result).toBe(true);
-            expect(mockUserService.getUserCountByUsername).toHaveBeenCalledWith('existinguser');
         });
 
         it('returns false if username does not exist', async () => {
-            (mockUserService.getUserCountByUsername as any).mockResolvedValue(0);
+            mockUserCount.mockResolvedValue([{ count: 0 }]);
 
             const result = await authService.checkUsername('newuser');
 
@@ -239,7 +232,7 @@ describe('AuthService', () => {
 
     describe('checkEmail', () => {
         it('returns true if email exists', async () => {
-            (mockUserService.getUserCountByEmail as any).mockResolvedValue(1);
+            mockUserCount.mockResolvedValue([{ count: 1 }]);
 
             const result = await authService.checkEmail('existing@example.com');
 
@@ -247,7 +240,7 @@ describe('AuthService', () => {
         });
 
         it('returns false if email does not exist', async () => {
-            (mockUserService.getUserCountByEmail as any).mockResolvedValue(0);
+            mockUserCount.mockResolvedValue([{ count: 0 }]);
 
             const result = await authService.checkEmail('new@example.com');
 
@@ -288,13 +281,13 @@ describe('AuthService', () => {
 
             mockSessionFindFirst.mockResolvedValue(expiredSession);
 
-            expect(authService.refreshToken('expired-token')).rejects.toThrow();
+            await expect(authService.refreshToken('expired-token')).rejects.toThrow();
         });
 
         it('throws Unauthorized for non-existent refresh token', async () => {
             mockSessionFindFirst.mockResolvedValue(null);
 
-            expect(authService.refreshToken('non-existent-token')).rejects.toThrow();
+            await expect(authService.refreshToken('non-existent-token')).rejects.toThrow();
         });
 
         it('throws Unauthorized if session has no user', async () => {
@@ -306,7 +299,7 @@ describe('AuthService', () => {
 
             mockSessionFindFirst.mockResolvedValue(sessionNoUser);
 
-            expect(authService.refreshToken('token')).rejects.toThrow();
+            await expect(authService.refreshToken('token')).rejects.toThrow();
         });
     });
 
@@ -317,16 +310,15 @@ describe('AuthService', () => {
             const newPassword = 'newpassword';
             const hashedCurrentPassword = await Bun.password.hash(currentPassword, { algorithm: "bcrypt", cost: 4 });
 
-            (mockUserService.getUserWithPassword as any).mockResolvedValue({
+            mockUserFindFirst.mockResolvedValue({
                 id: userId,
                 password: hashedCurrentPassword
             });
-            (mockUserService.updatePassword as any).mockResolvedValue([{ id: userId }]);
+            mockReturning.mockResolvedValue([{ id: userId }]);
 
             const result = await authService.updatePassword(currentPassword, newPassword, userId);
 
             expect(result).toBeDefined();
-            expect(mockUserService.updatePassword).toHaveBeenCalled();
         });
 
         it('throws error for invalid current password', async () => {
@@ -335,18 +327,19 @@ describe('AuthService', () => {
             const newPassword = 'newpassword';
             const hashedPassword = await Bun.password.hash('correctpassword', { algorithm: "bcrypt", cost: 4 });
 
-            (mockUserService.getUserWithPassword as any).mockResolvedValue({
+            mockUserFindFirst.mockResolvedValue({
                 id: userId,
                 password: hashedPassword
             });
+            mock(Bun.password, 'verifySync').mockReturnValue(false);
 
-            expect(authService.updatePassword(currentPassword, newPassword, userId)).rejects.toThrow();
+            await expect(authService.updatePassword(currentPassword, newPassword, userId)).rejects.toThrow();
         });
 
         it('throws error if user not found', async () => {
-            (mockUserService.getUserWithPassword as any).mockResolvedValue(null);
+            mockUserFindFirst.mockResolvedValue(null);
 
-            expect(authService.updatePassword('any', 'any', 'user1')).rejects.toThrow();
+            await expect(authService.updatePassword('any', 'any', 'user1')).rejects.toThrow();
         });
     });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { PostService } from '../modules/posts/postService';
+import { PostService } from '../modules/posts/services/postService';
 
 // Mock DB
 const mockFindMany = mock();

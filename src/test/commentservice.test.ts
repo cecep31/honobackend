@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { CommentService } from '../modules/comments/commentService';
+import { CommentService } from '../modules/comments/services/commentService';
 
 // Mock DB chain
 const mockReturning = mock();

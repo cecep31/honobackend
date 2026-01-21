@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock, afterEach } from 'bun:test';
-import { OpenRouterService } from '../modules/chat/openrouterService';
+import { openrouterService } from '../services';
 
 // Mock config
 mock.module('../config', () => {
@@ -18,11 +18,9 @@ mock.module('../config', () => {
 const originalFetch = globalThis.fetch;
 
 describe('OpenRouterService', () => {
-    let openRouterService: OpenRouterService;
     let mockFetch: ReturnType<typeof mock>;
 
     beforeEach(() => {
-        openRouterService = new OpenRouterService();
         mockFetch = mock();
         globalThis.fetch = mockFetch as unknown as typeof fetch;
     });
@@ -44,7 +42,7 @@ describe('OpenRouterService', () => {
                 json: () => Promise.resolve(mockResponse)
             });
 
-            const result = await openRouterService.generateResponse(messages);
+            const result = await openrouterService.generateResponse(messages);
 
             expect(result.choices[0].message.content).toBe('Hi there!');
             expect(result.usage.total_tokens).toBe(30);
@@ -72,7 +70,7 @@ describe('OpenRouterService', () => {
                 })
             });
 
-            await openRouterService.generateResponse(messages, customModel);
+            await openrouterService.generateResponse(messages, customModel);
 
             expect(mockFetch).toHaveBeenCalledWith(
                 expect.any(String),
@@ -94,7 +92,7 @@ describe('OpenRouterService', () => {
                 })
             });
 
-            await openRouterService.generateResponse(messages, undefined, temperature);
+            await openrouterService.generateResponse(messages, undefined, temperature);
 
             expect(mockFetch).toHaveBeenCalledWith(
                 expect.any(String),
@@ -114,7 +112,7 @@ describe('OpenRouterService', () => {
                 text: () => Promise.resolve('Server error')
             });
 
-            await expect(openRouterService.generateResponse(messages)).rejects.toThrow('OpenRouter API error');
+            await expect(openrouterService.generateResponse(messages)).rejects.toThrow('OpenRouter API error');
         });
 
         it('should handle API rate limiting', async () => {
@@ -127,7 +125,7 @@ describe('OpenRouterService', () => {
                 text: () => Promise.resolve('Rate limited')
             });
 
-            await expect(openRouterService.generateResponse(messages)).rejects.toThrow('OpenRouter API error');
+            await expect(openrouterService.generateResponse(messages)).rejects.toThrow('OpenRouter API error');
         });
 
         it('should pass abort signal to fetch', async () => {
@@ -142,7 +140,7 @@ describe('OpenRouterService', () => {
                 })
             });
 
-            await openRouterService.generateResponse(messages, undefined, 0.7, controller.signal);
+            await openrouterService.generateResponse(messages, undefined, 0.7, controller.signal);
 
             expect(mockFetch).toHaveBeenCalledWith(
                 expect.any(String),
@@ -183,7 +181,7 @@ describe('OpenRouterService', () => {
                 body: { getReader: () => mockReader }
             });
 
-            const generator = openRouterService.generateStream(messages);
+            const generator = openrouterService.generateStream(messages);
             const results: string[] = [];
 
             for await (const chunk of generator) {
@@ -205,7 +203,7 @@ describe('OpenRouterService', () => {
                 body: null
             });
 
-            const generator = openRouterService.generateStream(messages);
+            const generator = openrouterService.generateStream(messages);
 
             await expect(async () => {
                 for await (const _ of generator) {
@@ -224,7 +222,7 @@ describe('OpenRouterService', () => {
                 text: () => Promise.resolve('Server error')
             });
 
-            const generator = openRouterService.generateStream(messages);
+            const generator = openrouterService.generateStream(messages);
 
             await expect(async () => {
                 for await (const _ of generator) {
@@ -247,7 +245,7 @@ describe('OpenRouterService', () => {
                 body: { getReader: () => mockReader }
             });
 
-            const generator = openRouterService.generateStream(messages, undefined, 0.7, controller.signal);
+            const generator = openrouterService.generateStream(messages, undefined, 0.7, controller.signal);
 
             for await (const _ of generator) {
                 // consume
@@ -275,7 +273,7 @@ describe('OpenRouterService', () => {
                 body: { getReader: () => mockReader }
             });
 
-            const generator = openRouterService.generateStream(messages);
+            const generator = openrouterService.generateStream(messages);
 
             for await (const _ of generator) {
                 // consume

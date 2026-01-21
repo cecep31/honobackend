@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { WriterService } from '../modules/writers/writerService';
+import { writerService } from '../services';
 
 const mockFindFirst = mock();
-const mockWhere = mock();
 
 mock.module('../database/drizzle', () => {
     return {
@@ -17,10 +16,7 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('WriterService', () => {
-    let writerService: WriterService;
-
     beforeEach(() => {
-        writerService = new WriterService();
         mockFindFirst.mockReset();
     });
 

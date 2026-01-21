@@ -56,6 +56,21 @@ export const userController = new Hono<{ Variables: Variables }>()
   )
 
   /**
+   * PATCH /users/me - Update current authenticated user's username/email
+   */
+  .patch(
+    "/me",
+    auth,
+    validateRequest("json", updateUserSchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const body = c.req.valid("json");
+      await userService.updateUser(authUser.user_id, body);
+      return sendSuccess(c, null, "User updated successfully");
+    }
+  )
+
+  /**
    * PATCH /users/me/image - Update current authenticated user's profile image
    */
   .patch(

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { BookmarkService } from '../modules/bookmarks/bookmarkService';
+import { bookmarkService } from '../services';
 
 // Mock DB chain
 const mockReturning = mock();
@@ -32,10 +32,7 @@ mock.module('../database/drizzle', () => {
 });
 
 describe('BookmarkService', () => {
-    let bookmarkService: BookmarkService;
-
     beforeEach(() => {
-        bookmarkService = new BookmarkService();
         mockReturning.mockReset();
         mockValues.mockClear();
         mockInsert.mockClear();
