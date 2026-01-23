@@ -38,7 +38,7 @@ export class OpenRouterService {
       headers: {
         Authorization: `Bearer ${config.openrouter.apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://pilput.me", // Optional, for OpenRouter rankings
+        "HTTP-Referer": "https://pilput.net", // Optional, for OpenRouter rankings
         "X-Title": "pilput", // Optional
       },
       body: JSON.stringify({

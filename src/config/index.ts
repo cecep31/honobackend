@@ -17,7 +17,7 @@ function getNumberEnv(key: string, defaultValue: number): number {
 
 function getMainDomain(): string | undefined {
   const domain = process.env["MAIN_DOMAIN"];
-  return domain && domain !== "" ? domain : undefined;
+  return domain && domain !== "" ? domain : "pilput.net";
 }
 
 export const rateLimitConfig = {
@@ -30,7 +30,7 @@ const githubConfig = {
   CLIENT_SECRET: process.env["GITHUB_CLIENT_SECRET"] ?? "",
   REDIRECT_URI:
     process.env["GITHUB_REDIRECT_URI"] ??
-    "https://hono.pilput.me/auth/oauth/github/callback",
+    "https://hono.pilput.net/auth/oauth/github/callback",
 };
 
 const getConfig = {
@@ -68,7 +68,7 @@ const getConfig = {
     secure: process.env["EMAIL_SECURE"] === "true",
     user: process.env["EMAIL_USER"] ?? "",
     password: process.env["EMAIL_PASSWORD"] ?? "",
-    from: process.env["EMAIL_FROM"] ?? "noreply@pilput.me",
+    from: process.env["EMAIL_FROM"] ?? "noreply@pilput.net",
   },
   frontend: {
     url: process.env["FRONTEND_URL"] ?? "http://localhost:3000",
