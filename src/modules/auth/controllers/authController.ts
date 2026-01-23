@@ -46,7 +46,7 @@ authController.get("/oauth/github/callback", async (c) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     // If email is null, try to get it from the emails endpoint
@@ -60,9 +60,11 @@ authController.get("/oauth/github/callback", async (c) => {
             Authorization: `Bearer ${token}`,
           },
         });
-        
+
         // Find primary email or first verified email
-        const primaryEmail = emailsResponse.data.find((e) => e.primary && e.verified);
+        const primaryEmail = emailsResponse.data.find(
+          (e) => e.primary && e.verified,
+        );
         const verifiedEmail = emailsResponse.data.find((e) => e.verified);
         if (primaryEmail) {
           githubUserData.email = primaryEmail.email;
@@ -78,14 +80,14 @@ authController.get("/oauth/github/callback", async (c) => {
     // Sign in or create user with full GitHub user data
     const jwtToken = await authService.signInWithGithub(githubUserData);
     setCookie(c, "token", jwtToken.access_token, {
-      ...(config.frontend.mainDomain && { domain: config.frontend.mainDomain }),
+      domain: "." + config.frontend.mainDomain,
       maxAge: 60 * 60 * 5, // 5 hours
       sameSite: "Strict",
     });
     return c.redirect(config.frontend.url);
   } catch (error) {
     console.error("Github OAuth error:", error);
-    
+
     // If it's a business rule violation (e.g., email already used), return clearer error
     if (
       error instanceof Error &&
@@ -93,7 +95,7 @@ authController.get("/oauth/github/callback", async (c) => {
     ) {
       throw Errors.BusinessRuleViolation(error.message);
     }
-    
+
     throw Errors.Unauthorized();
   }
 });
@@ -118,10 +120,10 @@ authController.post(
     const token = await authService.signIn(
       email,
       password,
-      c.req.header("User-Agent") ?? ""
+      c.req.header("User-Agent") ?? "",
     );
     return sendSuccess(c, token, "Login successful");
-  }
+  },
 );
 
 authController.post(
@@ -131,7 +133,7 @@ authController.post(
     const body = c.req.valid("json");
     const token = await authService.signUp(body);
     return sendSuccess(c, token, "User created successfully", 201);
-  }
+  },
 );
 
 // check username exists
@@ -142,7 +144,7 @@ authController.get(
     const username = c.req.valid("param").username;
     const exists = await authService.checkUsername(username);
     return sendSuccess(c, { exists }, "Username check completed");
-  }
+  },
 );
 
 authController.get(
@@ -152,7 +154,7 @@ authController.get(
     const email = c.req.valid("param").email;
     const exists = await authService.checkEmail(email);
     return sendSuccess(c, { exists }, "Email check completed");
-  }
+  },
 );
 
 authController.post("/refresh-token", async (c) => {
@@ -194,10 +196,10 @@ authController.patch(
     const result = await authService.updatePassword(
       body.old_password,
       body.new_password,
-      user.user_id
+      user.user_id,
     );
     return sendSuccess(c, result, "Password updated successfully");
-  }
+  },
 );
 
 // Forgot password - request password reset
@@ -218,7 +220,7 @@ authController.post(
     const body = c.req.valid("json");
     const result = await authService.requestPasswordReset(body.email);
     return sendSuccess(c, result, result.message);
-  }
+  },
 );
 
 // Reset password - actually reset the password with token
@@ -239,8 +241,8 @@ authController.post(
     const body = c.req.valid("json");
     const result = await authService.resetPassword(
       body.token,
-      body.new_password
+      body.new_password,
     );
     return sendSuccess(c, result, result.message);
-  }
+  },
 );
