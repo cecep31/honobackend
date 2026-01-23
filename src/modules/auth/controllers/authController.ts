@@ -78,11 +78,11 @@ authController.get("/oauth/github/callback", async (c) => {
     // Sign in or create user with full GitHub user data
     const jwtToken = await authService.signInWithGithub(githubUserData);
     setCookie(c, "token", jwtToken.access_token, {
-      domain: "pilput.me",
+      ...(config.frontend.mainDomain && { domain: config.frontend.mainDomain }),
       maxAge: 60 * 60 * 5, // 5 hours
       sameSite: "Strict",
     });
-    return c.redirect("https://pilput.me");
+    return c.redirect(config.frontend.url);
   } catch (error) {
     console.error("Github OAuth error:", error);
     
@@ -167,7 +167,7 @@ authController.post("/refresh-token", async (c) => {
 
 authController.post("/logout", auth, async (c) => {
   deleteCookie(c, "token", {
-    domain: "pilput.dev",
+    ...(config.frontend.mainDomain && { domain: config.frontend.mainDomain }),
     path: "/",
   });
   return sendSuccess(c, null, "Logged out successfully");
