@@ -16,6 +16,7 @@ import type { UserSignup } from "../../auth/validation/auth";
 import type { GetPaginationParams } from "../../../types/paginate";
 import { getPaginationMetadata } from "../../../utils/paginate";
 import { Errors } from "../../../utils/error";
+import type { GithubUser } from "../../../types/auth";
 
 /**
  * Service class for managing user operations
@@ -350,6 +351,108 @@ export class UserService {
     } catch (error) {
       console.error("Error creating user from signup:", error);
       throw Errors.DatabaseError({ message: "Failed to create user", error });
+    }
+  }
+
+  /**
+   * Create user from GitHub OAuth data
+   * @param githubUser GitHub user data from API
+   * @returns Created user object
+   */
+  async createUserFromGithub(githubUser: GithubUser) {
+    try {
+      // Handle email - if null, use fallback format
+      let email = githubUser.email;
+      if (!email || email.trim() === "") {
+        email = `github-${githubUser.id}@github.oauth`;
+      }
+
+      // Check if email is already used by another user (non-GitHub)
+      const existingEmailUser = await this.getUserByEmailRaw(email);
+      if (existingEmailUser && existingEmailUser.github_id === null) {
+        throw Errors.BusinessRuleViolation(
+          `Email ${email} is already registered with a different account. Please use a different email or link your GitHub account.`
+        );
+      }
+
+      // Handle username - sanitize and check for conflicts
+      let username = githubUser.login;
+      // Sanitize username to match validation rules (letters, numbers, underscores, hyphens)
+      username = username.replace(/[^a-zA-Z0-9_-]/g, "").toLowerCase();
+      
+      // Ensure username meets minimum length
+      if (username.length < 3) {
+        username = `user${githubUser.id}`.substring(0, 20);
+      }
+      
+      // Ensure username doesn't exceed max length
+      if (username.length > 20) {
+        username = username.substring(0, 20);
+      }
+
+      // Check for username conflicts and append number if needed
+      let finalUsername = username;
+      let counter = 1;
+      while (await this.getUserCountByUsername(finalUsername) > 0) {
+        const suffix = counter.toString();
+        const maxLength = 20 - suffix.length;
+        finalUsername = `${username.substring(0, maxLength)}${suffix}`;
+        counter++;
+        
+        // Safety check to prevent infinite loop
+        if (counter > 1000) {
+          throw Errors.BusinessRuleViolation(
+            "Unable to generate unique username. Please contact support."
+          );
+        }
+      }
+
+      // Handle name - split if available, otherwise use defaults
+      let firstName = "pilput";
+      let lastName = "admin";
+      if (githubUser.name) {
+        const nameParts = githubUser.name.trim().split(/\s+/);
+        if (nameParts.length >= 2) {
+          firstName = nameParts[0].substring(0, 100);
+          lastName = nameParts.slice(1).join(" ").substring(0, 100);
+        } else if (nameParts.length === 1) {
+          firstName = nameParts[0].substring(0, 100);
+        }
+      }
+
+      // Create user
+      const [user] = await db
+        .insert(usersModel)
+        .values({
+          id: randomUUIDv7(),
+          github_id: githubUser.id,
+          email: email,
+          username: finalUsername,
+          first_name: firstName,
+          last_name: lastName,
+          image: githubUser.avatar_url || null,
+          password: null, // OAuth users don't have passwords
+          is_super_admin: false,
+        })
+        .returning();
+
+      // Create profile
+      await db.insert(profiles).values({ user_id: user.id });
+
+      return user;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("already registered") ||
+          error.message.includes("Unable to generate"))
+      ) {
+        throw error;
+      }
+      console.error("Error creating user from GitHub:", error);
+      throw Errors.DatabaseError({
+        message: "Failed to create user from GitHub",
+        error,
+      });
     }
   }
 

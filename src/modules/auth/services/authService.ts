@@ -2,6 +2,7 @@ import { sign } from "hono/jwt";
 import { and, eq, lt, isNull } from "drizzle-orm";
 import type { UserService } from "../../users/services/userService";
 import type { UserSignup } from "../validation/auth";
+import type { GithubUser } from "../../../types/auth";
 import config from "../../../config";
 import axios from "axios";
 import { randomUUIDv7 } from "bun";
@@ -69,10 +70,25 @@ export class AuthService {
     return { access_token: token, refresh_token: session[0].refresh_token };
   }
 
-  async signInWithGithub(github_id: number) {
-    const user = await this.userService.getUserByGithubId(github_id);
+  async signInWithGithub(githubUser: GithubUser) {
+    // Check if user with this GitHub ID already exists
+    let user = await this.userService.getUserByGithubId(githubUser.id);
+    
+    // If user doesn't exist, create new user from GitHub data
     if (!user) {
-      throw Errors.NotFound("User");
+      try {
+        user = await this.userService.createUserFromGithub(githubUser);
+      } catch (error) {
+        // If email is already used by another account, throw clear error
+        if (
+          error instanceof Error &&
+          error.message.includes("already registered")
+        ) {
+          throw error;
+        }
+        // Re-throw other errors
+        throw error;
+      }
     }
 
     const payload = {

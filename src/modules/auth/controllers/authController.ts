@@ -26,7 +26,7 @@ authController.get("/oauth/github", async (c) => {
   const authUrl = new URL("https://github.com/login/oauth/authorize");
   authUrl.searchParams.append("client_id", config.github.CLIENT_ID);
   authUrl.searchParams.append("redirect_uri", config.github.REDIRECT_URI);
-  authUrl.searchParams.append("scope", "user");
+  authUrl.searchParams.append("scope", "user:email");
 
   return c.redirect(authUrl.toString());
 });
@@ -39,6 +39,7 @@ authController.get("/oauth/github/callback", async (c) => {
   const token = await authService.getGithubToken(code);
 
   try {
+    // Get user data from GitHub API
     const userResponse = await axios.get<GithubUser>(
       "https://api.github.com/user",
       {
@@ -47,7 +48,35 @@ authController.get("/oauth/github/callback", async (c) => {
         },
       }
     );
-    const jwtToken = await authService.signInWithGithub(userResponse.data.id);
+
+    // If email is null, try to get it from the emails endpoint
+    let githubUserData = userResponse.data;
+    if (!githubUserData.email) {
+      try {
+        const emailsResponse = await axios.get<
+          Array<{ email: string; primary: boolean; verified: boolean }>
+        >("https://api.github.com/user/emails", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        // Find primary email or first verified email
+        const primaryEmail = emailsResponse.data.find((e) => e.primary && e.verified);
+        const verifiedEmail = emailsResponse.data.find((e) => e.verified);
+        if (primaryEmail) {
+          githubUserData.email = primaryEmail.email;
+        } else if (verifiedEmail) {
+          githubUserData.email = verifiedEmail.email;
+        }
+      } catch (emailError) {
+        // If we can't get email, continue with null email (will use fallback)
+        console.warn("Could not fetch GitHub email:", emailError);
+      }
+    }
+
+    // Sign in or create user with full GitHub user data
+    const jwtToken = await authService.signInWithGithub(githubUserData);
     setCookie(c, "token", jwtToken.access_token, {
       domain: "pilput.me",
       maxAge: 60 * 60 * 5, // 5 hours
@@ -56,6 +85,15 @@ authController.get("/oauth/github/callback", async (c) => {
     return c.redirect("https://pilput.me");
   } catch (error) {
     console.error("Github OAuth error:", error);
+    
+    // If it's a business rule violation (e.g., email already used), return clearer error
+    if (
+      error instanceof Error &&
+      error.message.includes("already registered")
+    ) {
+      throw Errors.BusinessRuleViolation(error.message);
+    }
+    
     throw Errors.Unauthorized();
   }
 });
