@@ -56,7 +56,7 @@ describe('LikeService', () => {
             expect(mockInsert).toHaveBeenCalled();
         });
 
-        it('should remove a like if it exists', async () => {
+        it('should remove a like if it exists (hard delete)', async () => {
             const postId = 'post-1';
             const userId = 'user-1';
 

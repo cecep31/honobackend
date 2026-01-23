@@ -23,44 +23,6 @@ import {
 import { relations } from "drizzle-orm/relations";
 import { sql } from "drizzle-orm";
 
-export const likes = pgTable(
-  "likes",
-  {
-    id: serial().primaryKey().notNull(),
-    created_at: timestamp("created_at", {
-      withTimezone: true,
-      mode: "string",
-    }).defaultNow(),
-    post_id: uuid("post_id"),
-    user_id: uuid("user_id"),
-  },
-  (table) => [
-    index("idx_likes_post_id").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-    ),
-    index("idx_likes_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-    ),
-    uniqueIndex("idx_like_post_id_created_by").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-    ),
-    foreignKey({
-      columns: [table.post_id],
-      foreignColumns: [posts.id],
-      name: "likes_post_id_posts_id_fk",
-    }).onDelete("cascade"),
-    foreignKey({
-      columns: [table.user_id],
-      foreignColumns: [users.id],
-      name: "likes_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
-);
-
 export const post_comments = pgTable(
   "post_comments",
   {
@@ -608,32 +570,21 @@ export const post_likes = pgTable(
       withTimezone: true,
       mode: "string",
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
-      withTimezone: true,
-      mode: "string",
-    }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     index("idx_post_likes_created_at").using(
       "btree",
       table.created_at.asc().nullsLast().op("timestamptz_ops"),
     ),
-    index("idx_post_likes_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
-    ),
     index("idx_post_likes_post_id").using(
       "btree",
       table.post_id.asc().nullsLast().op("uuid_ops"),
     ),
-    uniqueIndex("idx_post_likes_unique_user_post")
-      .using(
-        "btree",
-        table.post_id.asc().nullsLast().op("uuid_ops"),
-        table.user_id.asc().nullsLast().op("uuid_ops"),
-      )
-      .where(sql`(deleted_at IS NULL)`),
+    uniqueIndex("idx_post_likes_unique_user_post").using(
+      "btree",
+      table.post_id.asc().nullsLast().op("uuid_ops"),
+      table.user_id.asc().nullsLast().op("uuid_ops"),
+    ),
     index("idx_post_likes_user_id").using(
       "btree",
       table.user_id.asc().nullsLast().op("uuid_ops"),
@@ -871,15 +822,7 @@ export const notifications = pgTable(
   ],
 );
 
-export const likesRelations = relations(likes, ({ one }) => ({
-  user: one(users, {
-    fields: [likes.user_id],
-    references: [users.id],
-  }),
-}));
-
 export const usersRelations = relations(users, ({ many }) => ({
-  likes: many(likes),
   post_comments: many(post_comments),
   posts: many(posts),
   sessions: many(sessions),

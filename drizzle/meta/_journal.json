@@ -64,6 +64,13 @@
       "when": 1768878524379,
       "tag": "0008_funny_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1769134917030,
+      "tag": "0009_early_shooting_star",
+      "breakpoints": true
     }
   ]
 }
