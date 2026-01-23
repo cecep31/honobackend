@@ -71,8 +71,10 @@ const getConfig = {
     from: process.env["EMAIL_FROM"] ?? "noreply@pilput.net",
   },
   frontend: {
-    url: process.env["FRONTEND_URL"] ?? "http://localhost:3000",
-    resetPasswordUrl: process.env["FRONTEND_RESET_PASSWORD_URL"] ?? "http://localhost:3000/reset-password",
+    url: process.env["FRONTEND_URL"] ?? "https://pilput.net",
+    resetPasswordUrl:
+      process.env["FRONTEND_RESET_PASSWORD_URL"] ??
+      "http://localhost:3000/reset-password",
     mainDomain: getMainDomain(),
   },
 };
