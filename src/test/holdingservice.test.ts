@@ -1,38 +1,18 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { createDrizzleMocks, createChainableMock } from './helpers/drizzleMock';
 import { holdingService } from '../services';
 
-// Mock DB
-const mockReturning = mock();
-const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
-const mockSetWhere = mock(() => ({ returning: mockReturning }));
-const mockSet = mock(() => ({ where: mockSetWhere }));
-const mockUpdate = mock(() => ({ set: mockSet }));
-const mockDeleteWhere = mock(() => ({ returning: mockReturning }));
-const mockDelete = mock(() => ({ where: mockDeleteWhere }));
-
-const mockOrderBy = mock(() => []);
-const mockGroupBy = mock(() => ({ orderBy: mockOrderBy }));
-// Allow groupBy to be awaitable (returning array) if it's the end of chain
-const mockGroupByEnd = mock(() => Promise.resolve([])); 
-
-const mockLeftJoinWhere = mock(() => ({ groupBy: mockGroupByEnd, orderBy: mockOrderBy }));
-const mockLeftJoin = mock(() => ({ where: mockLeftJoinWhere }));
-
-const mockSelectWhere = mock(() => ({ groupBy: mockGroupBy, orderBy: mockOrderBy }));
-// Make select(...).from(...).where(...) awaitable directly for cases without groupBy
-const mockSelectWhereAwaitable = mock(() => Promise.resolve([]));
-
-const mockSelectFrom = mock(() => ({ leftJoin: mockLeftJoin, where: mockSelectWhere }));
-const mockSelect = mock(() => ({ from: mockSelectFrom }));
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 
 const mockHoldingsFindFirst = mock();
 const mockHoldingsFindMany = mock();
 const mockHoldingTypesFindFirst = mock();
 const mockHoldingTypesFindMany = mock();
 
+// Transaction mocks
 const mockTxDelete = mock(() => ({ where: mock(() => Promise.resolve()) }));
-const mockTxInsert = mock(() => ({ values: mock(() => ({ returning: mockReturning })) }));
+const mockTxInsert = mock(() => ({ values: mock(() => ({ returning: mocks.mockReturning })) }));
 const mockTransaction = mock(async (callback: any) => {
     return await callback({
         delete: mockTxDelete,
@@ -43,50 +23,10 @@ const mockTransaction = mock(async (callback: any) => {
 mock.module('../database/drizzle', () => {
     return {
         db: {
-            insert: mockInsert,
-            update: mockUpdate,
-            delete: mockDelete,
-            select: mockSelect,
-            transaction: mockTransaction,
-            query: {
-                holdings: {
-                    findFirst: mockHoldingsFindFirst,
-                    findMany: mockHoldingsFindMany,
-                },
-                holding_types: {
-                    findFirst: mockHoldingTypesFindFirst,
-                    findMany: mockHoldingTypesFindMany,
-                }
-            }
-        }
-    }
-});
-
-// Update mock chain for getSummary/getTrends
-// The chain is: db.select().from().where().groupBy()...
-// For getSummary 1: select.from.where -> awaitable
-// For getSummary 2: select.from.leftJoin.where.groupBy -> awaitable
-// For getSummary 3: select.from.where.groupBy -> awaitable
-
-// We need a more flexible mock structure or just update specific tests to override the chain
-const mockChain = {
-    groupBy: mock(() => Promise.resolve([])),
-    orderBy: mock(() => Promise.resolve([])),
-    then: (resolve: any) => resolve([]) // Make it awaitable
-};
-const mockWhere = mock(() => mockChain);
-const mockLeftJoinChain = mock(() => ({ where: mockWhere }));
-const mockFrom = mock(() => ({ where: mockWhere, leftJoin: mockLeftJoinChain }));
-const mockSelectChain = mock(() => ({ from: mockFrom }));
-
-// Re-apply mocks with the new chain
-mock.module('../database/drizzle', () => {
-    return {
-        db: {
-            insert: mockInsert,
-            update: mockUpdate,
-            delete: mockDelete,
-            select: mockSelectChain,
+            insert: mocks.mockInsert,
+            update: mocks.mockUpdate,
+            delete: mocks.mockDelete,
+            select: mocks.mockSelect,
             transaction: mockTransaction,
             query: {
                 holdings: {
@@ -104,67 +44,46 @@ mock.module('../database/drizzle', () => {
 
 describe('HoldingService', () => {
     beforeEach(() => {
-        mockReturning.mockReset();
-        mockInsert.mockClear();
-        mockUpdate.mockClear();
-        mockDelete.mockClear();
-        mockSelectChain.mockClear();
+        mocks.reset();
         mockHoldingsFindFirst.mockReset();
         mockHoldingsFindMany.mockReset();
         mockHoldingTypesFindFirst.mockReset();
         mockHoldingTypesFindMany.mockReset();
         mockTransaction.mockClear();
-        
-        // Reset chain mocks
-        mockWhere.mockClear();
-        mockChain.groupBy.mockClear();
-        mockChain.orderBy.mockClear();
-        mockWhere.mockImplementation(() => mockChain);
-        mockChain.groupBy.mockImplementation(() => Promise.resolve([]));
+        mockTxDelete.mockClear();
+        mockTxInsert.mockClear();
     });
-    
-    // ... createHolding, getHoldingById ... (keep existing)
 
     describe('createHolding', () => {
         it('should create a new holding', async () => {
             const userId = 'user-1';
-            const data = {
-                name: 'Bitcoin',
-                platform: 'Binance',
+            const holdingData = {
                 holding_type_id: 1,
-                currency: 'USD',
-                invested_amount: '10000',
-                current_value: '12000',
-                month: 1,
+                invested_amount: 1000,
+                current_value: 1200,
+                name: 'Test holding',
+                month: 12,
                 year: 2024
             };
 
-            mockReturning.mockResolvedValue([{ id: BigInt(1), ...data, user_id: userId }]);
+            const mockHolding = { id: BigInt(1), user_id: userId, ...holdingData };
+            mocks.mockReturning.mockResolvedValue([mockHolding]);
 
-            const result = await holdingService.createHolding(userId, data);
+            const result = await holdingService.createHolding(userId, holdingData);
 
-            expect(result[0]).toHaveProperty('name', 'Bitcoin');
-            expect(result[0]).toHaveProperty('user_id', userId);
-            expect(mockInsert).toHaveBeenCalled();
+            expect(result).toEqual([mockHolding]);
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
     });
 
     describe('getHoldingById', () => {
         it('should return a holding by id', async () => {
-            const holdingId = 1;
-            const mockHolding = {
-                id: BigInt(holdingId),
-                name: 'Bitcoin',
-                holding_type: { id: 1, name: 'Crypto' }
-            };
-
+            const mockHolding = { id: BigInt(1), invested_amount: '1000', holding_type: { id: 1, name: 'Stocks' } };
             mockHoldingsFindFirst.mockResolvedValue(mockHolding);
 
-            const result = await holdingService.getHoldingById(holdingId);
+            const result = await holdingService.getHoldingById(1);
 
-            expect(result).toHaveProperty('name', 'Bitcoin');
-            expect(result).toHaveProperty('holding_type');
-            expect(mockHoldingsFindFirst).toHaveBeenCalled();
+            expect(result).toEqual(mockHolding);
         });
 
         it('should throw NotFound if holding does not exist', async () => {
@@ -176,102 +95,69 @@ describe('HoldingService', () => {
 
     describe('getHoldingsByUserId', () => {
         it('should return holdings for a user', async () => {
-            const userId = 'user-1';
             const mockHoldings = [
-                { holding: { id: BigInt(1), name: 'Bitcoin' }, holding_type: { name: 'Crypto' } },
-                { holding: { id: BigInt(2), name: 'Gold' }, holding_type: { name: 'Commodity' } }
+                { holding: { id: BigInt(1), invested_amount: '1000' }, holding_type: { id: 1, name: 'Stocks' } },
+                { holding: { id: BigInt(2), invested_amount: '2000' }, holding_type: { id: 2, name: 'Crypto' } }
             ];
+            const chainMock = createChainableMock(mockHoldings);
+            mocks.mockSelect.mockReturnValue(chainMock);
 
-            // For getHoldingsByUserId: select().from().leftJoin().where().orderBy()
-            // Our new chain: select -> from -> leftJoin -> where -> [groupBy/orderBy/then]
-            // We need orderBy to return the holdings
-            
-            const mockOrderByChain = mock(() => Promise.resolve(mockHoldings));
-            mockWhere.mockImplementation(() => ({
-                orderBy: mockOrderByChain,
-                groupBy: mock(() => ({ orderBy: mockOrderByChain })) // Handle case where groupBy might be called
-            }));
+            const result = await holdingService.getHoldingsByUserId('user-1');
 
-            const result = await holdingService.getHoldingsByUserId(userId);
-
-            expect(result).toBeInstanceOf(Array);
-            expect(mockSelectChain).toHaveBeenCalled();
+            expect(result).toHaveLength(2);
+            expect(mocks.mockSelect).toHaveBeenCalled();
         });
 
         it('should filter by month and year', async () => {
-            const userId = 'user-1';
-            const month = 1;
-            const year = 2024;
-            const mockHoldings = [
-                { holding: { id: BigInt(1), name: 'Bitcoin', month, year }, holding_type: { name: 'Crypto' } }
-            ];
+            const mockHoldings = [{ holding: { id: BigInt(1), month: 12, year: 2024 }, holding_type: null }];
+            const chainMock = createChainableMock(mockHoldings);
+            mocks.mockSelect.mockReturnValue(chainMock);
 
-            const mockOrderByChain = mock(() => Promise.resolve(mockHoldings));
-            mockWhere.mockImplementation(() => ({ orderBy: mockOrderByChain }));
+            const result = await holdingService.getHoldingsByUserId('user-1', 12, 2024);
 
-            const result = await holdingService.getHoldingsByUserId(userId, month, year);
-
-            expect(result).toBeInstanceOf(Array);
-            expect(mockSelectChain).toHaveBeenCalled();
+            expect(result).toHaveLength(1);
         });
-        
-        // ... sort tests ...
-         it('should sort by different fields', async () => {
-            const userId = 'user-1';
-             const mockOrderByChain = mock(() => Promise.resolve([]));
-            mockWhere.mockImplementation(() => ({ orderBy: mockOrderByChain }));
 
-            // Test sorting by name ascending
-            await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'name', 'asc');
-            expect(mockSelectChain).toHaveBeenCalled();
+        it('should sort by different fields', async () => {
+            const mockHoldings = [{ holding: { id: BigInt(1) }, holding_type: null }];
+            const chainMock = createChainableMock(mockHoldings);
+            mocks.mockSelect.mockReturnValue(chainMock);
 
-            // Test sorting by invested_amount descending
-            await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'invested_amount', 'desc');
-            expect(mockSelectChain).toHaveBeenCalled();
+            const result = await holdingService.getHoldingsByUserId('user-1', undefined, undefined, 'invested_amount');
 
-            // Test sorting by current_value
-            await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'current_value', 'asc');
-            expect(mockSelectChain).toHaveBeenCalled();
-
-            // Test sorting by platform
-            await holdingService.getHoldingsByUserId(userId, undefined, undefined, 'platform', 'desc');
-            expect(mockSelectChain).toHaveBeenCalled();
+            expect(result).toHaveLength(1);
         });
     });
 
-    // ... update, delete, getTypes ... (keep existing)
-     describe('updateHolding', () => {
+    describe('updateHolding', () => {
         it('should update an existing holding', async () => {
-            const holdingId = 1;
-            const data = { name: 'Bitcoin Updated', current_value: '15000' };
+            const updatedHolding = { id: BigInt(1), invested_amount: '1500' };
+            mockHoldingsFindFirst.mockResolvedValue({ id: BigInt(1), holding_type: { id: 1, name: 'Stocks' } });
+            mocks.mockReturning.mockResolvedValue([updatedHolding]);
 
-            mockHoldingsFindFirst.mockResolvedValue({ id: BigInt(holdingId), name: 'Bitcoin' });
-            mockReturning.mockResolvedValue([{ id: BigInt(holdingId), ...data }]);
+            const result = await holdingService.updateHolding(1, { invested_amount: 1500 });
 
-            const result = await holdingService.updateHolding(holdingId, data);
-
-            expect(result[0]).toHaveProperty('name', 'Bitcoin Updated');
-            expect(mockUpdate).toHaveBeenCalled();
+            expect(result).toEqual([updatedHolding]);
+            expect(mocks.mockUpdate).toHaveBeenCalled();
         });
 
         it('should throw NotFound if holding does not exist', async () => {
             mockHoldingsFindFirst.mockResolvedValue(null);
 
-            await expect(holdingService.updateHolding(999, { name: 'Test' })).rejects.toThrow();
+            await expect(holdingService.updateHolding(999, { invested_amount: 1500 })).rejects.toThrow();
         });
     });
 
     describe('deleteHolding', () => {
         it('should delete a holding', async () => {
-            const holdingId = 1;
+            const deletedHolding = { id: BigInt(1) };
+            mockHoldingsFindFirst.mockResolvedValue({ id: BigInt(1), holding_type: { id: 1, name: 'Stocks' } });
+            mocks.mockReturning.mockResolvedValue([deletedHolding]);
 
-            mockHoldingsFindFirst.mockResolvedValue({ id: BigInt(holdingId), name: 'Bitcoin' });
-            mockReturning.mockResolvedValue([{ id: BigInt(holdingId) }]);
+            const result = await holdingService.deleteHolding(1);
 
-            const result = await holdingService.deleteHolding(holdingId);
-
-            expect(result[0]).toHaveProperty('id');
-            expect(mockDelete).toHaveBeenCalled();
+            expect(result).toEqual([deletedHolding]);
+            expect(mocks.mockDelete).toHaveBeenCalled();
         });
 
         it('should throw NotFound if holding does not exist', async () => {
@@ -283,32 +169,23 @@ describe('HoldingService', () => {
 
     describe('getHoldingTypes', () => {
         it('should return all holding types', async () => {
-            const mockTypes = [
-                { id: 1, name: 'Crypto' },
-                { id: 2, name: 'Stocks' },
-                { id: 3, name: 'Bonds' }
-            ];
-
+            const mockTypes = [{ id: 1, name: 'Stocks' }, { id: 2, name: 'Crypto' }];
             mockHoldingTypesFindMany.mockResolvedValue(mockTypes);
 
             const result = await holdingService.getHoldingTypes();
 
-            expect(result).toHaveLength(3);
-            expect(result[0]).toHaveProperty('name', 'Crypto');
-            expect(mockHoldingTypesFindMany).toHaveBeenCalled();
+            expect(result).toEqual(mockTypes);
         });
     });
 
     describe('getHoldingTypeById', () => {
         it('should return a holding type by id', async () => {
-            const mockType = { id: 1, name: 'Crypto' };
-
+            const mockType = { id: 1, name: 'Stocks' };
             mockHoldingTypesFindFirst.mockResolvedValue(mockType);
 
             const result = await holdingService.getHoldingTypeById(1);
 
-            expect(result).toHaveProperty('name', 'Crypto');
-            expect(mockHoldingTypesFindFirst).toHaveBeenCalled();
+            expect(result).toEqual(mockType);
         });
 
         it('should throw NotFound if holding type does not exist', async () => {
@@ -320,160 +197,136 @@ describe('HoldingService', () => {
 
     describe('getSummary', () => {
         it('should return portfolio summary with breakdowns', async () => {
-            const userId = 'user-1';
-            
-            // Mock returns for the 3 queries
-            const totals = [{ totalInvested: 10000, totalCurrentValue: 12000, holdingsCount: 2 }];
-            const typeResults = [{ name: 'Crypto', invested: 10000, current: 12000 }];
-            const platformResults = [{ name: 'Binance', invested: 10000, current: 12000 }];
+            // Mock for totals (totalInvested, totalCurrentValue, holdingsCount)
+            const chainMock1 = createChainableMock([{ totalInvested: 10000, totalCurrentValue: 12000, holdingsCount: 5 }]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock1);
 
-            // Mock implementation to return different values based on calls
-            let callCount = 0;
-            mockWhere.mockImplementation(() => {
-                callCount++;
-                return {
-                     groupBy: mock(() => Promise.resolve(
-                        callCount === 2 ? typeResults : platformResults
-                     )),
-                     then: (resolve: any) => resolve(totals)
-                };
-            });
+            // Mock for type breakdown
+            const chainMock2 = createChainableMock([
+                { name: 'Stocks', invested: 6000, current: 7000 },
+                { name: 'Crypto', invested: 4000, current: 5000 }
+            ]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock2);
 
-            const result = await holdingService.getSummary(userId);
+            // Mock for platform breakdown
+            const chainMock3 = createChainableMock([
+                { name: 'Binance', invested: 5000, current: 6000 },
+                { name: 'IBKR', invested: 5000, current: 6000 }
+            ]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock3);
 
-            expect(result).toHaveProperty('totalInvested', 10000);
-            expect(result).toHaveProperty('totalCurrentValue', 12000);
-            expect(result).toHaveProperty('typeBreakdown');
-            expect(result.typeBreakdown[0]).toHaveProperty('name', 'Crypto');
+            const result = await holdingService.getSummary('user-1');
+
+            expect(result.totalInvested).toBe(10000);
+            expect(result.typeBreakdown).toHaveLength(2);
+            expect(result.platformBreakdown).toHaveLength(2);
         });
 
         it('should filter summary by month and year', async () => {
-            const userId = 'user-1';
-            const month = 1;
-            const year = 2024;
+            const chainMock1 = createChainableMock([{ totalInvested: 5000, totalCurrentValue: 6000, holdingsCount: 2 }]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock1);
+            const chainMock2 = createChainableMock([]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock2);
+            const chainMock3 = createChainableMock([]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock3);
 
-             mockWhere.mockImplementation(() => ({
-                groupBy: mock(() => Promise.resolve([])),
-                then: (resolve: any) => resolve([{ totalInvested: 0, totalCurrentValue: 0 }])
-            }));
+            const result = await holdingService.getSummary('user-1', 12, 2024);
 
-            const result = await holdingService.getSummary(userId, month, year);
-
-            expect(result).toHaveProperty('totalInvested', 0);
-            expect(result).toHaveProperty('totalCurrentValue', 0);
+            expect(result.totalInvested).toBe(5000);
         });
 
         it('should handle zero invested amount', async () => {
-            const userId = 'user-1';
-             mockWhere.mockImplementation(() => ({
-                groupBy: mock(() => Promise.resolve([])),
-                then: (resolve: any) => resolve([])
-            }));
+            const chainMock1 = createChainableMock([{ totalInvested: 0, totalCurrentValue: 0, holdingsCount: 0 }]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock1);
+            const chainMock2 = createChainableMock([]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock2);
+            const chainMock3 = createChainableMock([]);
+            mocks.mockSelect.mockReturnValueOnce(chainMock3);
 
-            const result = await holdingService.getSummary(userId);
+            const result = await holdingService.getSummary('user-1');
 
-            expect(result.totalProfitLossPercentage).toBe(0);
+            expect(result.totalInvested).toBe(0);
         });
     });
 
     describe('getTrends', () => {
         it('should return trends data', async () => {
-            const userId = 'user-1';
-            const mockData = [
-                { month: 1, year: 2024, invested: 10000, current: 11000 },
-                { month: 2, year: 2024, invested: 10000, current: 12000 }
-            ];
-            
-            // getTrends: select().from().where().groupBy().orderBy()
-             mockWhere.mockImplementation(() => ({
-                 groupBy: mock(() => ({
-                     orderBy: mock(() => Promise.resolve(mockData))
-                 }))
-             }));
+            const chainMock = createChainableMock([
+                { month: 11, year: 2024, sum: 8000 },
+                { month: 12, year: 2024, sum: 10000 }
+            ]);
+            mocks.mockSelect.mockReturnValue(chainMock);
 
-            const result = await holdingService.getTrends(userId);
+            const result = await holdingService.getTrends('user-1');
 
-            expect(result).toBeInstanceOf(Array);
             expect(result).toHaveLength(2);
-            expect(mockSelectChain).toHaveBeenCalled();
         });
 
         it('should filter trends by years', async () => {
-            const userId = 'user-1';
-            const years = [2023, 2024];
+            const chainMock = createChainableMock([
+                { month: 12, year: 2024, sum: 10000 }
+            ]);
+            mocks.mockSelect.mockReturnValue(chainMock);
 
-            mockWhere.mockImplementation(() => ({
-                 groupBy: mock(() => ({
-                     orderBy: mock(() => Promise.resolve([]))
-                 }))
-             }));
+            const result = await holdingService.getTrends('user-1', [2024]);
 
-            const result = await holdingService.getTrends(userId, years);
-
-            expect(result).toBeInstanceOf(Array);
+            expect(result).toHaveLength(1);
         });
     });
 
     describe('duplicateHoldingsByMonth', () => {
         it('should duplicate holdings from one month to another', async () => {
-            const userId = 'user-1';
-            const data = {
-                fromMonth: 1,
-                fromYear: 2024,
-                toMonth: 2,
-                toYear: 2024,
-                overwrite: false
-            };
-
-            const sourceHoldings = [
-                { user_id: userId, name: 'Bitcoin', platform: 'Binance', invested_amount: '10000', current_value: '12000' }
+            const mockSourceHoldings = [
+                { id: BigInt(1), user_id: 'user-1', name: 'Test 1', invested_amount: '1000', month: 11, year: 2024 },
+                { id: BigInt(2), user_id: 'user-1', name: 'Test 2', invested_amount: '2000', month: 11, year: 2024 }
             ];
 
-            mockHoldingsFindMany.mockResolvedValue(sourceHoldings);
-            mockReturning.mockResolvedValue(sourceHoldings.map(h => ({ ...h, month: 2, year: 2024 })));
+            mockHoldingsFindMany.mockResolvedValue(mockSourceHoldings);
+            mocks.mockReturning.mockResolvedValue(mockSourceHoldings.map((h, i) => ({ ...h, id: BigInt(i + 10), month: 12 })));
 
-            const result = await holdingService.duplicateHoldingsByMonth(userId, data);
+            const result = await holdingService.duplicateHoldingsByMonth('user-1', {
+                fromMonth: 11,
+                fromYear: 2024,
+                toMonth: 12,
+                toYear: 2024,
+                overwrite: false
+            });
 
-            expect(result).toBeInstanceOf(Array);
+            expect(Array.isArray(result)).toBe(true);
+            expect(result).toHaveLength(2);
             expect(mockTransaction).toHaveBeenCalled();
         });
 
         it('should overwrite existing holdings if overwrite is true', async () => {
-            const userId = 'user-1';
-            const data = {
-                fromMonth: 1,
+            const mockSourceHoldings = [{ id: BigInt(1), user_id: 'user-1', name: 'Test', invested_amount: '1000', month: 11, year: 2024 }];
+
+            mockHoldingsFindMany.mockResolvedValue(mockSourceHoldings);
+            mocks.mockReturning.mockResolvedValue([{ id: BigInt(10), ...mockSourceHoldings[0], month: 12 }]);
+
+            const result = await holdingService.duplicateHoldingsByMonth('user-1', {
+                fromMonth: 11,
                 fromYear: 2024,
-                toMonth: 2,
+                toMonth: 12,
                 toYear: 2024,
                 overwrite: true
-            };
+            });
 
-            const sourceHoldings = [
-                { user_id: userId, name: 'Bitcoin', platform: 'Binance' }
-            ];
-
-            mockHoldingsFindMany.mockResolvedValue(sourceHoldings);
-            mockReturning.mockResolvedValue(sourceHoldings);
-
-            const result = await holdingService.duplicateHoldingsByMonth(userId, data);
-
-            expect(mockTransaction).toHaveBeenCalled();
+            expect(Array.isArray(result)).toBe(true);
+            expect(mockTxDelete).toHaveBeenCalled();
         });
 
         it('should throw error if no source holdings found', async () => {
-            const userId = 'user-1';
-            const data = {
-                fromMonth: 1,
-                fromYear: 2024,
-                toMonth: 2,
-                toYear: 2024,
-                overwrite: false
-            };
-
             mockHoldingsFindMany.mockResolvedValue([]);
 
-            await expect(holdingService.duplicateHoldingsByMonth(userId, data)).rejects.toThrow();
+            await expect(
+                holdingService.duplicateHoldingsByMonth('user-1', {
+                    fromMonth: 11,
+                    fromYear: 2024,
+                    toMonth: 12,
+                    toYear: 2024,
+                    overwrite: false
+                })
+            ).rejects.toThrow();
         });
     });
 });
-

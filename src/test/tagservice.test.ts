@@ -1,27 +1,19 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { createDrizzleMocks } from './helpers/drizzleMock';
 import { tagService } from '../services';
+
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 
 const mockFindMany = mock();
 const mockFindFirst = mock();
-const mockReturning = mock();
 
-// Create mockOnConflictDoNothing as a function that returns an object with returning method
-const mockOnConflictDoNothing = mock();
-const mockValues = mock();
-const mockInsert = mock();
-
-// Setup the chain implementations
-const setupMocks = () => {
-    mockOnConflictDoNothing.mockImplementation(() => ({ returning: mockReturning }));
-    mockValues.mockImplementation(() => ({ 
-        onConflictDoNothing: mockOnConflictDoNothing, 
-        returning: mockReturning 
-    }));
-    mockInsert.mockImplementation(() => ({ values: mockValues }));
-};
-
-// Call setup initially
-setupMocks();
+// Setup onConflictDoNothing implementation
+mocks.mockOnConflictDoNothing.mockImplementation(() => ({ returning: mocks.mockReturning }));
+mocks.mockValues.mockImplementation(() => ({ 
+    onConflictDoNothing: mocks.mockOnConflictDoNothing, 
+    returning: mocks.mockReturning 
+}));
 
 mock.module('../database/drizzle', () => {
     return {
@@ -32,7 +24,7 @@ mock.module('../database/drizzle', () => {
                     findFirst: mockFindFirst,
                 }
             },
-            insert: mockInsert
+            insert: mocks.mockInsert
         }
     }
 });
@@ -41,12 +33,13 @@ describe('TagService', () => {
     beforeEach(() => {
         mockFindMany.mockReset();
         mockFindFirst.mockReset();
-        mockReturning.mockReset();
-        mockOnConflictDoNothing.mockClear();
-        mockValues.mockClear();
-        mockInsert.mockClear();
+        mocks.reset();
         // Re-establish mock implementations
-        setupMocks();
+        mocks.mockOnConflictDoNothing.mockImplementation(() => ({ returning: mocks.mockReturning }));
+        mocks.mockValues.mockImplementation(() => ({ 
+            onConflictDoNothing: mocks.mockOnConflictDoNothing, 
+            returning: mocks.mockReturning 
+        }));
     });
 
     describe('getTags', () => {
@@ -113,29 +106,29 @@ describe('TagService', () => {
 
     describe('addTag', () => {
         it('inserts a new tag', async () => {
-            mockOnConflictDoNothing.mockResolvedValue({ rowCount: 1 });
+            mocks.mockOnConflictDoNothing.mockResolvedValue({ rowCount: 1 });
             
             await tagService.addTag('new-tag');
             
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockValues).toHaveBeenCalledWith({ name: 'new-tag' });
-            expect(mockOnConflictDoNothing).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockValues).toHaveBeenCalledWith({ name: 'new-tag' });
+            expect(mocks.mockOnConflictDoNothing).toHaveBeenCalled();
         });
 
         it('handles duplicate tag gracefully (onConflictDoNothing)', async () => {
-            mockOnConflictDoNothing.mockResolvedValue({ rowCount: 0 });
+            mocks.mockOnConflictDoNothing.mockResolvedValue({ rowCount: 0 });
             
             await tagService.addTag('existing-tag');
             
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockOnConflictDoNothing).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockOnConflictDoNothing).toHaveBeenCalled();
         });
     });
 
     describe('addTagsBatch', () => {
         it('inserts multiple tags at once', async () => {
             const tags = ['react', 'vue', 'angular'];
-            mockReturning.mockResolvedValue([
+            mocks.mockReturning.mockResolvedValue([
                 { id: 1, name: 'react' },
                 { id: 2, name: 'vue' },
                 { id: 3, name: 'angular' }
@@ -143,8 +136,8 @@ describe('TagService', () => {
 
             const result = await tagService.addTagsBatch(tags);
 
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockValues).toHaveBeenCalledWith([
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockValues).toHaveBeenCalledWith([
                 { name: 'react' },
                 { name: 'vue' },
                 { name: 'angular' }
@@ -155,16 +148,16 @@ describe('TagService', () => {
             const result = await tagService.addTagsBatch([]);
 
             expect(result).toEqual([]);
-            expect(mockInsert).not.toHaveBeenCalled();
+            expect(mocks.mockInsert).not.toHaveBeenCalled();
         });
 
         it('handles single tag', async () => {
-            mockReturning.mockResolvedValue([{ id: 1, name: 'single' }]);
+            mocks.mockReturning.mockResolvedValue([{ id: 1, name: 'single' }]);
 
             await tagService.addTagsBatch(['single']);
 
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockValues).toHaveBeenCalledWith([{ name: 'single' }]);
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockValues).toHaveBeenCalledWith([{ name: 'single' }]);
         });
     });
 
@@ -212,21 +205,21 @@ describe('TagService', () => {
 
     describe('addTagToPost', () => {
         it('inserts tag-post relation', async () => {
-            mockOnConflictDoNothing.mockResolvedValue({ rowCount: 1 });
+            mocks.mockOnConflictDoNothing.mockResolvedValue({ rowCount: 1 });
             
             await tagService.addTagToPost('post-id', 123);
             
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockValues).toHaveBeenCalledWith({ tag_id: 123, post_id: 'post-id' });
-            expect(mockOnConflictDoNothing).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockValues).toHaveBeenCalledWith({ tag_id: 123, post_id: 'post-id' });
+            expect(mocks.mockOnConflictDoNothing).toHaveBeenCalled();
         });
 
         it('handles duplicate relation gracefully', async () => {
-            mockOnConflictDoNothing.mockResolvedValue({ rowCount: 0 });
+            mocks.mockOnConflictDoNothing.mockResolvedValue({ rowCount: 0 });
             
             await tagService.addTagToPost('post-id', 123);
             
-            expect(mockOnConflictDoNothing).toHaveBeenCalled();
+            expect(mocks.mockOnConflictDoNothing).toHaveBeenCalled();
         });
     });
 
@@ -237,27 +230,27 @@ describe('TagService', () => {
             
             await tagService.addTagsToPostBatch(postId, tagIds);
             
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockValues).toHaveBeenCalledWith([
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockValues).toHaveBeenCalledWith([
                 { post_id: postId, tag_id: 1 },
                 { post_id: postId, tag_id: 2 },
                 { post_id: postId, tag_id: 3 }
             ]);
-            expect(mockOnConflictDoNothing).toHaveBeenCalled();
+            expect(mocks.mockOnConflictDoNothing).toHaveBeenCalled();
         });
 
         it('returns empty array for empty tag_ids', async () => {
             const result = await tagService.addTagsToPostBatch('post-1', []);
 
             expect(result).toEqual([]);
-            expect(mockInsert).not.toHaveBeenCalled();
+            expect(mocks.mockInsert).not.toHaveBeenCalled();
         });
 
         it('handles single tag relation', async () => {
             await tagService.addTagsToPostBatch('post-1', [42]);
             
-            expect(mockInsert).toHaveBeenCalled();
-            expect(mockValues).toHaveBeenCalledWith([{ post_id: 'post-1', tag_id: 42 }]);
+            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mocks.mockValues).toHaveBeenCalledWith([{ post_id: 'post-1', tag_id: 42 }]);
         });
     });
 });

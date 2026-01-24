@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { createDrizzleMocks } from './helpers/drizzleMock';
 
 // Mock Config - Must be before other imports that use config
 mock.module('../config', () => ({
@@ -18,22 +19,18 @@ mock.module('../config', () => ({
     },
 }));
 
-// Mock db before importing services
-const mockReturning = mock();
-const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
-const mockSet = mock(() => ({ where: mock(() => ({ returning: mockReturning })) }));
-const mockUpdate = mock(() => ({ set: mockSet }));
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 const mockSessionFindFirst = mock();
 const mockUserFindFirst = mock();
 const mockUserCount = mock();
-const mockSelect = mock(() => ({ from: mock(() => ({ where: mockUserCount })) }));
+const mockFrom = mock(() => ({ where: mockUserCount }));
 
 mock.module('../database/drizzle', () => {
     return {
         db: {
-            insert: mockInsert,
-            update: mockUpdate,
+            insert: mocks.mockInsert,
+            update: mocks.mockUpdate,
             query: {
                 sessions: {
                     findFirst: mockSessionFindFirst,
@@ -42,7 +39,7 @@ mock.module('../database/drizzle', () => {
                     findFirst: mockUserFindFirst,
                 }
             },
-            select: mockSelect,
+            select: mock(() => ({ from: mockFrom })),
         }
     }
 });
@@ -60,14 +57,11 @@ mock.module('axios', () => {
 
 describe('AuthService', () => {
     beforeEach(() => {
-        mockReturning.mockReset();
+        mocks.reset();
         mockSessionFindFirst.mockReset();
         mockUserFindFirst.mockReset();
         mockUserCount.mockReset();
-        mockInsert.mockClear();
-        mockSelect.mockClear();
-        mockUpdate.mockClear();
-        mockSet.mockClear();
+        mockFrom.mockClear();
         process.env.JWT_SECRET = 'test-secret';
         mock(Bun.password, 'verifySync').mockReturnValue(true);
     });
@@ -86,7 +80,7 @@ describe('AuthService', () => {
             };
 
             mockUserFindFirst.mockResolvedValue(mockUser);
-            mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
+            mocks.mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
 
             const result = await authService.signIn(testEmail, testPassword, 'user-agent');
 
@@ -94,7 +88,7 @@ describe('AuthService', () => {
             expect(result).toHaveProperty('refresh_token');
             expect(result.refresh_token).toBe('refresh-token');
             expect(mockUserFindFirst).toHaveBeenCalled();
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
 
         it('returns tokens for valid username credentials', async () => {
@@ -111,7 +105,7 @@ describe('AuthService', () => {
             };
 
             mockUserFindFirst.mockResolvedValue(mockUser);
-            mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
+            mocks.mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
 
             const result = await authService.signIn(testUsername, testPassword, 'user-agent');
 
@@ -203,12 +197,12 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            mockReturning.mockResolvedValue([mockCreatedUser]);
+            mocks.mockReturning.mockResolvedValue([mockCreatedUser]);
 
             const result = await authService.signUp(signupData);
 
             expect(result).toHaveProperty('access_token');
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
     });
 
@@ -314,7 +308,7 @@ describe('AuthService', () => {
                 id: userId,
                 password: hashedCurrentPassword
             });
-            mockReturning.mockResolvedValue([{ id: userId }]);
+            mocks.mockReturning.mockResolvedValue([{ id: userId }]);
 
             const result = await authService.updatePassword(currentPassword, newPassword, userId);
 

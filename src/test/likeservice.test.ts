@@ -1,42 +1,34 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { LikeService } from '../modules/likes/services/likeService';
+import { createDrizzleMocks } from './helpers/drizzleMock';
 
-// Mock DB chain
-const mockReturning = mock();
-const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 
-const mockWhereDelete = mock(() => ({ returning: mockReturning }));
-const mockDelete = mock(() => ({ where: mockWhereDelete }));
-
+// Mock select chain for this specific service
 const mockWhereSelect = mock();
 const mockFrom = mock(() => ({ where: mockWhereSelect }));
-const mockSelect = mock(() => ({ from: mockFrom }));
 
 mock.module('../database/drizzle', () => {
-    return {
-        db: {
-            insert: mockInsert,
-            delete: mockDelete,
-            select: mockSelect,
-        }
-    }
+  return {
+    db: {
+      insert: mocks.mockInsert,
+      delete: mocks.mockDelete,
+      select: mocks.mockSelect,
+    },
+  };
 });
 
 describe('LikeService', () => {
-    let likeService: LikeService;
+  let likeService: LikeService;
 
-    beforeEach(() => {
-        likeService = new LikeService();
-        mockReturning.mockReset();
-        mockValues.mockClear();
-        mockInsert.mockClear();
-        mockDelete.mockClear();
-        mockWhereDelete.mockClear();
-        mockSelect.mockClear();
-        mockFrom.mockClear();
-        mockWhereSelect.mockReset();
-    });
+  beforeEach(() => {
+    likeService = new LikeService();
+    mocks.reset();
+    mockWhereSelect.mockReset();
+    mockFrom.mockClear();
+    mocks.mockSelect.mockReturnValue({ from: mockFrom });
+  });
 
     describe('updateLike', () => {
         it('should add a like if it does not exist', async () => {
@@ -47,13 +39,13 @@ describe('LikeService', () => {
             mockWhereSelect.mockResolvedValue([]);
             
             // Mock insert returning new like
-            mockReturning.mockResolvedValue([{ id: 'new-like-id' }]);
+            mocks.mockReturning.mockResolvedValue([{ id: 'new-like-id' }]);
 
             const result = await likeService.updateLike(postId, userId);
 
             expect(result.id).toBe('new-like-id');
-            expect(mockSelect).toHaveBeenCalled();
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockSelect).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
 
         it('should remove a like if it exists (hard delete)', async () => {
@@ -64,13 +56,13 @@ describe('LikeService', () => {
             mockWhereSelect.mockResolvedValue([{ id: 'existing-id' }]);
             
             // Mock delete returning deleted like
-            mockReturning.mockResolvedValue([{ id: 'existing-id' }]);
+            mocks.mockReturning.mockResolvedValue([{ id: 'existing-id' }]);
 
             const result = await likeService.updateLike(postId, userId);
 
             expect(result.id).toBe('existing-id');
-            expect(mockSelect).toHaveBeenCalled();
-            expect(mockDelete).toHaveBeenCalled();
+            expect(mocks.mockSelect).toHaveBeenCalled();
+            expect(mocks.mockDelete).toHaveBeenCalled();
         });
 
         it('should throw internal server error on db error', async () => {
@@ -101,7 +93,7 @@ describe('LikeService', () => {
             const result = await likeService.getLikes(postId);
 
             expect(result).toEqual(mockLikes);
-            expect(mockSelect).toHaveBeenCalled();
+            expect(mocks.mockSelect).toHaveBeenCalled();
         });
     });
 });

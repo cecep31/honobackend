@@ -1,48 +1,40 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { bookmarkService } from '../services';
+import { createDrizzleMocks } from './helpers/drizzleMock';
 
-// Mock DB chain
-const mockReturning = mock();
-const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 
-const mockWhereDelete = mock(() => ({ returning: mockReturning }));
-const mockDelete = mock(() => ({ where: mockWhereDelete }));
-
+// Mock select chain for this specific service
 const mockWhereSelect = mock();
 const mockFrom = mock(() => ({ where: mockWhereSelect }));
-const mockSelect = mock(() => ({ from: mockFrom }));
 
 const mockFindMany = mock();
 const mockQuery = {
-    post_bookmarks: {
-        findMany: mockFindMany
-    }
+  post_bookmarks: {
+    findMany: mockFindMany,
+  },
 };
 
 mock.module('../database/drizzle', () => {
-    return {
-        db: {
-            insert: mockInsert,
-            delete: mockDelete,
-            select: mockSelect,
-            query: mockQuery
-        }
-    }
+  return {
+    db: {
+      insert: mocks.mockInsert,
+      delete: mocks.mockDelete,
+      select: mocks.mockSelect,
+      query: mockQuery,
+    },
+  };
 });
 
 describe('BookmarkService', () => {
-    beforeEach(() => {
-        mockReturning.mockReset();
-        mockValues.mockClear();
-        mockInsert.mockClear();
-        mockDelete.mockClear();
-        mockWhereDelete.mockClear();
-        mockSelect.mockClear();
-        mockFrom.mockClear();
-        mockWhereSelect.mockReset();
-        mockFindMany.mockReset();
-    });
+  beforeEach(() => {
+    mocks.reset();
+    mockWhereSelect.mockReset();
+    mockFrom.mockClear();
+    mockFindMany.mockReset();
+    mocks.mockSelect.mockReturnValue({ from: mockFrom });
+  });
 
     describe('toggleBookmark', () => {
         it('adds bookmark if not exists', async () => {
@@ -50,13 +42,13 @@ describe('BookmarkService', () => {
             const userId = 'user-1';
 
             mockWhereSelect.mockResolvedValue([]);
-            mockReturning.mockResolvedValue([{ id: 'new-bookmark-id', post_id: postId, user_id: userId }]);
+            mocks.mockReturning.mockResolvedValue([{ id: 'new-bookmark-id', post_id: postId, user_id: userId }]);
 
             const result = await bookmarkService.toggleBookmark(postId, userId);
 
             expect(result.action).toBe('added');
             expect(result.id).toBe('new-bookmark-id');
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
 
         it('removes bookmark if exists', async () => {
@@ -64,13 +56,13 @@ describe('BookmarkService', () => {
             const userId = 'user-1';
 
             mockWhereSelect.mockResolvedValue([{ id: 'existing-id' }]);
-            mockReturning.mockResolvedValue([{ id: 'existing-id', post_id: postId, user_id: userId }]);
+            mocks.mockReturning.mockResolvedValue([{ id: 'existing-id', post_id: postId, user_id: userId }]);
 
             const result = await bookmarkService.toggleBookmark(postId, userId);
 
             expect(result.action).toBe('removed');
             expect(result.id).toBe('existing-id');
-            expect(mockDelete).toHaveBeenCalled();
+            expect(mocks.mockDelete).toHaveBeenCalled();
         });
 
         it('throws internal server error on db error during check', async () => {
@@ -92,7 +84,7 @@ describe('BookmarkService', () => {
             const userId = 'user-1';
 
             mockWhereSelect.mockResolvedValue([]);
-            mockReturning.mockRejectedValue(new Error('Insert Error'));
+            mocks.mockReturning.mockRejectedValue(new Error('Insert Error'));
 
             try {
                 await bookmarkService.toggleBookmark(postId, userId);
@@ -106,7 +98,7 @@ describe('BookmarkService', () => {
             const userId = 'user-1';
 
             mockWhereSelect.mockResolvedValue([{ id: 'existing-id' }]);
-            mockReturning.mockRejectedValue(new Error('Delete Error'));
+            mocks.mockReturning.mockRejectedValue(new Error('Delete Error'));
 
             try {
                 await bookmarkService.toggleBookmark(postId, userId);

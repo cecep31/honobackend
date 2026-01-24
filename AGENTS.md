@@ -83,6 +83,8 @@ This file provides guidance to agentic coding tools when working with this Hono/
 - Test both success and error cases
 - Use `mock.module()` for module-level mocking
 - Test edge cases and validation scenarios
+- **Use Drizzle mock helpers**: Import from `src/test/helpers/drizzleMock.ts` for consistent Drizzle ORM mocking
+- See `docs/TESTING.md` for comprehensive testing guide and patterns
 
 ### Database
 - Use Drizzle ORM for PostgreSQL operations
@@ -174,3 +176,133 @@ This file provides guidance to agentic coding tools when working with this Hono/
 - Apply middleware with `.use()` for cross-cutting concerns
 - Return `c.json()` for JSON responses
 - Access request data via `c.req.parseBody()`, `c.req.query()`, etc.
+
+## Testing with Drizzle Mock Helpers
+
+When writing unit tests for services that use Drizzle ORM, use the helper utilities from `src/test/helpers/drizzleMock.ts` to reduce boilerplate and maintain consistency.
+
+### Quick Start
+
+```typescript
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { createDrizzleMocks } from './helpers/drizzleMock';
+import { YourService } from '../modules/your-module/services/yourService';
+
+// Create mocks using helper
+const mocks = createDrizzleMocks();
+
+// Mock database module
+mock.module('../database/drizzle', () => ({
+  db: {
+    insert: mocks.mockInsert,
+    update: mocks.mockUpdate,
+    delete: mocks.mockDelete,
+    select: mocks.mockSelect,
+    query: {
+      your_table: {
+        findFirst: mocks.mockFindFirst,
+        findMany: mocks.mockFindMany,
+      },
+    },
+  },
+}));
+
+describe('YourService', () => {
+  let service: YourService;
+
+  beforeEach(() => {
+    service = new YourService();
+    mocks.reset(); // Reset all mocks before each test
+  });
+
+  it('should create a record', async () => {
+    mocks.mockReturning.mockResolvedValue([{ id: 'new-id' }]);
+    const result = await service.create({ name: 'Test' });
+    expect(result).toHaveProperty('id', 'new-id');
+  });
+});
+```
+
+### Available Helper Functions
+
+1. **`createDrizzleMocks()`**: Creates a complete set of Drizzle ORM mocks with proper chaining
+   - Returns: `DrizzleMocks` object with all mock functions and a `reset()` utility
+   - Use `mocks.reset()` in `beforeEach()` to reset all mocks
+
+2. **`createChainableMock(finalResult)`**: Creates a chainable mock for complex select queries
+   - Useful for queries with multiple joins, groupBy, orderBy, etc.
+   - Returns: Chainable mock object that resolves to `finalResult`
+
+3. **`createMockDb(queryTables, options)`**: Creates a mock db instance with custom query tables
+   - Parameters:
+     - `queryTables`: Object mapping table names to mock query methods
+     - `options`: Additional options (includeInsert, includeUpdate, etc.)
+
+4. **`setupTransactionMock(mocks, transactionTables)`**: Helper to setup transaction mocks
+   - Use when testing services that use `db.transaction()`
+
+### Common Patterns
+
+**Testing Insert Operations:**
+```typescript
+it('should insert a record', async () => {
+  mocks.mockReturning.mockResolvedValue([{ id: 'new-id', name: 'Test' }]);
+  const result = await service.create({ name: 'Test' });
+  expect(result).toHaveProperty('id', 'new-id');
+  expect(mocks.mockInsert).toHaveBeenCalled();
+});
+```
+
+**Testing Update Operations:**
+```typescript
+it('should update a record', async () => {
+  mocks.mockReturning.mockResolvedValue([{ id: 'id-1', name: 'Updated' }]);
+  const result = await service.update('id-1', { name: 'Updated' });
+  expect(result.name).toBe('Updated');
+  expect(mocks.mockUpdate).toHaveBeenCalled();
+});
+```
+
+**Testing Delete Operations:**
+```typescript
+it('should delete a record', async () => {
+  mocks.mockReturning.mockResolvedValue([{ id: 'deleted-id' }]);
+  const result = await service.delete('deleted-id');
+  expect(result).toHaveProperty('id', 'deleted-id');
+  expect(mocks.mockDelete).toHaveBeenCalled();
+});
+```
+
+**Testing Select Queries:**
+```typescript
+it('should find records', async () => {
+  const mockData = [{ id: '1', name: 'Test' }];
+  const mockWhere = mock(() => Promise.resolve(mockData));
+  const mockFrom = mock(() => ({ where: mockWhere }));
+  mocks.mockSelect.mockReturnValue({ from: mockFrom });
+
+  const result = await service.findByCondition('test');
+  expect(result).toEqual(mockData);
+});
+```
+
+**Testing with Query API (findFirst/findMany):**
+```typescript
+it('should find one record', async () => {
+  const mockData = { id: '1', name: 'Test' };
+  mocks.mockFindFirst.mockResolvedValue(mockData);
+  
+  const result = await service.getById('1');
+  expect(result).toEqual(mockData);
+});
+```
+
+### Best Practices
+
+1. **Always use `mocks.reset()` in `beforeEach()`** to prevent test pollution
+2. **Use helper utilities instead of manual mock setup** for consistency
+3. **Test both success and error cases** - use `mockRejectedValue()` for errors
+4. **Focus on behavior, not implementation details** - test what the service does, not how
+5. **Keep tests simple and readable** - helper utilities handle the complex mocking
+
+For complete documentation and advanced patterns, see `docs/TESTING.md`.

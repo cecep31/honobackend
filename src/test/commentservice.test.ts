@@ -1,18 +1,13 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { CommentService } from '../modules/comments/services/commentService';
+import { createDrizzleMocks } from './helpers/drizzleMock';
 
-// Mock DB chain
-const mockReturning = mock();
-const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 
-const mockWhereUpdate = mock(() => ({ returning: mockReturning }));
-const mockSet = mock(() => ({ where: mockWhereUpdate }));
-const mockUpdate = mock(() => ({ set: mockSet }));
-
+// Mock select chain for this specific service
 const mockWhereSelect = mock();
 const mockFrom = mock(() => ({ where: mockWhereSelect }));
-const mockSelect = mock(() => ({ from: mockFrom }));
 
 const mockFindFirst = mock();
 const mockFindMany = mock();
@@ -20,9 +15,9 @@ const mockFindMany = mock();
 mock.module('../database/drizzle', () => {
   return {
     db: {
-      insert: mockInsert,
-      update: mockUpdate,
-      select: mockSelect,
+      insert: mocks.mockInsert,
+      update: mocks.mockUpdate,
+      select: mocks.mockSelect,
       query: {
         post_comments: {
           findFirst: mockFindFirst,
@@ -38,17 +33,12 @@ describe('CommentService', () => {
 
   beforeEach(() => {
     commentService = new CommentService();
-    mockReturning.mockReset();
-    mockValues.mockClear();
-    mockInsert.mockClear();
-    mockUpdate.mockClear();
-    mockSet.mockClear();
-    mockWhereUpdate.mockClear();
-    mockSelect.mockClear();
-    mockFrom.mockClear();
+    mocks.reset();
     mockWhereSelect.mockReset();
+    mockFrom.mockClear();
     mockFindFirst.mockReset();
     mockFindMany.mockReset();
+    mocks.mockSelect.mockReturnValue({ from: mockFrom });
   });
 
   describe('createComment', () => {
@@ -63,7 +53,7 @@ describe('CommentService', () => {
       mockWhereSelect.mockResolvedValueOnce([{ id: 'post-1' }]);
 
       // Mock insert returning new comment
-      mockReturning.mockResolvedValue([
+      mocks.mockReturning.mockResolvedValue([
         {
           id: 'comment-1',
           text: 'Test comment',
@@ -88,7 +78,7 @@ describe('CommentService', () => {
 
       expect(result.id).toBe('comment-1');
       expect(result.text).toBe('Test comment');
-      expect(mockInsert).toHaveBeenCalled();
+      expect(mocks.mockInsert).toHaveBeenCalled();
     });
 
     it('should throw error if post not found', async () => {
@@ -151,7 +141,7 @@ describe('CommentService', () => {
       ]);
 
       // Mock update
-      mockReturning.mockResolvedValue([
+      mocks.mockReturning.mockResolvedValue([
         { id: commentId, text: 'Updated comment' },
       ]);
 
@@ -169,7 +159,7 @@ describe('CommentService', () => {
       );
 
       expect(result.text).toBe('Updated comment');
-      expect(mockUpdate).toHaveBeenCalled();
+      expect(mocks.mockUpdate).toHaveBeenCalled();
     });
 
     it('should throw forbidden error if user does not own comment', async () => {
@@ -202,7 +192,7 @@ describe('CommentService', () => {
       ]);
 
       // Mock soft delete
-      mockReturning.mockResolvedValue([
+      mocks.mockReturning.mockResolvedValue([
         { id: commentId, deleted_at: new Date().toISOString() },
       ]);
 
@@ -210,7 +200,7 @@ describe('CommentService', () => {
 
       expect(result.id).toBe(commentId);
       expect(result.deleted_at).toBeDefined();
-      expect(mockUpdate).toHaveBeenCalled();
+      expect(mocks.mockUpdate).toHaveBeenCalled();
     });
 
     it('should throw forbidden error if user does not own comment', async () => {

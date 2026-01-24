@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { createDrizzleMocks, createChainableMock } from './helpers/drizzleMock';
 import { chatService, openrouterService } from '../services';
 
 // Mock OpenRouterService
@@ -16,48 +17,24 @@ mock.module('../modules/chat/services/openrouterService', () => {
     }
 });
 
-
-// Mock DB with flexible chain
-const mockReturning = mock();
-const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock(() => ({ values: mockValues }));
-const mockDeleteReturning = mock();
-const mockDeleteWhere = mock(() => ({ returning: mockDeleteReturning }));
-const mockDelete = mock(() => ({ where: mockDeleteWhere }));
-
-// Chainable select mock
-const createChainableMock = (finalResult: any) => {
-    const chainMock: any = {};
-    chainMock.from = mock(() => chainMock);
-    chainMock.where = mock(() => chainMock);
-    chainMock.orderBy = mock(() => chainMock);
-    chainMock.offset = mock(() => chainMock);
-    chainMock.limit = mock(() => chainMock);
-    chainMock.then = mock((cb: any) => cb(finalResult));
-    return mock(() => chainMock);
-};
-
-let mockSelectResult: any = [];
-const mockSelect = createChainableMock([]);
+// Create mocks using helper
+const mocks = createDrizzleMocks();
 
 mock.module('../database/drizzle', () => {
     return {
         db: {
-            insert: mockInsert,
-            select: mockSelect,
-            delete: mockDelete,
+            insert: mocks.mockInsert,
+            select: mocks.mockSelect,
+            delete: mocks.mockDelete,
         }
     }
 });
 
 describe('ChatService', () => {
     beforeEach(() => {
-        mockReturning.mockReset();
-        mockDeleteReturning.mockReset();
+        mocks.reset();
         mockGenerateResponse.mockReset();
         mockGenerateStream.mockReset();
-        mockInsert.mockClear();
-        mockDelete.mockClear();
     });
 
     describe('createConversation', () => {
@@ -65,7 +42,7 @@ describe('ChatService', () => {
             const userId = 'user-1';
             const body = { title: 'Test Conversation' };
             
-            mockReturning.mockResolvedValue([{ 
+            mocks.mockReturning.mockResolvedValue([{ 
                 id: 'conv-1', 
                 title: 'Test Conversation',
                 user_id: userId 
@@ -75,7 +52,7 @@ describe('ChatService', () => {
 
             expect(result).toHaveProperty('id');
             expect(result.title).toBe('Test Conversation');
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
     });
 
@@ -87,7 +64,7 @@ describe('ChatService', () => {
             const model = 'gpt-4';
             const usage = { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 };
 
-            mockReturning.mockResolvedValue([{
+            mocks.mockReturning.mockResolvedValue([{
                 id: 'msg-ai',
                 conversation_id: conversationId,
                 content,
@@ -103,7 +80,7 @@ describe('ChatService', () => {
             expect(result).toHaveProperty('content', content);
             expect(result).toHaveProperty('role', 'assistant');
             expect(result).toHaveProperty('total_tokens', 30);
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
 
         it('should save a streaming message without usage stats', async () => {
@@ -112,7 +89,7 @@ describe('ChatService', () => {
             const content = 'AI response';
             const model = 'gpt-4';
 
-            mockReturning.mockResolvedValue([{
+            mocks.mockReturning.mockResolvedValue([{
                 id: 'msg-ai',
                 conversation_id: conversationId,
                 content,
@@ -123,7 +100,7 @@ describe('ChatService', () => {
             const result = await chatService.saveStreamingMessage(conversationId, userId, content, model);
 
             expect(result).toHaveProperty('content', content);
-            expect(mockInsert).toHaveBeenCalled();
+            expect(mocks.mockInsert).toHaveBeenCalled();
         });
     });
 
@@ -136,7 +113,7 @@ describe('ChatService', () => {
             const body = { content: 'Hello AI', model: 'gpt-4' };
 
             // Mock conversation creation
-            mockReturning.mockResolvedValue([{ 
+            mocks.mockReturning.mockResolvedValue([{ 
                 id: 'conv-1', 
                 title: 'Hello AI',
                 user_id: userId 
