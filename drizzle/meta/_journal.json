@@ -71,6 +71,13 @@
       "when": 1769134917030,
       "tag": "0009_early_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769223948022,
+      "tag": "0010_swift_power_man",
+      "breakpoints": true
     }
   ]
 }

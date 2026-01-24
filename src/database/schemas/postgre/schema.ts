@@ -233,7 +233,7 @@ export const posts = pgTable(
       name: "fk_posts_creator",
     })
       .onUpdate("cascade")
-      .onDelete("set null"),
+      .onDelete("cascade"),
     unique("creator and slug unique").on(table.created_by, table.slug),
     check(
       "chk_posts_counts_positive",
