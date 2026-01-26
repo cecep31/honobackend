@@ -231,7 +231,7 @@ curl -X GET /v1/posts/tag/typescript
 ### 6. Get Posts by Username
 Retrieve all posts by a specific user.
 
-- **URL:** `/user/:username`
+- **URL:** `/author/:username`
 - **Method:** `GET`
 - **Authentication:** Not required
 - **Query Parameters:**
@@ -243,7 +243,7 @@ Retrieve all posts by a specific user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/user/johndoe?page=1&limit=10"
+curl -X GET "/v1/posts/author/johndoe?page=1&limit=10"
 ```
 
 **Response (200):**

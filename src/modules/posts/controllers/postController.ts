@@ -46,7 +46,7 @@ postController.get("/tag/:tag", async (c) => {
   return sendSuccess(c, posts, "Posts by tag fetched successfully");
 });
 
-postController.get("/user/:username", async (c) => {
+postController.get("/author/:username", async (c) => {
   const username = c.req.param("username");
   const params = getPaginationParams(c);
   const { data, meta } = await postService.getPostsByUsername(

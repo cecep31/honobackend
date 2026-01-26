@@ -105,7 +105,7 @@ Each module has its own README.md with detailed documentation:
 | `/posts/trending` | GET | Get trending posts | No |
 | `/posts/mine` | GET | Get user's posts | Yes |
 | `/posts/tag/:tag` | GET | Get posts by tag | No |
-| `/posts/user/:username` | GET | Get posts by user | No |
+| `/posts/author/:username` | GET | Get posts by author | No |
 | `/posts/slug/:slug` | GET | Get post by slug | No |
 | `/posts/u/:username/:slug` | GET | Get post by author and slug | No |
 | `/posts/all` | GET | Get all posts (admin) | Yes (Super Admin) |
