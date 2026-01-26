@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
-    "axios": "^1.13.2",
+    "axios": "^1.13.3",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.5",
     "hono-rate-limiter": "^0.5.3",
