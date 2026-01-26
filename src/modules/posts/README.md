@@ -13,7 +13,7 @@ Most endpoints are public (no authentication required). The following endpoints 
 - `PATCH /:id` - Update a post
 - `DELETE /:id` - Delete a post
 - `POST /upload/image` - Upload post images
-- `GET /mine` - Get authenticated user's posts
+- `GET /me` - Get authenticated user's posts
 - `GET /all` - Super admin only (get all posts)
 
 Protected endpoints require a Bearer token in the `Authorization` header:
@@ -162,7 +162,7 @@ curl -X GET "/v1/posts/trending?limit=5"
 ### 4. Get My Posts
 Retrieve posts created by the authenticated user.
 
-- **URL:** `/mine`
+- **URL:** `/me`
 - **Method:** `GET`
 - **Authentication:** Required
 - **Query Parameters:**
@@ -174,7 +174,7 @@ Retrieve posts created by the authenticated user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/mine?page=1&limit=10" \
+curl -X GET "/v1/posts/me?page=1&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 

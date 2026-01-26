@@ -103,7 +103,7 @@ Each module has its own README.md with detailed documentation:
 | `/posts` | GET | Get all posts | No |
 | `/posts/random` | GET | Get random posts | No |
 | `/posts/trending` | GET | Get trending posts | No |
-| `/posts/mine` | GET | Get user's posts | Yes |
+| `/posts/me` | GET | Get user's posts | Yes |
 | `/posts/tag/:tag` | GET | Get posts by tag | No |
 | `/posts/author/:username` | GET | Get posts by author | No |
 | `/posts/slug/:slug` | GET | Get post by slug | No |

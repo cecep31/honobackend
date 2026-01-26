@@ -34,7 +34,7 @@ postController.get("/trending", async (c) => {
   return sendSuccess(c, posts, "Trending posts fetched successfully");
 });
 
-postController.get("/mine", auth, async (c) => {
+postController.get("/me", auth, async (c) => {
   const params = getPaginationParams(c);
   const auth = c.get("user");
   const { data, meta } = await postService.getPostsByUser(auth.user_id, params);
