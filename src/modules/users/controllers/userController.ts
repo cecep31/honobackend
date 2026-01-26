@@ -12,7 +12,8 @@ import {
   updateUserSchema,
   userIdSchema,
   updateProfileSchema,
-  updateUserImageSchema
+  updateUserImageSchema,
+  usernameParamSchema
 } from "../validation/user";
 
 export const userController = new Hono<{ Variables: Variables }>()
@@ -85,6 +86,20 @@ export const userController = new Hono<{ Variables: Variables }>()
       return sendSuccess(c, updatedUser, "Profile image updated successfully");
     }
   )
+
+  /**
+   * GET /users/username/:username - Get user by username (public endpoint)
+   */
+  .get("/username/:username", validateRequest("param", usernameParamSchema), async (c) => {
+    const params = c.req.valid("param");
+    const user = await userService.getUserByUsername(params.username);
+    
+    if (!user) {
+      throw Errors.NotFound("User");
+    }
+    
+    return sendSuccess(c, user, "User fetched successfully");
+  })
 
   /**
    * GET /users/:id - Get user by ID

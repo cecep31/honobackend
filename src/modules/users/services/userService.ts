@@ -535,6 +535,30 @@ export class UserService {
   }
 
   /**
+   * Get user by username (public data, excludes password, includes profile)
+   * @param username Username
+   * @returns User object with profile or null if not found
+   */
+  async getUserByUsername(username: string) {
+    try {
+      return await db.query.users.findFirst({
+        columns: { password: false },
+        with: { profiles: true },
+        where: and(
+          eq(usersModel.username, username),
+          isNull(usersModel.deleted_at),
+        ),
+      });
+    } catch (error) {
+      console.error("Error fetching user by username:", error);
+      throw Errors.DatabaseError({
+        message: "Failed to fetch user by username",
+        error,
+      });
+    }
+  }
+
+  /**
    * Update user password
    * @param id User ID
    * @param password Hashed password
