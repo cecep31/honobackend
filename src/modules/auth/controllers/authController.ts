@@ -18,6 +18,7 @@ import {
   usernameSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  checkUsernameSchema,
 } from "../validation/auth";
 
 export const authController = new Hono<{ Variables: Variables }>();
@@ -137,11 +138,11 @@ authController.post(
 );
 
 // check username exists
-authController.get(
-  "/username/:username",
-  validateRequest("param", usernameSchema),
+authController.post(
+  "/check-username",
+  validateRequest("json", checkUsernameSchema),
   async (c) => {
-    const username = c.req.valid("param").username;
+    const { username } = c.req.valid("json");
     const exists = await authService.checkUsername(username);
     return sendSuccess(c, { exists }, "Username check completed");
   },
