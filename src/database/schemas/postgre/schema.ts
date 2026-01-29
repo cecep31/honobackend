@@ -420,6 +420,7 @@ export const users = pgTable(
     github_id: bigint("github_id", { mode: "number" }),
     followers_count: bigint("followers_count", { mode: "number" }).default(0),
     following_count: bigint("following_count", { mode: "number" }).default(0),
+    last_logged_at: timestamp("last_logged_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     uniqueIndex("idx_users_email").using(

@@ -1,5 +1,6 @@
 import { sign } from "hono/jwt";
 import { and, eq, lt, isNull } from "drizzle-orm";
+import { users } from "../../../database/schemas/postgre/schema";
 import type { UserService } from "../../users/services/userService";
 import type { UserSignup } from "../validation/auth";
 import type { GithubUser } from "../../../types/auth";
@@ -10,7 +11,7 @@ import { Errors } from "../../../utils/error";
 import { db } from "../../../database/drizzle";
 import {
   sessions as sessionModel,
-  password_reset_tokens as passwordResetTokensModel
+  password_reset_tokens as passwordResetTokensModel,
 } from "../../../database/schemas/postgre/schema";
 import { AuthActivityService } from "./authActivityService";
 
@@ -100,6 +101,12 @@ export class AuthService {
         status: "success",
       });
 
+      // Update last logged at timestamp
+      await db
+        .update(users)
+        .set({ last_logged_at: new Date().toISOString() })
+        .where(eq(users.id, user.id));
+
       return { access_token: token, refresh_token: session[0].refresh_token };
     } catch (error) {
       // If error is not already logged, log it
@@ -167,6 +174,12 @@ export class AuthService {
         status: "success",
         metadata: { provider: "github" },
       });
+
+      // Update last logged at timestamp
+      await db
+        .update(users)
+        .set({ last_logged_at: new Date().toISOString() })
+        .where(eq(users.id, user.id));
 
       return { access_token: token };
     } catch (error) {
@@ -311,6 +324,12 @@ export class AuthService {
         userAgent: user_agent,
         status: "success",
       });
+
+      // Update last logged at timestamp on token refresh
+      await db
+        .update(users)
+        .set({ last_logged_at: new Date().toISOString() })
+        .where(eq(users.id, session.user.id));
 
       return { access_token: token };
     } catch (error) {
