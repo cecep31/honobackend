@@ -839,6 +839,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   post_bookmarks: many(post_bookmarks),
   password_reset_tokens: many(password_reset_tokens),
   notifications: many(notifications),
+  auth_activity_logs: many(auth_activity_logs),
 }));
 
 export const post_comments_relations = relations(post_comments, ({ one }) => ({
@@ -991,6 +992,61 @@ export const holding_types_relations = relations(holding_types, ({ many }) => ({
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, {
     fields: [notifications.user_id],
+    references: [users.id],
+  }),
+}));
+
+export const auth_activity_logs = pgTable(
+  "auth_activity_logs",
+  {
+    id: uuid()
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey()
+      .notNull(),
+    user_id: uuid("user_id"),
+    activity_type: varchar("activity_type", { length: 50 }).notNull(),
+    ip_address: varchar("ip_address", { length: 45 }),
+    user_agent: text("user_agent"),
+    status: varchar({ length: 20 }).notNull(),
+    error_message: text("error_message"),
+    metadata: text(),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_auth_activity_logs_user_id").using(
+      "btree",
+      table.user_id.asc().nullsLast().op("uuid_ops"),
+    ),
+    index("idx_auth_activity_logs_activity_type").using(
+      "btree",
+      table.activity_type.asc().nullsLast().op("text_ops"),
+    ),
+    index("idx_auth_activity_logs_status").using(
+      "btree",
+      table.status.asc().nullsLast().op("text_ops"),
+    ),
+    index("idx_auth_activity_logs_created_at").using(
+      "btree",
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    ),
+    index("idx_auth_activity_logs_user_created").using(
+      "btree",
+      table.user_id.asc().nullsLast().op("uuid_ops"),
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    ),
+    foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+      name: "auth_activity_logs_user_id_users_id_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
+export const authActivityLogsRelations = relations(auth_activity_logs, ({ one }) => ({
+  user: one(users, {
+    fields: [auth_activity_logs.user_id],
     references: [users.id],
   }),
 }));

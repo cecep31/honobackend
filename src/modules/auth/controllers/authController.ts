@@ -20,6 +20,7 @@ import {
   resetPasswordSchema,
   checkUsernameSchema,
 } from "../validation/auth";
+import { AuthActivityService } from "../services/authActivityService";
 
 export const authController = new Hono<{ Variables: Variables }>();
 
@@ -79,7 +80,16 @@ authController.get("/oauth/github/callback", async (c) => {
     }
 
     // Sign in or create user with full GitHub user data
-    const jwtToken = await authService.signInWithGithub(githubUserData);
+    const ipAddress =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip");
+    const userAgent = c.req.header("User-Agent");
+    const jwtToken = await authService.signInWithGithub(
+      githubUserData,
+      ipAddress,
+      userAgent,
+    );
     setCookie(c, "token", jwtToken.access_token, {
       domain: "." + config.frontend.mainDomain,
       maxAge: 60 * 60 * 5, // 5 hours
@@ -118,10 +128,16 @@ authController.post(
   async (c) => {
     const body = c.req.valid("json");
     const { email, password } = body;
+    const ipAddress =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip");
+    const userAgent = c.req.header("User-Agent");
     const token = await authService.signIn(
       email,
       password,
-      c.req.header("User-Agent") ?? "",
+      userAgent ?? "",
+      ipAddress,
     );
     return sendSuccess(c, token, "Login successful");
   },
@@ -132,7 +148,12 @@ authController.post(
   validateRequest("json", registerSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const token = await authService.signUp(body);
+    const ipAddress =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip");
+    const userAgent = c.req.header("User-Agent");
+    const token = await authService.signUp(body, ipAddress, userAgent);
     return sendSuccess(c, token, "User created successfully", 201);
   },
 );
@@ -164,7 +185,12 @@ authController.post("/refresh-token", async (c) => {
   if (!refreshToken) {
     throw Errors.InvalidInput("refresh_token", "Refresh token is required");
   }
-  const result = await authService.refreshToken(refreshToken);
+  const ipAddress =
+    c.req.header("x-forwarded-for") ||
+    c.req.header("x-real-ip") ||
+    c.req.header("cf-connecting-ip");
+  const userAgent = c.req.header("User-Agent");
+  const result = await authService.refreshToken(refreshToken, ipAddress, userAgent);
   return sendSuccess(c, result, "Token refreshed successfully");
 });
 
@@ -194,10 +220,17 @@ authController.patch(
   async (c) => {
     const body = c.req.valid("json");
     const user = c.get("user");
+    const ipAddress =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip");
+    const userAgent = c.req.header("User-Agent");
     const result = await authService.updatePassword(
       body.old_password,
       body.new_password,
       user.user_id,
+      ipAddress,
+      userAgent,
     );
     return sendSuccess(c, result, "Password updated successfully");
   },
@@ -219,7 +252,16 @@ authController.post(
   validateRequest("json", forgotPasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const result = await authService.requestPasswordReset(body.email);
+    const ipAddress =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip");
+    const userAgent = c.req.header("User-Agent");
+    const result = await authService.requestPasswordReset(
+      body.email,
+      ipAddress,
+      userAgent,
+    );
     return sendSuccess(c, result, result.message);
   },
 );
@@ -240,10 +282,82 @@ authController.post(
   validateRequest("json", resetPasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
+    const ipAddress =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip");
+    const userAgent = c.req.header("User-Agent");
     const result = await authService.resetPassword(
       body.token,
       body.new_password,
+      ipAddress,
+      userAgent,
     );
     return sendSuccess(c, result, result.message);
   },
 );
+
+// Activity logs endpoints
+const activityService = new AuthActivityService();
+
+// Get current user's activity logs
+authController.get("/activity-logs", auth, async (c) => {
+  const user = c.get("user");
+  const limit = parseInt(c.req.query("limit") || "50");
+  const offset = parseInt(c.req.query("offset") || "0");
+  const activityType = c.req.query("activity_type");
+  const status = c.req.query("status");
+
+  const logs = await activityService.getActivityLogs({
+    userId: user.user_id,
+    activityType: activityType as any,
+    status: status as any,
+    limit,
+    offset,
+  });
+
+  const total = await activityService.getActivityLogsCount({
+    userId: user.user_id,
+    activityType: activityType as any,
+    status: status as any,
+  });
+
+  return sendSuccess(
+    c,
+    {
+      logs,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + logs.length < total,
+      },
+    },
+    "Activity logs retrieved successfully",
+  );
+});
+
+// Get recent activity for current user
+authController.get("/activity-logs/recent", auth, async (c) => {
+  const user = c.get("user");
+  const limit = parseInt(c.req.query("limit") || "10");
+
+  const logs = await activityService.getUserRecentActivity(user.user_id, limit);
+
+  return sendSuccess(c, logs, "Recent activity retrieved successfully");
+});
+
+// Get failed login attempts for current user
+authController.get("/activity-logs/failed-logins", auth, async (c) => {
+  const user = c.get("user");
+  const since = c.req.query("since");
+  const sinceDate = since ? new Date(since) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const logs = await activityService.getFailedLoginAttempts(user.user_id, sinceDate);
+
+  return sendSuccess(
+    c,
+    { logs, count: logs.length },
+    "Failed login attempts retrieved successfully",
+  );
+});
