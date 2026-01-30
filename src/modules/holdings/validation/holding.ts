@@ -32,8 +32,8 @@ export const createHoldingSchema = z.object({
   current_price: z.number().nullable().optional(),
   last_updated: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
-  month: z.number().nullable().optional(),
-  year: z.number().nullable().optional(),
+  month: z.number(),
+  year: z.number(),
 });
 
 export const updateHoldingSchema = z.object({
