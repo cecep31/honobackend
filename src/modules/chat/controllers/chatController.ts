@@ -3,7 +3,6 @@ import { chatService } from "../../../services/index";
 import { auth } from "../../../middlewares/auth";
 import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
-import { getPaginationParams } from "../../../utils/paginate";
 import { sendSuccess } from "../../../utils/response";
 import getConfig from "../../../config";
 import {
@@ -12,6 +11,7 @@ import {
   createConversationSchema,
   createConversationStreamSchema,
   createMessageSchema,
+  listConversationsQuerySchema,
 } from "../validation";
 
 export const chatController = new Hono<{ Variables: Variables }>()
@@ -144,16 +144,32 @@ export const chatController = new Hono<{ Variables: Variables }>()
       });
     }
   )
-  .get("/conversations", auth, async (c) => {
-    const authUser = c.get("user");
-    const params = getPaginationParams(c);
-    const { data: conversations, meta } = await chatService.getConversations(
-      authUser.user_id,
-      params
-    );
+  .get(
+    "/conversations",
+    auth,
+    validateRequest("query", listConversationsQuerySchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const q = c.req.valid("query");
+      const params = {
+        offset: q.offset,
+        limit: q.limit,
+        search: q.search ?? q.q,
+        orderBy: q.orderBy,
+        orderDirection: q.orderDirection,
+      };
+      const { data: conversations, meta } =
+        await chatService.getConversations(authUser.user_id, params);
 
-    return sendSuccess(c, conversations, "Conversations fetched successfully", 200, meta);
-  })
+      return sendSuccess(
+        c,
+        conversations,
+        "Conversations fetched successfully",
+        200,
+        meta
+      );
+    }
+  )
   .get(
     "/conversations/:id",
     auth,

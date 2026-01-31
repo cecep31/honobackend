@@ -11,7 +11,11 @@ import type { Variables } from "../../../types/context";
 import { sendSuccess } from "../../../utils/response";
 import { Errors } from "../../../utils/error";
 import {
+  activityLogsQuerySchema,
+  activityLogsRecentQuerySchema,
   emailSchema,
+  failedLoginsQuerySchema,
+  githubCallbackQuerySchema,
   loginSchema,
   registerSchema,
   updatePasswordSchema,
@@ -33,12 +37,12 @@ authController.get("/oauth/github", async (c) => {
   return c.redirect(authUrl.toString());
 });
 
-authController.get("/oauth/github/callback", async (c) => {
-  const code = c.req.query("code");
-  if (!code) {
-    throw Errors.InvalidInput("code", "code not found");
-  }
-  const token = await authService.getGithubToken(code);
+authController.get(
+  "/oauth/github/callback",
+  validateRequest("query", githubCallbackQuerySchema),
+  async (c) => {
+    const { code } = c.req.valid("query");
+    const token = await authService.getGithubToken(code);
 
   try {
     // Get user data from GitHub API
@@ -109,7 +113,8 @@ authController.get("/oauth/github/callback", async (c) => {
 
     throw Errors.Unauthorized();
   }
-});
+  }
+);
 
 //login
 authController.post(
@@ -301,63 +306,77 @@ authController.post(
 const activityService = new AuthActivityService();
 
 // Get current user's activity logs
-authController.get("/activity-logs", auth, async (c) => {
-  const user = c.get("user");
-  const limit = parseInt(c.req.query("limit") || "50");
-  const offset = parseInt(c.req.query("offset") || "0");
-  const activityType = c.req.query("activity_type");
-  const status = c.req.query("status");
+authController.get(
+  "/activity-logs",
+  auth,
+  validateRequest("query", activityLogsQuerySchema),
+  async (c) => {
+    const user = c.get("user");
+    const { limit, offset, activity_type, status } = c.req.valid("query");
 
-  const logs = await activityService.getActivityLogs({
-    userId: user.user_id,
-    activityType: activityType as any,
-    status: status as any,
-    limit,
-    offset,
-  });
+    const logs = await activityService.getActivityLogs({
+      userId: user.user_id,
+      activityType: activity_type,
+      status: status ?? undefined,
+      limit,
+      offset,
+    });
 
-  const total = await activityService.getActivityLogsCount({
-    userId: user.user_id,
-    activityType: activityType as any,
-    status: status as any,
-  });
+    const total = await activityService.getActivityLogsCount({
+      userId: user.user_id,
+      activityType: activity_type,
+      status: status ?? undefined,
+    });
 
-  return sendSuccess(
-    c,
-    {
-      logs,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + logs.length < total,
+    return sendSuccess(
+      c,
+      {
+        logs,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + logs.length < total,
+        },
       },
-    },
-    "Activity logs retrieved successfully",
-  );
-});
+      "Activity logs retrieved successfully",
+    );
+  }
+);
 
 // Get recent activity for current user
-authController.get("/activity-logs/recent", auth, async (c) => {
-  const user = c.get("user");
-  const limit = parseInt(c.req.query("limit") || "10");
+authController.get(
+  "/activity-logs/recent",
+  auth,
+  validateRequest("query", activityLogsRecentQuerySchema),
+  async (c) => {
+    const user = c.get("user");
+    const { limit } = c.req.valid("query");
 
-  const logs = await activityService.getUserRecentActivity(user.user_id, limit);
+    const logs = await activityService.getUserRecentActivity(user.user_id, limit);
 
-  return sendSuccess(c, logs, "Recent activity retrieved successfully");
-});
+    return sendSuccess(c, logs, "Recent activity retrieved successfully");
+  }
+);
 
 // Get failed login attempts for current user
-authController.get("/activity-logs/failed-logins", auth, async (c) => {
-  const user = c.get("user");
-  const since = c.req.query("since");
-  const sinceDate = since ? new Date(since) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+authController.get(
+  "/activity-logs/failed-logins",
+  auth,
+  validateRequest("query", failedLoginsQuerySchema),
+  async (c) => {
+    const user = c.get("user");
+    const { since } = c.req.valid("query");
 
-  const logs = await activityService.getFailedLoginAttempts(user.user_id, sinceDate);
+    const logs = await activityService.getFailedLoginAttempts(
+      user.user_id,
+      since
+    );
 
-  return sendSuccess(
-    c,
-    { logs, count: logs.length },
-    "Failed login attempts retrieved successfully",
-  );
-});
+    return sendSuccess(
+      c,
+      { logs, count: logs.length },
+      "Failed login attempts retrieved successfully",
+    );
+  }
+);

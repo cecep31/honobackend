@@ -4,11 +4,12 @@ import { auth } from "../../../middlewares/auth";
 import { superAdminMiddleware } from "../../../middlewares/superAdmin";
 import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
-import { getPaginationParams } from "../../../utils/paginate";
 import { sendSuccess } from "../../../utils/response";
 import { Errors } from "../../../utils/error";
 import {
   createUserSchema,
+  listUsersQuerySchema,
+  meQuerySchema,
   updateUserSchema,
   userIdSchema,
   updateProfileSchema,
@@ -20,26 +21,44 @@ export const userController = new Hono<{ Variables: Variables }>()
   /**
    * GET /users - Get all users (admin only)
    */
-  .get("/", auth, superAdminMiddleware, async (c) => {
-    const params = getPaginationParams(c);
-    const { data, meta } = await userService.getUsers(params);
-    return sendSuccess(c, data, "Users fetched successfully", 200, meta);
-  })
+  .get(
+    "/",
+    auth,
+    superAdminMiddleware,
+    validateRequest("query", listUsersQuerySchema),
+    async (c) => {
+      const q = c.req.valid("query");
+      const params = {
+        offset: q.offset,
+        limit: q.limit,
+        search: q.search ?? q.q,
+        orderBy: q.orderBy,
+        orderDirection: q.orderDirection,
+      };
+      const { data, meta } = await userService.getUsers(params);
+      return sendSuccess(c, data, "Users fetched successfully", 200, meta);
+    }
+  )
 
   /**
    * GET /users/me - Get current authenticated user's profile
    */
-  .get("/me", auth, async (c) => {
-    const authUser = c.get("user");
-    const profile = Boolean(c.req.query("profile"));
-    const user = await userService.getUserMe(authUser.user_id, profile);
-    
-    if (!user) {
-      throw Errors.NotFound("User");
+  .get(
+    "/me",
+    auth,
+    validateRequest("query", meQuerySchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { profile } = c.req.valid("query");
+      const user = await userService.getUserMe(authUser.user_id, profile);
+
+      if (!user) {
+        throw Errors.NotFound("User");
+      }
+
+      return sendSuccess(c, user, "User profile fetched successfully");
     }
-    
-    return sendSuccess(c, user, "User profile fetched successfully");
-  })
+  )
 
   /**
    * PATCH /users/me/profile - Update current authenticated user's profile
@@ -205,9 +224,17 @@ export const userController = new Hono<{ Variables: Variables }>()
     "/:id/followers",
     auth,
     validateRequest("param", userIdSchema),
+    validateRequest("query", listUsersQuerySchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      const params = getPaginationParams(c);
+      const q = c.req.valid("query");
+      const params = {
+        offset: q.offset,
+        limit: q.limit,
+        search: q.search ?? q.q,
+        orderBy: q.orderBy,
+        orderDirection: q.orderDirection,
+      };
       const { data, meta } = await userService.getFollowers(id, params);
       return sendSuccess(c, data, "Followers fetched successfully", 200, meta);
     }
@@ -220,9 +247,17 @@ export const userController = new Hono<{ Variables: Variables }>()
     "/:id/following",
     auth,
     validateRequest("param", userIdSchema),
+    validateRequest("query", listUsersQuerySchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      const params = getPaginationParams(c);
+      const q = c.req.valid("query");
+      const params = {
+        offset: q.offset,
+        limit: q.limit,
+        search: q.search ?? q.q,
+        orderBy: q.orderBy,
+        orderDirection: q.orderDirection,
+      };
       const { data, meta } = await userService.getFollowing(id, params);
       return sendSuccess(c, data, "Following fetched successfully", 200, meta);
     }

@@ -26,16 +26,22 @@ commentController.post(
 );
 
 // Get comments for a specific post
-commentController.get("/post/:post_id", async (c) => {
-  const { post_id } = c.req.param();
-  const query = c.req.query();
-  const validated = getCommentsQuerySchema.parse(query);
-  const page = parseInt(validated.page);
-  const limit = parseInt(validated.limit);
-  
-  const result = await commentService.getCommentsByPost(post_id, page, limit);
-  return sendSuccess(c, result.data, "Comments fetched successfully", 200, result.meta);
-});
+commentController.get(
+  "/post/:post_id",
+  validateRequest("query", getCommentsQuerySchema),
+  async (c) => {
+    const { post_id } = c.req.param();
+    const { page, limit } = c.req.valid("query");
+    const result = await commentService.getCommentsByPost(post_id, page, limit);
+    return sendSuccess(
+      c,
+      result.data,
+      "Comments fetched successfully",
+      200,
+      result.meta
+    );
+  }
+);
 
 // Get replies for a specific comment
 commentController.get("/:comment_id/replies", async (c) => {
@@ -74,13 +80,23 @@ commentController.delete("/:comment_id", auth, async (c) => {
 });
 
 // Get comments by user
-commentController.get("/user/:user_id", async (c) => {
-  const { user_id } = c.req.param();
-  const query = c.req.query();
-  const validated = getCommentsQuerySchema.parse(query);
-  const page = parseInt(validated.page);
-  const limit = parseInt(validated.limit);
-  
-  const result = await commentService.getCommentsByUser(user_id, page, limit);
-  return sendSuccess(c, result.data, "User comments fetched successfully", 200, result.meta);
-});
+commentController.get(
+  "/user/:user_id",
+  validateRequest("query", getCommentsQuerySchema),
+  async (c) => {
+    const { user_id } = c.req.param();
+    const { page, limit } = c.req.valid("query");
+    const result = await commentService.getCommentsByUser(
+      user_id,
+      page,
+      limit
+    );
+    return sendSuccess(
+      c,
+      result.data,
+      "User comments fetched successfully",
+      200,
+      result.meta
+    );
+  }
+);

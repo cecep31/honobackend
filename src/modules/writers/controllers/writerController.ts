@@ -1,8 +1,10 @@
 import { Hono } from "hono";
 import { writerService, postService } from "../../../services/index";
+import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
 import { sendSuccess } from "../../../utils/response";
 import { Errors } from "../../../utils/error";
+import { writerPostsQuerySchema } from "../validation";
 
 export const writerController = new Hono<{ Variables: Variables }>()
   .get("/:username", async (c) => {
@@ -13,8 +15,17 @@ export const writerController = new Hono<{ Variables: Variables }>()
     }
     return sendSuccess(c, user, "Writer profile fetched successfully");
   })
-  .get("/:username/posts", async (c) => {
-    const username = c.req.param("username");
-    const { data, meta } = await postService.getPostsByUsername(username);
-    return sendSuccess(c, data, "Writer posts fetched successfully", 200, meta);
-  });
+  .get(
+    "/:username/posts",
+    validateRequest("query", writerPostsQuerySchema),
+    async (c) => {
+      const username = c.req.param("username");
+      const { limit, offset } = c.req.valid("query");
+      const { data, meta } = await postService.getPostsByUsername(
+        username,
+        limit,
+        offset
+      );
+      return sendSuccess(c, data, "Writer posts fetched successfully", 200, meta);
+    }
+  );

@@ -1,15 +1,3 @@
-import type { Context } from "hono";
-import type { GetPaginationParams } from "../types/paginate";
-
-export const getPaginationParams = (c: Context): GetPaginationParams => {
-  const offset = Number(c.req.query("offset")) || 0;
-  const limit = Number(c.req.query("limit")) || 10;
-  const search = c.req.query("search") || c.req.query("q") || undefined;
-  const orderBy = c.req.query("orderBy") || undefined;
-  const orderDirection = c.req.query("orderDirection") === 'asc' ? 'asc' : 'desc';
-  return { offset, limit, search, orderBy, orderDirection };
-};
-
 export const getPaginationMetadata = (
   total: number,
   offset: number,

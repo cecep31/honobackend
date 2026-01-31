@@ -3,26 +3,39 @@ import { postService } from "../../../services/index";
 import { auth } from "../../../middlewares/auth";
 import type { jwtPayload } from "../../../types/auth";
 import { superAdminMiddleware } from "../../../middlewares/superAdmin";
-import { getPaginationParams } from "../../../utils/paginate";
 import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
 import { sendSuccess } from "../../../utils/response";
 import { Errors } from "../../../utils/error";
 import { getS3Helper } from "../../../utils/s3";
 import {
+  chartLimitQuerySchema,
   createPostSchema,
+  listPostsQuerySchema,
   postByUsernameSlugSchema,
   postIdSchema,
+  postsOverTimeQuerySchema,
   updatePostSchema,
 } from "../validation";
 
 export const postController = new Hono<{ Variables: Variables }>();
 
-postController.get("/", async (c) => {
-  const params = getPaginationParams(c);
-  const { data, meta } = await postService.getPosts(params);
-  return sendSuccess(c, data, "Posts fetched successfully", 200, meta);
-});
+postController.get(
+  "/",
+  validateRequest("query", listPostsQuerySchema),
+  async (c) => {
+    const q = c.req.valid("query");
+    const params = {
+      offset: q.offset,
+      limit: q.limit,
+      search: q.search ?? q.q,
+      orderBy: q.orderBy,
+      orderDirection: q.orderDirection,
+    };
+    const { data, meta } = await postService.getPosts(params);
+    return sendSuccess(c, data, "Posts fetched successfully", 200, meta);
+  }
+);
 
 postController.get("/random", async (c) => {
   const posts = await postService.getPostsRandom();
@@ -34,34 +47,60 @@ postController.get("/trending", async (c) => {
   return sendSuccess(c, posts, "Trending posts fetched successfully");
 });
 
-postController.get("/me", auth, async (c) => {
-  const params = getPaginationParams(c);
-  const auth = c.get("user");
-  const { data, meta } = await postService.getPostsByUser(auth.user_id, params);
-  return sendSuccess(c, data, "My posts fetched successfully", 200, meta);
-});
+postController.get(
+  "/me",
+  auth,
+  validateRequest("query", listPostsQuerySchema),
+  async (c) => {
+    const q = c.req.valid("query");
+    const params = {
+      offset: q.offset,
+      limit: q.limit,
+      search: q.search ?? q.q,
+      orderBy: q.orderBy,
+      orderDirection: q.orderDirection,
+    };
+    const authUser = c.get("user");
+    const { data, meta } = await postService.getPostsByUser(
+      authUser.user_id,
+      params
+    );
+    return sendSuccess(c, data, "My posts fetched successfully", 200, meta);
+  }
+);
 
 postController.get("/tag/:tag", async (c) => {
   const posts = await postService.getPostsByTag(c.req.param("tag"));
   return sendSuccess(c, posts, "Posts by tag fetched successfully");
 });
 
-postController.get("/author/:username", async (c) => {
-  const username = c.req.param("username");
-  const params = getPaginationParams(c);
-  const { data, meta } = await postService.getPostsByUsername(
-    username,
-    params.limit,
-    params.offset
-  );
-  return sendSuccess(
-    c,
-    data,
-    `Posts by ${username} fetched successfully`,
-    200,
-    meta
-  );
-});
+postController.get(
+  "/author/:username",
+  validateRequest("query", listPostsQuerySchema),
+  async (c) => {
+    const username = c.req.param("username");
+    const q = c.req.valid("query");
+    const params = {
+      offset: q.offset,
+      limit: q.limit,
+      search: q.search ?? q.q,
+      orderBy: q.orderBy,
+      orderDirection: q.orderDirection,
+    };
+    const { data, meta } = await postService.getPostsByUsername(
+      username,
+      params.limit,
+      params.offset
+    );
+    return sendSuccess(
+      c,
+      data,
+      `Posts by ${username} fetched successfully`,
+      200,
+      meta
+    );
+  }
+);
 
 postController.get("/slug/:slug", async (c) => {
   const post = await postService.getPostBySlug(c.req.param("slug"));
@@ -189,50 +228,67 @@ postController.post("/upload/image", auth, async (c) => {
 });
 
 // Chart endpoints
-postController.get("/charts/posts-over-time", async (c) => {
-  const days = parseInt(c.req.query("days") || "30");
-  const groupBy = (c.req.query("groupBy") || "day") as 'day' | 'week' | 'month';
-  
-  const data = await postService.getPostsOverTime(days, groupBy);
-  return sendSuccess(c, data, "Posts over time data fetched successfully");
-});
+postController.get(
+  "/charts/posts-over-time",
+  validateRequest("query", postsOverTimeQuerySchema),
+  async (c) => {
+    const { days, groupBy } = c.req.valid("query");
+    const data = await postService.getPostsOverTime(days, groupBy);
+    return sendSuccess(c, data, "Posts over time data fetched successfully");
+  }
+);
 
-postController.get("/charts/posts-by-tag", async (c) => {
-  const limit = parseInt(c.req.query("limit") || "10");
-  
-  const data = await postService.getPostsByTagDistribution(limit);
-  return sendSuccess(c, data, "Posts by tag distribution fetched successfully");
-});
+postController.get(
+  "/charts/posts-by-tag",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getPostsByTagDistribution(limit);
+    return sendSuccess(c, data, "Posts by tag distribution fetched successfully");
+  }
+);
 
-postController.get("/charts/top-by-views", async (c) => {
-  const limit = parseInt(c.req.query("limit") || "10");
-  
-  const data = await postService.getTopPostsByViews(limit);
-  return sendSuccess(c, data, "Top posts by views fetched successfully");
-});
+postController.get(
+  "/charts/top-by-views",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getTopPostsByViews(limit);
+    return sendSuccess(c, data, "Top posts by views fetched successfully");
+  }
+);
 
-postController.get("/charts/top-by-likes", async (c) => {
-  const limit = parseInt(c.req.query("limit") || "10");
-  
-  const data = await postService.getTopPostsByLikes(limit);
-  return sendSuccess(c, data, "Top posts by likes fetched successfully");
-});
+postController.get(
+  "/charts/top-by-likes",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getTopPostsByLikes(limit);
+    return sendSuccess(c, data, "Top posts by likes fetched successfully");
+  }
+);
 
-postController.get("/charts/user-activity", async (c) => {
-  const limit = parseInt(c.req.query("limit") || "10");
-  
-  const data = await postService.getUserActivity(limit);
-  return sendSuccess(c, data, "User activity data fetched successfully");
-});
+postController.get(
+  "/charts/user-activity",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getUserActivity(limit);
+    return sendSuccess(c, data, "User activity data fetched successfully");
+  }
+);
 
 postController.get("/charts/engagement-metrics", async (c) => {
   const data = await postService.getEngagementMetrics();
   return sendSuccess(c, data, "Engagement metrics fetched successfully");
 });
 
-postController.get("/charts/engagement-comparison", async (c) => {
-  const limit = parseInt(c.req.query("limit") || "20");
-  
-  const data = await postService.getEngagementComparison(limit);
-  return sendSuccess(c, data, "Engagement comparison data fetched successfully");
-});
+postController.get(
+  "/charts/engagement-comparison",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getEngagementComparison(limit);
+    return sendSuccess(c, data, "Engagement comparison data fetched successfully");
+  }
+);
