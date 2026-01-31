@@ -8,7 +8,7 @@ import {
 } from "../../../database/schemas/postgre/schema";
 import { PostQueryHelpers } from "./postQueryHelpers";
 import { PostTagManager } from "./postTagManager";
-import type { PostCreateBody } from "../validation/post";
+import type { PostCreateBody } from "../validation";
 import type { GetPaginationParams } from "../../../types/paginate";
 import { getPaginationMetadata } from "../../../utils/paginate";
 import { Errors } from "../../../utils/error";

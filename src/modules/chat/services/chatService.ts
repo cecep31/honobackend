@@ -1,6 +1,9 @@
 import { db } from "../../../database/drizzle";
 import { chat_conversations, chat_messages } from "../../../database/schemas/postgre/schema";
-import type { CreateConversationBody, CreateMessageBody } from "../validation/chat";
+import type {
+  CreateConversationBody,
+  CreateMessageBody,
+} from "../validation";
 import { Errors } from "../../../utils/error";
 import type { GetPaginationParams } from "../../../types/paginate";
 import { getPaginationMetadata } from "../../../utils/paginate";

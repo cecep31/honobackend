@@ -2,7 +2,7 @@ import { sign } from "hono/jwt";
 import { and, eq, lt, isNull } from "drizzle-orm";
 import { users } from "../../../database/schemas/postgre/schema";
 import type { UserService } from "../../users/services/userService";
-import type { UserSignup } from "../validation/auth";
+import type { UserSignup } from "../validation";
 import type { GithubUser } from "../../../types/auth";
 import config from "../../../config";
 import axios from "axios";

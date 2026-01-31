@@ -19,7 +19,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   checkUsernameSchema,
-} from "../validation/auth";
+} from "../validation";
 import { AuthActivityService } from "../services/authActivityService";
 
 export const authController = new Hono<{ Variables: Variables }>();

@@ -13,7 +13,7 @@ import {
   getTrendsQuerySchema,
   holdingIdSchema,
   updateHoldingSchema,
-} from "../validation/holding";
+} from "../validation";
 
 export const holdingController = new Hono<{ Variables: Variables }>()
   .get(

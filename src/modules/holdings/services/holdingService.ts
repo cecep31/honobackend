@@ -5,7 +5,7 @@ import type {
   DuplicateHoldingPayload,
   HoldingCreate,
   HoldingUpdate,
-} from "../validation/holding";
+} from "../validation";
 import { Errors } from "../../../utils/error";
 
 export class HoldingService {

@@ -11,8 +11,8 @@ import type {
   UserCreateBody,
   UserUpdateBody,
   UpdateProfileBody,
-} from "../validation/user";
-import type { UserSignup } from "../../auth/validation/auth";
+} from "../validation";
+import type { UserSignup } from "../../auth/validation";
 import type { GetPaginationParams } from "../../../types/paginate";
 import { getPaginationMetadata } from "../../../utils/paginate";
 import { Errors } from "../../../utils/error";

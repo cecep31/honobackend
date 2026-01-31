@@ -4,14 +4,6 @@ export const createConversationSchema = z.object({
   title: z.string().min(1).max(255),
 });
 
-export const conversationIdSchema = z.object({
-  id: z.string().uuid(),
-});
-
-export const conversationParamSchema = z.object({
-  conversationId: z.string().uuid(),
-});
-
 export const createMessageSchema = z.object({
   content: z.string().min(1),
   role: z.string().optional().default("user"),
@@ -27,5 +19,9 @@ export const createConversationStreamSchema = z.object({
 });
 
 export type CreateConversationBody = z.infer<typeof createConversationSchema>;
-export type CreateMessageBody = z.infer<typeof createMessageSchema> & { conversation_id: string };
-export type CreateConversationStreamBody = z.infer<typeof createConversationStreamSchema>;
+export type CreateMessageBody = z.infer<typeof createMessageSchema> & {
+  conversation_id: string;
+};
+export type CreateConversationStreamBody = z.infer<
+  typeof createConversationStreamSchema
+>;

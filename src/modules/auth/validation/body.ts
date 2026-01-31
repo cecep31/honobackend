@@ -35,10 +35,6 @@ export const checkUsernameSchema = z.object({
     ),
 });
 
-export const emailSchema = z.object({
-  email: z.string().email(),
-});
-
 export const updatePasswordSchema = z
   .object({
     old_password: z.string(),

@@ -12,7 +12,7 @@ import {
   createConversationSchema,
   createConversationStreamSchema,
   createMessageSchema,
-} from "../validation/chat";
+} from "../validation";
 
 export const chatController = new Hono<{ Variables: Variables }>()
   // Conversation endpoints

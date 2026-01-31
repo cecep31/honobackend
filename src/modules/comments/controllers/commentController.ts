@@ -8,7 +8,7 @@ import {
   createCommentSchema,
   updateCommentSchema,
   getCommentsQuerySchema,
-} from "../validation/comment";
+} from "../validation";
 
 export const commentController = new Hono<{ Variables: Variables }>();
 

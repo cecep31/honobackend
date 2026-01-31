@@ -3,7 +3,10 @@ import { db } from "../../../database/drizzle";
 import { and, eq, isNull, desc, sql } from "drizzle-orm";
 import { Errors } from "../../../utils/error";
 import { randomUUIDv7 } from "bun";
-import type { CreateCommentInput, UpdateCommentInput } from "../validation/comment";
+import type {
+  CreateCommentInput,
+  UpdateCommentInput,
+} from "../validation";
 
 export class CommentService {
   async createComment(data: CreateCommentInput, user_id: string) {

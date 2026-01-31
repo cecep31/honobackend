@@ -13,8 +13,8 @@ import {
   userIdSchema,
   updateProfileSchema,
   updateUserImageSchema,
-  usernameParamSchema
-} from "../validation/user";
+  usernameParamSchema,
+} from "../validation";
 
 export const userController = new Hono<{ Variables: Variables }>()
   /**
