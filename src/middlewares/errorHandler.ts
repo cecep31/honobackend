@@ -10,13 +10,12 @@ import { getLogger } from "./logger";
 export const errorHandler = () => {
   return async (err: unknown, c: Context) => {
     const requestId = c.get("requestId") || "unknown";
-    const isDevelopment = process.env.NODE_ENV === "development";
 
     // Log the error with context
     logError(err, c, requestId, getLogger());
 
     // Create standardized error response
-    const errorResponse = createErrorResponse(err, requestId, isDevelopment);
+    const errorResponse = createErrorResponse(err, requestId);
 
     // Determine status code
     let statusCode = 500;

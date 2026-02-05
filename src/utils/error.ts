@@ -48,7 +48,6 @@ export interface ApiErrorResponse {
   error?: {
     code?: ErrorCode;
     details?: string;
-    stack?: string;
   };
   request_id: string;
   timestamp: string;
@@ -75,11 +74,11 @@ export function errorHttp(
  */
 export function createErrorResponse(
   error: unknown,
-  requestId: string,
-  isDevelopment = false
+  requestId: string
 ): ApiErrorResponse {
   const timestamp = new Date().toISOString();
-  
+  // Never send stack traces to clients (security); stack is logged server-side only.
+
   if (error instanceof ApiError) {
     return {
       success: false,
@@ -87,7 +86,6 @@ export function createErrorResponse(
       error: {
         code: error.errorCode,
         details: error.details,
-        ...(isDevelopment && { stack: error.stack })
       },
       request_id: requestId,
       timestamp
@@ -98,7 +96,7 @@ export function createErrorResponse(
     return {
       success: false,
       message: error.message,
-      error: isDevelopment ? { details: error.message } : undefined,
+      error: undefined,
       request_id: requestId,
       timestamp
     };
@@ -112,7 +110,7 @@ export function createErrorResponse(
   return {
     success: false,
     message: errorMessage,
-    error: isDevelopment ? { details: errorMessage } : undefined,
+    error: undefined,
     request_id: requestId,
     timestamp
   };
