@@ -18,7 +18,7 @@ export const githubCallbackQuerySchema = z.object({
 
 /** Query for GET /activity-logs */
 export const activityLogsQuerySchema = z.object({
-  limit: z.string().optional().transform((v) => safeLimit(v, 50)),
+  limit: z.string().optional().transform((v) => safeLimit(v, 20)),
   offset: z.string().optional().transform((v) => safeNonNegativeInt(v, 0)),
   activity_type: z
     .enum([
