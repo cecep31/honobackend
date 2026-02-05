@@ -39,15 +39,24 @@ export class ApiError extends Error {
   }
 }
 
+/** Single validation issue (e.g. from Zod) */
+export interface ValidationIssue {
+  field?: string;
+  message: string;
+}
+
 /**
- * Standard error response format
+ * Standard error response format.
+ * - success, message: always present for clients
+ * - error: always present; code for machine handling, details for validation/extra context
+ * - request_id, timestamp: for support and client logging
  */
 export interface ApiErrorResponse {
   success: false;
   message: string;
-  error?: {
+  error: {
     code?: ErrorCode;
-    details?: string;
+    details?: ValidationIssue[] | Record<string, unknown>;
   };
   request_id: string;
   timestamp: string;
@@ -96,7 +105,7 @@ export function createErrorResponse(
     return {
       success: false,
       message: error.message,
-      error: undefined,
+      error: {},
       request_id: requestId,
       timestamp
     };
@@ -110,7 +119,7 @@ export function createErrorResponse(
   return {
     success: false,
     message: errorMessage,
-    error: undefined,
+    error: {},
     request_id: requestId,
     timestamp
   };
