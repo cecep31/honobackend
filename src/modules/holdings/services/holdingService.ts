@@ -289,7 +289,7 @@ export class HoldingService {
     endYear?: number
   ) {
     const now = new Date();
-    // Default: start = current month/year, end ≈ 12 months before start (last 12 months window)
+    // Default: start = current month/year, end = 11 months before start (12-month window)
     let sMonth = startMonth ?? now.getMonth() + 1;
     let sYear = startYear ?? now.getFullYear();
 
@@ -297,8 +297,9 @@ export class HoldingService {
     let eYear = endYear;
 
     if (eMonth === undefined || eYear === undefined) {
+      // Calculate 11 months before start to get exactly 12 months of data
       const startYmBase = sYear * 12 + sMonth;
-      const endYmBase = startYmBase - 11; // 11 months before start → 12-month window
+      const endYmBase = startYmBase - 11;
       eMonth = ((endYmBase - 1) % 12) + 1;
       eYear = Math.floor((endYmBase - 1) / 12);
     }
