@@ -289,23 +289,29 @@ export class HoldingService {
     endYear?: number
   ) {
     const now = new Date();
-    const eMonth = endMonth ?? now.getMonth() + 1;
-    const eYear = endYear ?? now.getFullYear();
-    let sMonth = startMonth;
-    let sYear = startYear;
-    if (sMonth === undefined || sYear === undefined) {
-      const endYm = eYear * 12 + eMonth;
-      const startYm = endYm - 11;
-      sMonth = ((startYm - 1) % 12) + 1;
-      sYear = Math.floor((startYm - 1) / 12);
+    // Default: start = current month/year, end ≈ 12 months before start (last 12 months window)
+    let sMonth = startMonth ?? now.getMonth() + 1;
+    let sYear = startYear ?? now.getFullYear();
+
+    let eMonth = endMonth;
+    let eYear = endYear;
+
+    if (eMonth === undefined || eYear === undefined) {
+      const startYmBase = sYear * 12 + sMonth;
+      const endYmBase = startYmBase - 11; // 11 months before start → 12-month window
+      eMonth = ((endYmBase - 1) % 12) + 1;
+      eYear = Math.floor((endYmBase - 1) / 12);
     }
-    const startYm = sYear * 12 + sMonth;
-    const endYm = eYear * 12 + eMonth;
+
+    const startYmRaw = sYear * 12 + sMonth;
+    const endYmRaw = eYear * 12 + eMonth;
+    const rangeStartYm = Math.min(startYmRaw, endYmRaw);
+    const rangeEndYm = Math.max(startYmRaw, endYmRaw);
 
     const where = [
       eq(holdings.user_id, userId),
-      sql`(${holdings.year} * 12 + ${holdings.month}) >= ${startYm}`,
-      sql`(${holdings.year} * 12 + ${holdings.month}) <= ${endYm}`,
+      sql`(${holdings.year} * 12 + ${holdings.month}) >= ${rangeStartYm}`,
+      sql`(${holdings.year} * 12 + ${holdings.month}) <= ${rangeEndYm}`,
     ];
 
     const results = await db
