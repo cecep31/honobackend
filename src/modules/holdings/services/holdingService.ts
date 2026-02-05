@@ -332,14 +332,41 @@ export class HoldingService {
       .groupBy(holdings.year, holdings.month)
       .orderBy(asc(holdings.year), asc(holdings.month));
 
-    return results.map((r) => ({
-      month: r.month,
-      year: r.year,
-      date: `${r.year}-${String(r.month).padStart(2, "0")}`,
-      totalCurrentValue: r.totalCurrentValue || 0,
-      totalInvested: r.totalInvested || 0,
-      holdingsCount: Number(r.holdingsCount),
-    }));
+    // Create a map of existing data for quick lookup
+    const dataMap = new Map(
+      results.map((r) => [
+        `${r.year}-${String(r.month).padStart(2, "0")}`,
+        {
+          month: r.month,
+          year: r.year,
+          date: `${r.year}-${String(r.month).padStart(2, "0")}`,
+          totalCurrentValue: r.totalCurrentValue || 0,
+          totalInvested: r.totalInvested || 0,
+          holdingsCount: Number(r.holdingsCount),
+        },
+      ])
+    );
+
+    // Generate all months in the range and fill with zeros if no data
+    const allMonths = [];
+    for (let ym = rangeStartYm; ym <= rangeEndYm; ym++) {
+      const year = Math.floor((ym - 1) / 12);
+      const month = ((ym - 1) % 12) + 1;
+      const dateKey = `${year}-${String(month).padStart(2, "0")}`;
+
+      allMonths.push(
+        dataMap.get(dateKey) || {
+          month,
+          year,
+          date: dateKey,
+          totalCurrentValue: 0,
+          totalInvested: 0,
+          holdingsCount: 0,
+        }
+      );
+    }
+
+    return allMonths;
   }
 
   async duplicateHoldingsByMonth(
