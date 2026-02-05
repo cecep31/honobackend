@@ -9,6 +9,7 @@ import {
   duplicateHoldingSchema,
   getCompareMonthsSchema,
   getHoldingsQuerySchema,
+  getMonthlyQuerySchema,
   getSummaryQuerySchema,
   getTrendsQuerySchema,
   holdingIdSchema,
@@ -74,6 +75,23 @@ export const holdingController = new Hono<{ Variables: Variables }>()
         toYear
       );
       return sendSuccess(c, comparison, "Month comparison fetched successfully");
+    }
+  )
+  .get(
+    "/monthly",
+    auth,
+    validateRequest("query", getMonthlyQuerySchema),
+    async (c) => {
+      const authUser = c.get("user");
+      const { startMonth, startYear, endMonth, endYear } = c.req.valid("query");
+      const data = await holdingService.getMonthly(
+        authUser.user_id,
+        startMonth,
+        startYear,
+        endMonth,
+        endYear
+      );
+      return sendSuccess(c, data, "Holdings monthly data fetched successfully");
     }
   )
   .get("/types", auth, async (c) => {

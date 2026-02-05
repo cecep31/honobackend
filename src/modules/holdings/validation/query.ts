@@ -36,3 +36,10 @@ export const getCompareMonthsSchema = z.object({
   toMonth: z.string().regex(/^\d+$/).transform(Number).optional(),
   toYear: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
+
+export const getMonthlyQuerySchema = z.object({
+  startMonth: z.string().regex(/^\d+$/).transform(Number).optional(),
+  startYear: z.string().regex(/^\d+$/).transform(Number).optional(),
+  endMonth: z.string().regex(/^\d+$/).transform(Number).optional(),
+  endYear: z.string().regex(/^\d+$/).transform(Number).optional(),
+});

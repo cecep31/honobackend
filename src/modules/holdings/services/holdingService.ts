@@ -281,6 +281,60 @@ export class HoldingService {
     });
   }
 
+  async getMonthly(
+    userId: string,
+    startMonth?: number,
+    startYear?: number,
+    endMonth?: number,
+    endYear?: number
+  ) {
+    const now = new Date();
+    const eMonth = endMonth ?? now.getMonth() + 1;
+    const eYear = endYear ?? now.getFullYear();
+    let sMonth = startMonth;
+    let sYear = startYear;
+    if (sMonth === undefined || sYear === undefined) {
+      const endYm = eYear * 12 + eMonth;
+      const startYm = endYm - 11;
+      sMonth = ((startYm - 1) % 12) + 1;
+      sYear = Math.floor((startYm - 1) / 12);
+    }
+    const startYm = sYear * 12 + sMonth;
+    const endYm = eYear * 12 + eMonth;
+
+    const where = [
+      eq(holdings.user_id, userId),
+      sql`(${holdings.year} * 12 + ${holdings.month}) >= ${startYm}`,
+      sql`(${holdings.year} * 12 + ${holdings.month}) <= ${endYm}`,
+    ];
+
+    const results = await db
+      .select({
+        month: holdings.month,
+        year: holdings.year,
+        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(
+          Number
+        ),
+        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(
+          Number
+        ),
+        holdingsCount: count(holdings.id),
+      })
+      .from(holdings)
+      .where(and(...where))
+      .groupBy(holdings.year, holdings.month)
+      .orderBy(asc(holdings.year), asc(holdings.month));
+
+    return results.map((r) => ({
+      month: r.month,
+      year: r.year,
+      date: `${r.year}-${String(r.month).padStart(2, "0")}`,
+      totalCurrentValue: r.totalCurrentValue || 0,
+      totalInvested: r.totalInvested || 0,
+      holdingsCount: Number(r.holdingsCount),
+    }));
+  }
+
   async duplicateHoldingsByMonth(
     userId: string,
     data: DuplicateHoldingPayload
