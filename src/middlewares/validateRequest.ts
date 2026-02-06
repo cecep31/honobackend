@@ -4,7 +4,7 @@ import { Errors } from "../utils/error";
 
 export function validateRequest(
   typereq: "json" | "query" | "param" | "cookie" | "header" | "form",
-  schema: z.Schema<any>
+  schema: z.Schema<any>,
 ) {
   return validator(typereq, (value) => {
     const parsed = schema.safeParse(value);

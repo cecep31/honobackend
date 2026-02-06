@@ -44,76 +44,76 @@ authController.get(
     const { code } = c.req.valid("query");
     const token = await authService.getGithubToken(code);
 
-  try {
-    // Get user data from GitHub API
-    const userResponse = await axios.get<GithubUser>(
-      "https://api.github.com/user",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-
-    // If email is null, try to get it from the emails endpoint
-    let githubUserData = userResponse.data;
-    if (!githubUserData.email) {
-      try {
-        const emailsResponse = await axios.get<
-          Array<{ email: string; primary: boolean; verified: boolean }>
-        >("https://api.github.com/user/emails", {
+    try {
+      // Get user data from GitHub API
+      const userResponse = await axios.get<GithubUser>(
+        "https://api.github.com/user",
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        },
+      );
 
-        // Find primary email or first verified email
-        const primaryEmail = emailsResponse.data.find(
-          (e) => e.primary && e.verified,
-        );
-        const verifiedEmail = emailsResponse.data.find((e) => e.verified);
-        if (primaryEmail) {
-          githubUserData.email = primaryEmail.email;
-        } else if (verifiedEmail) {
-          githubUserData.email = verifiedEmail.email;
+      // If email is null, try to get it from the emails endpoint
+      let githubUserData = userResponse.data;
+      if (!githubUserData.email) {
+        try {
+          const emailsResponse = await axios.get<
+            Array<{ email: string; primary: boolean; verified: boolean }>
+          >("https://api.github.com/user/emails", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          // Find primary email or first verified email
+          const primaryEmail = emailsResponse.data.find(
+            (e) => e.primary && e.verified,
+          );
+          const verifiedEmail = emailsResponse.data.find((e) => e.verified);
+          if (primaryEmail) {
+            githubUserData.email = primaryEmail.email;
+          } else if (verifiedEmail) {
+            githubUserData.email = verifiedEmail.email;
+          }
+        } catch (emailError) {
+          // If we can't get email, continue with null email (will use fallback)
+          console.warn("Could not fetch GitHub email:", emailError);
         }
-      } catch (emailError) {
-        // If we can't get email, continue with null email (will use fallback)
-        console.warn("Could not fetch GitHub email:", emailError);
       }
+
+      // Sign in or create user with full GitHub user data
+      const ipAddress =
+        c.req.header("x-forwarded-for") ||
+        c.req.header("x-real-ip") ||
+        c.req.header("cf-connecting-ip");
+      const userAgent = c.req.header("User-Agent");
+      const jwtToken = await authService.signInWithGithub(
+        githubUserData,
+        ipAddress,
+        userAgent,
+      );
+      setCookie(c, "token", jwtToken.access_token, {
+        domain: "." + config.frontend.mainDomain,
+        maxAge: 60 * 60 * 5, // 5 hours
+        sameSite: "Strict",
+      });
+      return c.redirect(config.frontend.url);
+    } catch (error) {
+      console.error("Github OAuth error:", error);
+
+      // If it's a business rule violation (e.g., email already used), return clearer error
+      if (
+        error instanceof Error &&
+        error.message.includes("already registered")
+      ) {
+        throw Errors.BusinessRuleViolation(error.message);
+      }
+
+      throw Errors.Unauthorized();
     }
-
-    // Sign in or create user with full GitHub user data
-    const ipAddress =
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip");
-    const userAgent = c.req.header("User-Agent");
-    const jwtToken = await authService.signInWithGithub(
-      githubUserData,
-      ipAddress,
-      userAgent,
-    );
-    setCookie(c, "token", jwtToken.access_token, {
-      domain: "." + config.frontend.mainDomain,
-      maxAge: 60 * 60 * 5, // 5 hours
-      sameSite: "Strict",
-    });
-    return c.redirect(config.frontend.url);
-  } catch (error) {
-    console.error("Github OAuth error:", error);
-
-    // If it's a business rule violation (e.g., email already used), return clearer error
-    if (
-      error instanceof Error &&
-      error.message.includes("already registered")
-    ) {
-      throw Errors.BusinessRuleViolation(error.message);
-    }
-
-    throw Errors.Unauthorized();
-  }
-  }
+  },
 );
 
 //login
@@ -195,7 +195,11 @@ authController.post("/refresh-token", async (c) => {
     c.req.header("x-real-ip") ||
     c.req.header("cf-connecting-ip");
   const userAgent = c.req.header("User-Agent");
-  const result = await authService.refreshToken(refreshToken, ipAddress, userAgent);
+  const result = await authService.refreshToken(
+    refreshToken,
+    ipAddress,
+    userAgent,
+  );
   return sendSuccess(c, result, "Token refreshed successfully");
 });
 
@@ -341,7 +345,7 @@ authController.get(
       },
       "Activity logs retrieved successfully",
     );
-  }
+  },
 );
 
 // Get recent activity for current user
@@ -353,10 +357,13 @@ authController.get(
     const user = c.get("user");
     const { limit } = c.req.valid("query");
 
-    const logs = await activityService.getUserRecentActivity(user.user_id, limit);
+    const logs = await activityService.getUserRecentActivity(
+      user.user_id,
+      limit,
+    );
 
     return sendSuccess(c, logs, "Recent activity retrieved successfully");
-  }
+  },
 );
 
 // Get failed login attempts for current user
@@ -370,7 +377,7 @@ authController.get(
 
     const logs = await activityService.getFailedLoginAttempts(
       user.user_id,
-      since
+      since,
     );
 
     return sendSuccess(
@@ -378,5 +385,5 @@ authController.get(
       { logs, count: logs.length },
       "Failed login attempts retrieved successfully",
     );
-  }
+  },
 );
