@@ -15,7 +15,7 @@ bun run dev                # Dev server with hot reload
 bun run build              # Build to dist/
 bun run start:prod         # Start from dist/
 bun run db:generate        # Generate Drizzle migrations
-bun run db:migrate         # Run migrations
+bun run db:push            # Push schema to database
 bun run db:studio          # Open Drizzle Studio
 bun run clean              # Remove build artifacts
 ```
