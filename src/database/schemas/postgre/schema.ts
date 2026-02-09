@@ -616,23 +616,12 @@ export const post_bookmarks = pgTable(
     post_id: uuid("post_id").notNull(),
     user_id: uuid("user_id").notNull(),
     created_at: timestamp("created_at", {
-      precision: 6,
       withTimezone: true,
       mode: "string",
-    }).default(sql`CURRENT_TIMESTAMP`),
-    updated_at: timestamp("updated_at", {
-      precision: 6,
-      withTimezone: true,
-      mode: "string",
-    }).default(sql`CURRENT_TIMESTAMP`),
-    deleted_at: timestamp("deleted_at", {
-      precision: 6,
-      withTimezone: true,
-      mode: "string",
-    }),
+    }).defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_bookmark_post_id_user_id").using(
+    uniqueIndex("idx_post_bookmarks_unique_user_post").using(
       "btree",
       table.post_id.asc().nullsLast().op("uuid_ops"),
       table.user_id.asc().nullsLast().op("uuid_ops"),
@@ -640,10 +629,6 @@ export const post_bookmarks = pgTable(
     index("idx_post_bookmarks_created_at").using(
       "btree",
       table.created_at.asc().nullsLast().op("timestamptz_ops"),
-    ),
-    index("idx_post_bookmarks_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
     ),
     index("idx_post_bookmarks_post_id").using(
       "btree",
