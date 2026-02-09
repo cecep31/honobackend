@@ -420,7 +420,10 @@ export const users = pgTable(
     github_id: bigint("github_id", { mode: "number" }),
     followers_count: bigint("followers_count", { mode: "number" }).default(0),
     following_count: bigint("following_count", { mode: "number" }).default(0),
-    last_logged_at: timestamp("last_logged_at", { withTimezone: true, mode: "string" }),
+    last_logged_at: timestamp("last_logged_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
   },
   (table) => [
     uniqueIndex("idx_users_email").using(
@@ -721,6 +724,21 @@ export const holdings = pgTable(
     current_value: numeric("current_value", { precision: 18, scale: 2 })
       .default("0")
       .notNull(),
+    gain_amount: numeric("gain_amount", {
+      precision: 18,
+      scale: 2,
+    }).generatedAlwaysAs(sql`current_value - invested_amount`),
+    gain_percent: numeric("gain_percent", {
+      precision: 18,
+      scale: 2,
+    }).generatedAlwaysAs(
+      sql`
+        CASE
+          WHEN invested_amount = 0 THEN 0
+          ELSE ((current_value - invested_amount) / invested_amount) * 100
+        END
+      `,
+    ),
     units: numeric({ precision: 24, scale: 10 }),
     avg_buy_price: numeric("avg_buy_price", { precision: 18, scale: 8 }),
     current_price: numeric("current_price", { precision: 18, scale: 8 }),
@@ -1045,9 +1063,12 @@ export const auth_activity_logs = pgTable(
   ],
 );
 
-export const authActivityLogsRelations = relations(auth_activity_logs, ({ one }) => ({
-  user: one(users, {
-    fields: [auth_activity_logs.user_id],
-    references: [users.id],
+export const authActivityLogsRelations = relations(
+  auth_activity_logs,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [auth_activity_logs.user_id],
+      references: [users.id],
+    }),
   }),
-}));
+);
