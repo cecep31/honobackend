@@ -1,0 +1,2 @@
+ALTER TABLE "sessions" ALTER COLUMN "refresh_token" SET DATA TYPE text;--> statement-breakpoint
+ALTER TABLE "post_comments" ADD CONSTRAINT "fk_post_comments_parent_comment" FOREIGN KEY ("parent_comment_id") REFERENCES "public"."post_comments"("id") ON DELETE set null ON UPDATE no action;

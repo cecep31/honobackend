@@ -6,9 +6,9 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 
 ```bash
 bun run typecheck          # TypeScript type checking
-bun run format             # Format with Prettier
+bun run format             # Format with Prettier (uses default config)
 bun test                   # Run all tests
-bun test <file>            # Run single test file
+bun test <file>            # Run single test file (e.g., bun test src/test/authservice.test.ts)
 bun test --watch           # Watch mode
 bun test --coverage        # Coverage report
 bun run dev                # Dev server with hot reload
@@ -99,6 +99,16 @@ const user = await db.query.users.findFirst({
 await db.insert(users).values(data).returning();
 await db.update(users).set(data).where(eq(users.id, id)).returning();
 await db.delete(users).where(eq(users.id, id)).returning();
+```
+
+### Service Pattern
+Services use lazy-loaded singletons with dependency injection:
+```typescript
+// Import from services/index.ts
+import { userService, authService } from '../services';
+
+// Or create instance with dependencies
+const authService = new AuthService(userService);
 ```
 
 ## JWT Tokens

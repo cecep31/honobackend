@@ -76,6 +76,11 @@ export const post_comments = pgTable(
       foreignColumns: [posts.id],
       name: "fk_posts_post_comments",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.parent_comment_id],
+      foreignColumns: [table.id],
+      name: "fk_post_comments_parent_comment",
+    }).onDelete("set null"),
   ],
 );
 
@@ -245,9 +250,7 @@ export const posts = pgTable(
 export const sessions = pgTable(
   "sessions",
   {
-    refresh_token: varchar("refresh_token", { length: 200 })
-      .primaryKey()
-      .notNull(),
+    refresh_token: text("refresh_token").primaryKey().notNull(),
     user_id: uuid("user_id").notNull(),
     created_at: timestamp("created_at", {
       withTimezone: true,
