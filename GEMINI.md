@@ -1,69 +1,94 @@
 # Project Overview
 
-This is a high-performance backend API built with **Hono** running on the **Bun** runtime. It leverages **PostgreSQL** for data persistence, managed by **Drizzle ORM**.
+This is a high-performance backend API built with **Hono** on the **Bun** runtime, using **PostgreSQL** with **Drizzle ORM**. It features a service-oriented architecture, where business logic and data access are integrated in the service layer.
 
-The project is structured around a service-oriented architecture, where business logic is encapsulated in services and exposed via controllers grouped by feature modules.
+**Key Technologies:**
 
-## Tech Stack
-
-*   **Runtime:** Bun
 *   **Framework:** Hono
+*   **Runtime:** Bun
 *   **Database:** PostgreSQL
-*   **ORM:** Drizzle ORM
-*   **Validation:** Zod
-*   **Authentication:** JWT / Session-based (Custom implementation)
-*   **Testing:** Bun Test
+*   **ORM:** Drizzle
+*   **Language:** TypeScript
 
-## Architecture
+**Features:**
 
-The codebase follows a **Modular Feature-based Architecture**:
+*   Authentication and user management
+*   Content management (posts, tags, comments, likes)
+*   Social features (bookmarks, follows)
+*   Chat functionality (via OpenRouter)
+*   Request validation with Zod
 
-*   **`src/modules/`**: Contains the core logic, organized by domain (e.g., `auth`, `users`, `posts`).
-    *   `*Controller.ts`: Handles HTTP requests and responses.
-    *   `*Service.ts`: Contains business logic and database interactions.
-    *   `validation/`: Zod schemas for request validation.
-*   **`src/services/`**: Instantiates and exports singleton service instances (lazy-loaded).
-*   **`src/database/`**: Drizzle configuration and schema definitions.
-    *   `schemas/postgre/schema.ts`: The main database schema definition.
-*   **`src/middlewares/`**: Global and route-specific middleware (Auth, Error Handling, Validation).
-*   **`src/router/`**: Centralized route registration.
-*   **`src/server/`**: Application entry point (`app.ts`).
+# Building and Running
 
-## Development Workflow
+**Installation:**
 
-### Prerequisites
-*   [Bun](https://bun.sh/) installed.
-*   PostgreSQL database running.
-*   `.env` file configured (see `.env.example`).
+```bash
+bun install
+```
 
-### Key Commands
+**Development:**
 
-| Action | Command | Description |
-| :--- | :--- | :--- |
-| **Install** | `bun install` | Install dependencies |
-| **Dev Server** | `bun run dev` | Start server with hot-reload |
-| **Build** | `bun run build` | Build for production (dist/index.js) |
-| **Compile** | `bun run build:compile` | Compile to single executable binary |
-| **Test** | `bun test` | Run unit/integration tests |
-| **Typecheck** | `bun run typecheck` | Run TypeScript checks |
+To run the development server with hot-reloading:
 
-### Database Management (Drizzle)
+```bash
+bun run dev
+```
 
-| Action | Command | Description |
-| :--- | :--- | :--- |
-| **Generate** | `bun run db:generate` | Create SQL migrations from schema changes |
-| **Migrate** | `bun run db:migrate` | Apply migrations to the database |
-| **Push** | `bun run db:push` | Push schema changes directly (prototyping) |
-| **Studio** | `bun run db:studio` | Open Drizzle Studio UI |
+The application will be available at `http://localhost:3001`.
 
-## Conventions & Standards
+**Building for Production:**
 
-*   **Service Injection:** Services are instantiated in `src/services/index.ts` using a lazy-loading pattern. Always import services from there, not directly from the class files.
-*   **Validation:** Use `zod` for all request validation (params, query, body) via the `validateRequest` middleware.
-*   **Error Handling:** Throw custom errors using `Errors` from `src/utils/error.ts`. The global error handler will format them correctly.
-*   **Pagination:** Use `getPaginationParams` and `getPaginationMetadata` helpers for list endpoints.
-*   **Database Access:** Use the `db` instance from `src/database/drizzle.ts` within services.
-*   **BigInt Handling:** A global patch is applied in `app.ts` to handle BigInt serialization in JSON.
+To build the project for production:
 
-## Documentation
-Additional documentation can be found in the `docs/` directory, covering specific modules like Auth, Posts, and Users.
+```bash
+bun run build
+```
+
+This will create a production-ready build in the `dist/` directory.
+
+**Running in Production:**
+
+To start the production server:
+
+```bash
+bun run start:prod
+```
+
+# Testing
+
+To run the test suite:
+
+```bash
+bun test
+```
+
+To run tests in watch mode:
+
+```bash
+bun test:watch
+```
+
+To generate a test coverage report:
+
+```bash
+bun test:coverage
+```
+
+# Database Management
+
+This project uses Drizzle ORM for database migrations and management.
+
+*   **Generate migrations:** `bun run db:generate`
+*   **Apply migrations:** `bun run db:push`
+*   **Drizzle Studio:** `bun run db:studio` (launches a GUI for the database)
+
+# Development Conventions
+
+*   **Code Style:** The project uses Prettier for code formatting. To format the code, run:
+    ```bash
+    bun run format
+    ```
+*   **Architecture:** The project follows a service-oriented architecture. Business logic is handled in service files (e.g., `userService.ts`), which are then used by controllers.
+*   **Validation:** Request validation is done using Zod. Validation schemas are defined in the `validation` directory of each module.
+*   **Routing:** Routes are defined in controller files within each module (e.g., `src/modules/users/controllers/userController.ts`) and then aggregated in `src/router/index.ts`.
+*   **Error Handling:** A custom error handler is used to manage errors. See `src/middlewares/errorHandler.ts`.
