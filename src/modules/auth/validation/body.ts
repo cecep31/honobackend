@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validatePassword } from "../../../utils/password";
 
 export const loginSchema = z.object({
   email: z.string().min(5).max(254),
@@ -15,7 +16,17 @@ export const registerSchema = z.object({
       "Username can only contain letters, numbers, and underscores"
     ),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().superRefine((password, ctx) => {
+    const result = validatePassword(password);
+    if (!result.isValid) {
+      result.errors.forEach((error) => {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: error,
+        });
+      });
+    }
+  }),
 });
 
 export type UserSignup = z.infer<typeof registerSchema>;
@@ -44,6 +55,13 @@ export const updatePasswordSchema = z
   .refine((data) => data.new_password === data.confirm_password, {
     message: "password not match",
     path: ["confirm_password"],
+  })
+  .refine((data) => {
+    const result = validatePassword(data.new_password);
+    return result.isValid;
+  }, {
+    message: "Password does not meet strength requirements",
+    path: ["new_password"],
   });
 
 export const forgotPasswordSchema = z.object({
@@ -53,12 +71,19 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(1, "Token is required"),
-    new_password: z.string().min(6, "Password must be at least 6 characters"),
+    new_password: z.string(),
     confirm_password: z.string(),
   })
   .refine((data) => data.new_password === data.confirm_password, {
     message: "Passwords do not match",
     path: ["confirm_password"],
+  })
+  .refine((data) => {
+    const result = validatePassword(data.new_password);
+    return result.isValid;
+  }, {
+    message: "Password does not meet strength requirements",
+    path: ["new_password"],
   });
 
 export const updateEmailSchema = z.object({

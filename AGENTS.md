@@ -6,9 +6,9 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 
 ```bash
 bun run typecheck          # TypeScript type checking
-bun run format             # Format with Prettier (uses default config)
+bun run format             # Format with Prettier
 bun test                   # Run all tests
-bun test <file>            # Run single test file (e.g., bun test src/test/authservice.test.ts)
+bun test <file>            # Run single test (e.g., bun test src/test/authservice.test.ts)
 bun test --watch           # Watch mode
 bun test --coverage        # Coverage report
 bun run dev                # Dev server with hot reload
@@ -61,27 +61,39 @@ throw Errors.NotFound('User');
 throw Errors.ValidationFailed({ field: 'email' });
 ```
 
+## API Responses
+
+Use `sendSuccess` from `src/utils/response.ts`:
+```typescript
+import { sendSuccess } from '../../../utils/response';
+return sendSuccess(c, { user }, 'User created', 201);
+```
+
+Response format:
+```json
+{ "success": true, "data": {}, "message": "Success", "request_id": "abc", "timestamp": "..." }
+```
+
+Error responses include `success: false` with error codes.
+
 ## Architecture Patterns
 
 ### Module Structure
 ```
 src/modules/<feature>/
   controllers/     # Route handlers
-  services/        # Business logic
-  validation/      # Zod schemas (body.ts, query.ts, param.ts)
+  services/       # Business logic
+  validation/    # Zod schemas (body.ts, query.ts, param.ts)
 ```
 
 ### Hono Patterns
 ```typescript
-// Register routes
 app.get('/users', handler);
 app.post('/users', validator, handler);
-
-// Access context
-c.var.user          // Request-scoped variables
-c.req.parseBody()   // Parse body
-c.req.query()       // Query params
-c.json(data, 200)   // JSON response
+c.var.user         # Request-scoped variables
+c.req.parseBody()  # Parse body
+c.req.query()      # Query params
+c.json(data, 200) # JSON response
 ```
 
 ### Database (Drizzle)
@@ -90,30 +102,23 @@ import { db } from '../../../database/drizzle';
 import { users } from '../../../database/schemas/postgre/schema';
 import { eq } from 'drizzle-orm';
 
-// Query API (preferred)
 const user = await db.query.users.findFirst({
   where: eq(users.id, userId)
 });
-
-// CRUD operations
 await db.insert(users).values(data).returning();
 await db.update(users).set(data).where(eq(users.id, id)).returning();
 await db.delete(users).where(eq(users.id, id)).returning();
 ```
 
 ### Service Pattern
-Services use lazy-loaded singletons with dependency injection:
 ```typescript
-// Import from services/index.ts
 import { userService, authService } from '../services';
-
-// Or create instance with dependencies
 const authService = new AuthService(userService);
 ```
 
 ## JWT Tokens
 
-Payload includes: `user_id`, `email`, `is_super_admin`, `exp`
+Payload: `user_id`, `email`, `is_super_admin`, `exp`
 Expiration: 5 hours (`5 * 60 * 60`)
 Use `hono/jwt` for operations.
 
@@ -125,20 +130,14 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { createDrizzleMocks } from './helpers/drizzleMock';
 
 const mocks = createDrizzleMocks();
-
 mock.module('../database/drizzle', () => ({
-  db: {
-    insert: mocks.mockInsert,
-    query: { users: { findFirst: mocks.mockFindFirst } }
-  }
+  db: { insert: mocks.mockInsert, query: { users: { findFirst: mocks.mockFindFirst } } }
 }));
 
 describe('Service', () => {
   beforeEach(() => mocks.reset());
-  
   it('should work', async () => {
     mocks.mockReturning.mockResolvedValue([{ id: '1' }]);
-    // test code
   });
 });
 ```
@@ -151,10 +150,7 @@ See `docs/TESTING.md` for detailed patterns.
 - Never log sensitive data
 - Use transactions for multi-step operations
 - Return consistent error responses with `requestId`
-- Use development-only data pattern:
-  ```typescript
-  ...(process.env.NODE_ENV === 'development' && { debugInfo })
-  ```
+- Environment variables: `DATABASE_URL`, `JWT_SECRET`, `RATE_LIMITER`, etc.
 
 ## Git
 

@@ -5,7 +5,7 @@ import type { UserService } from "../../users/services/userService";
 import type { UserSignup } from "../validation";
 import type { GithubUser } from "../../../types/auth";
 import config from "../../../config";
-import axios from "axios";
+import { externalApiClient } from "../../../utils/httpClient";
 import { randomUUIDv7 } from "bun";
 import { Errors } from "../../../utils/error";
 import { db } from "../../../database/drizzle";
@@ -241,7 +241,7 @@ export class AuthService {
 
   async getGithubToken(code: string) {
     try {
-      const tokenResponse = await axios.post(
+      const tokenResponse = await externalApiClient.post(
         "https://github.com/login/oauth/access_token",
         {
           client_id: config.github.CLIENT_ID,

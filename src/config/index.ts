@@ -8,6 +8,7 @@ export const originList = [
   "https://pilput.me",
   "https://pilput.net",
 ];
+
 function getNumberEnv(key: string, defaultValue: number): number {
   const value = process.env[key];
   if (value === undefined || value === "") return defaultValue;
@@ -20,9 +21,36 @@ function getMainDomain(): string | undefined {
   return domain && domain !== "" ? domain : "pilput.net";
 }
 
+/**
+ * Validate JWT_SECRET strength
+ * Must be at least 32 characters for adequate security
+ */
+function validateJwtSecret(): string {
+  const secret = process.env["JWT_SECRET"];
+
+  if (!secret || secret === "") {
+    throw new Error(
+      "JWT_SECRET is not set. Please set JWT_SECRET environment variable to a random string of at least 32 characters."
+    );
+  }
+
+  if (secret.length < 32) {
+    throw new Error(
+      `JWT_SECRET is too weak (${secret.length} characters). ` +
+      "It must be at least 32 characters long for adequate security."
+    );
+  }
+
+  return secret;
+}
+
 export const rateLimitConfig = {
   windowMs: 1 * 60 * 1000, // 1 minute
   limit: getNumberEnv("RATE_LIMIT_MAX", 150),
+};
+
+export const bodyLimitConfig = {
+  maxSizeMB: getNumberEnv("BODY_LIMIT_MAX_SIZE_MB", 10), // Default 10MB
 };
 
 const githubConfig = {
@@ -44,7 +72,7 @@ const getConfig = {
     max_lifetime: getNumberEnv("DB_MAX_LIFETIME", 1800),
   },
   jwt: {
-    secret: process.env["JWT_SECRET"] ?? "",
+    secret: validateJwtSecret(),
     expiresIn: process.env["JWT_EXPIRES_IN"] ?? "1d",
   },
   github: githubConfig,

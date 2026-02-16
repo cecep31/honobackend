@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { authService, userService } from "../../../services/index";
 import { auth } from "../../../middlewares/auth";
 import config from "../../../config";
-import axios from "axios";
+import { externalApiClient } from "../../../utils/httpClient";
 import type { GithubUser } from "../../../types/auth";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { rateLimiter } from "hono-rate-limiter";
@@ -46,7 +46,7 @@ authController.get(
 
     try {
       // Get user data from GitHub API
-      const userResponse = await axios.get<GithubUser>(
+      const userResponse = await externalApiClient.get<GithubUser>(
         "https://api.github.com/user",
         {
           headers: {
@@ -59,7 +59,7 @@ authController.get(
       let githubUserData = userResponse.data;
       if (!githubUserData.email) {
         try {
-          const emailsResponse = await axios.get<
+          const emailsResponse = await externalApiClient.get<
             Array<{ email: string; primary: boolean; verified: boolean }>
           >("https://api.github.com/user/emails", {
             headers: {

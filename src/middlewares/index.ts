@@ -1,9 +1,10 @@
 import type { Hono } from "hono";
 import { cors } from "hono/cors";
+import { bodyLimit } from "hono/body-limit";
 import { rateLimiter, type Store, type ClientRateLimitInfo } from "hono-rate-limiter";
 import { requestId } from "hono/request-id";
 import { loggingMiddleware } from "./logger";
-import config, { originList, rateLimitConfig } from "../config";
+import config, { originList, rateLimitConfig, bodyLimitConfig } from "../config";
 import type { Variables } from "../types/context";
 
 // Memory-safe rate limit store with automatic cleanup
@@ -78,9 +79,21 @@ class CleanupStore implements Store {
 let rateLimitStore: CleanupStore | null = null;
 
 export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
+  // Convert MB to bytes for bodyLimit
+  const maxBodySizeBytes = bodyLimitConfig.maxSizeMB * 1024 * 1024;
+
   app
     .use(requestId())
     .use(loggingMiddleware)
+    .use(bodyLimit({
+      maxSize: maxBodySizeBytes,
+      onError: (c) => {
+        return c.json({
+          success: false,
+          message: `Request body is too large. Maximum size is ${bodyLimitConfig.maxSizeMB}MB`,
+        }, 413);
+      },
+    }))
     .use(
       cors({
         origin: originList,
@@ -89,7 +102,7 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
   if (config.rateLimiter) {
     // Create store with automatic cleanup
     rateLimitStore = new CleanupStore(rateLimitConfig.windowMs);
-    
+
     app.use(
       rateLimiter({
         windowMs: rateLimitConfig.windowMs, // 1 minute
