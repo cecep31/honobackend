@@ -66,6 +66,12 @@ export const post_comments = pgTable(
       table.post_id.asc().nullsLast().op("uuid_ops"),
       table.parent_comment_id.asc().nullsLast().op("uuid_ops"),
     ),
+    // Indeks komposit untuk query komentar berdasarkan post dan waktu
+    index("idx_post_comments_post_created_at").using(
+      "btree",
+      table.post_id.asc().nullsLast().op("uuid_ops"),
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    ),
     foreignKey({
       columns: [table.created_by],
       foreignColumns: [users.id],
@@ -446,6 +452,20 @@ export const users = pgTable(
       table.created_at.desc().nullsLast().op("timestamptz_ops"),
     ),
     unique("users_github_id_unique").on(table.github_id),
+    // Indeks baru untuk query last_logged_at
+    index("idx_users_last_logged_at").using(
+      "btree",
+      table.last_logged_at.desc().nullsLast().op("timestamptz_ops"),
+    ),
+    // Indeks case-insensitive untuk username dan email
+    index("idx_users_username_lower").using(
+      "btree",
+      sql`lower(${table.username})`
+    ),
+    index("idx_users_email_lower").using(
+      "btree",
+      sql`lower(${table.email})`
+    ),
   ],
 );
 
@@ -493,6 +513,12 @@ export const post_views = pgTable(
     index("idx_post_views_user_id").using(
       "btree",
       table.user_id.asc().nullsLast().op("uuid_ops"),
+    ),
+    // Indeks komposit untuk query post views berdasarkan post dan waktu
+    index("idx_post_views_post_created_at").using(
+      "btree",
+      table.post_id.asc().nullsLast().op("uuid_ops"),
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
     ),
     foreignKey({
       columns: [table.user_id],
@@ -596,6 +622,12 @@ export const post_likes = pgTable(
       "btree",
       table.user_id.asc().nullsLast().op("uuid_ops"),
     ),
+    // Indeks komposit untuk query like berdasarkan post dan waktu
+    index("idx_post_likes_post_created_at").using(
+      "btree",
+      table.post_id.asc().nullsLast().op("uuid_ops"),
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    ),
     foreignKey({
       columns: [table.post_id],
       foreignColumns: [posts.id],
@@ -640,6 +672,12 @@ export const post_bookmarks = pgTable(
     index("idx_post_bookmarks_user_id").using(
       "btree",
       table.user_id.asc().nullsLast().op("uuid_ops"),
+    ),
+    // Indeks komposit untuk query bookmark berdasarkan user dan waktu
+    index("idx_post_bookmarks_user_created_at").using(
+      "btree",
+      table.user_id.asc().nullsLast().op("uuid_ops"),
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
     ),
     foreignKey({
       columns: [table.post_id],
@@ -764,6 +802,12 @@ export const holdings = pgTable(
       table.year.asc().nullsLast().op("int4_ops"),
       table.month.asc().nullsLast().op("int4_ops"),
     ),
+    // Indeks komposit untuk query holdings berdasarkan user dan tipe
+    index("idx_holdings_user_type").using(
+      "btree",
+      table.user_id.asc().nullsLast().op("uuid_ops"),
+      table.holding_type_id.asc().nullsLast().op("int2_ops"),
+    ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
@@ -820,6 +864,13 @@ export const notifications = pgTable(
       "btree",
       table.user_id.asc().nullsLast().op("uuid_ops"),
       table.read.asc().nullsLast().op("bool_ops"),
+    ),
+    // Indeks komposit untuk query notifikasi unread user dengan sorting
+    index("idx_notifications_user_read_created_at").using(
+      "btree",
+      table.user_id.asc().nullsLast().op("uuid_ops"),
+      table.read.asc().nullsLast().op("bool_ops"),
+      table.created_at.desc().nullsLast().op("timestamptz_ops"),
     ),
     foreignKey({
       columns: [table.user_id],
