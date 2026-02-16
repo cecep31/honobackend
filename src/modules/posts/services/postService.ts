@@ -297,6 +297,23 @@ export class PostService {
     });
   }
 
+  /**
+   * Get post by ID only for the owner (auth required). Returns draft and published.
+   */
+  async getPostByIdForOwner(post_id: string, user_id: string) {
+    return await db.query.posts.findFirst({
+      where: and(
+        isNull(postsModel.deleted_at),
+        eq(postsModel.id, post_id),
+        eq(postsModel.created_by, user_id)
+      ),
+      with: {
+        user: { columns: { password: false } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
+      },
+    });
+  }
+
   async getPostBySlug(slug: string) {
      return await db.query.posts.findFirst({
       where: and(

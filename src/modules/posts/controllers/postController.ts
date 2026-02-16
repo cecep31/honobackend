@@ -131,13 +131,15 @@ postController.get("/all", auth, superAdminMiddleware, async (c) => {
   return sendSuccess(c, posts, "All posts fetched successfully");
 });
 
-//get post by id
+// Get post by id (auth required, owner only)
 postController.get(
   "/:id",
+  auth,
   validateRequest("param", postIdSchema),
   async (c) => {
     const id = c.req.param("id");
-    const post = await postService.getPost(id);
+    const authUser = c.get("user");
+    const post = await postService.getPostByIdForOwner(id, authUser.user_id);
     if (!post) {
       throw Errors.NotFound("Post");
     }
