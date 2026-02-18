@@ -35,16 +35,16 @@ export class BookmarkService {
   async getBookmarksByUser(user_id: string) {
     try {
       const bookmarks = await db.query.post_bookmarks.findMany({
-         where: eq(post_bookmarks.user_id, user_id),
-         with: {
-             post: {
-                with: {
-                    user: {
-                        columns: { password: false }
-                    }
-                }
-             }
-         }
+        where: eq(post_bookmarks.user_id, user_id),
+        with: {
+          post: {
+            with: {
+              user: {
+                columns: { password: false },
+              },
+            },
+          },
+        },
       });
       return bookmarks;
     } catch (error) {

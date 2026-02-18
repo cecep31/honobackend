@@ -1,6 +1,6 @@
 import { db } from "../../../database/drizzle";
 import { auth_activity_logs } from "../../../database/schemas/postgre/schema";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { randomUUIDv7 } from "bun";
 
 export type ActivityType =
@@ -162,12 +162,12 @@ export class AuthActivityService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const result = await db
-      .select({ count: auth_activity_logs.id })
+    const [result] = await db
+      .select({ count: count() })
       .from(auth_activity_logs)
       .where(whereClause);
 
-    return result.length;
+    return result.count;
   }
 
   /**

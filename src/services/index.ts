@@ -1,4 +1,5 @@
 import { AuthService } from "../modules/auth/services/authService";
+import { AuthActivityService } from "../modules/auth/services/authActivityService";
 import { PostService } from "../modules/posts/services/postService";
 import { TagService } from "../modules/tags/services/tagService";
 import { UserService } from "../modules/users/services/userService";
@@ -35,6 +36,7 @@ function createLazyService<T extends object>(factory: () => T): T {
   });
 }
 
+export const activityService = createLazyService(() => new AuthActivityService());
 export const tagService = createLazyService(() => new TagService());
 export const userService = createLazyService(() => new UserService());
 export const authService = createLazyService(() => new AuthService(userService));

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { authService, userService } from "../../../services/index";
+import { authService, userService, activityService } from "../../../services/index";
 import { auth } from "../../../middlewares/auth";
 import config from "../../../config";
 import { externalApiClient } from "../../../utils/httpClient";
@@ -26,9 +26,24 @@ import {
   resetPasswordSchema,
   checkUsernameSchema,
 } from "../validation";
-import { AuthActivityService } from "../services/authActivityService";
 
 export const authController = new Hono<{ Variables: Variables }>();
+
+/**
+ * Factory for creating rate limiter middleware with consistent IP key generation
+ */
+function createRateLimiter(windowMs: number, limit: number) {
+  return rateLimiter({
+    windowMs,
+    limit,
+    standardHeaders: "draft-6",
+    keyGenerator: (c) =>
+      c.req.header("x-forwarded-for") ||
+      c.req.header("x-real-ip") ||
+      c.req.header("cf-connecting-ip") ||
+      "unknown",
+  });
+}
 
 authController.get("/oauth/github", async (c) => {
   const authUrl = new URL("https://github.com/login/oauth/authorize");
@@ -118,16 +133,7 @@ authController.get(
 //login
 authController.post(
   "/login",
-  rateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 7, // Limit each IP to 7 requests per `window` (here, per 15 minutes).
-    standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-    keyGenerator: (c) =>
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip") ||
-      "unknown",
-  }),
+  createRateLimiter(15 * 60 * 1000, 7), // 7 requests per 15 minutes
   validateRequest("json", loginSchema),
   async (c) => {
     const body = c.req.valid("json");
@@ -231,16 +237,7 @@ authController.patch(
 // Forgot password - request password reset
 authController.post(
   "/forgot-password",
-  rateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 3, // Limit each IP to 3 requests per 15 minutes
-    standardHeaders: "draft-6",
-    keyGenerator: (c) =>
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip") ||
-      "unknown",
-  }),
+  createRateLimiter(15 * 60 * 1000, 3), // 3 requests per 15 minutes
   validateRequest("json", forgotPasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
@@ -258,16 +255,7 @@ authController.post(
 // Reset password - actually reset the password with token
 authController.post(
   "/reset-password",
-  rateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 5, // Limit each IP to 5 requests per 15 minutes
-    standardHeaders: "draft-6",
-    keyGenerator: (c) =>
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip") ||
-      "unknown",
-  }),
+  createRateLimiter(15 * 60 * 1000, 5), // 5 requests per 15 minutes
   validateRequest("json", resetPasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
@@ -284,7 +272,6 @@ authController.post(
 );
 
 // Activity logs endpoints
-const activityService = new AuthActivityService();
 
 // Get current user's activity logs
 authController.get(

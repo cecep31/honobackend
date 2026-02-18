@@ -1,12 +1,21 @@
 import { post_comments, posts } from "../../../database/schemas/postgre/schema";
 import { db } from "../../../database/drizzle";
-import { and, eq, isNull, desc, sql } from "drizzle-orm";
+import { and, eq, isNull, desc, count } from "drizzle-orm";
 import { Errors } from "../../../utils/error";
 import { randomUUIDv7 } from "bun";
 import type {
   CreateCommentInput,
   UpdateCommentInput,
 } from "../validation";
+
+/** Reusable column selection for public user info on comments */
+const COMMENT_USER_COLUMNS = {
+  id: true,
+  username: true,
+  first_name: true,
+  last_name: true,
+  image: true,
+} as const;
 
 export class CommentService {
   async createComment(data: CreateCommentInput, user_id: string) {
@@ -52,17 +61,7 @@ export class CommentService {
       // Fetch comment with user details
       const commentWithUser = await db.query.post_comments.findFirst({
         where: eq(post_comments.id, comment[0].id),
-        with: {
-          user: {
-            columns: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              image: true,
-            },
-          },
-        },
+        with: { user: { columns: COMMENT_USER_COLUMNS } },
       });
 
       return commentWithUser;
@@ -86,25 +85,15 @@ export class CommentService {
           isNull(post_comments.parent_comment_id),
           isNull(post_comments.deleted_at)
         ),
-        with: {
-          user: {
-            columns: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              image: true,
-            },
-          },
-        },
+        with: { user: { columns: COMMENT_USER_COLUMNS } },
         orderBy: [desc(post_comments.created_at)],
         limit,
         offset,
       });
 
       // Get total count for pagination
-      const totalResult = await db
-        .select({ count: sql<number>`count(*)` })
+      const [totalResult] = await db
+        .select({ count: count() })
         .from(post_comments)
         .where(
           and(
@@ -114,7 +103,7 @@ export class CommentService {
           )
         );
 
-      const total = Number(totalResult[0]?.count || 0);
+      const total = totalResult?.count ?? 0;
 
       return {
         data: comments,
@@ -138,17 +127,7 @@ export class CommentService {
           eq(post_comments.parent_comment_id, parent_comment_id),
           isNull(post_comments.deleted_at)
         ),
-        with: {
-          user: {
-            columns: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              image: true,
-            },
-          },
-        },
+        with: { user: { columns: COMMENT_USER_COLUMNS } },
         orderBy: [desc(post_comments.created_at)],
       });
 
@@ -166,17 +145,7 @@ export class CommentService {
           eq(post_comments.id, comment_id),
           isNull(post_comments.deleted_at)
         ),
-        with: {
-          user: {
-            columns: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              image: true,
-            },
-          },
-        },
+        with: { user: { columns: COMMENT_USER_COLUMNS } },
       });
 
       if (!comment) {
@@ -224,17 +193,7 @@ export class CommentService {
       // Fetch updated comment with user details
       const commentWithUser = await db.query.post_comments.findFirst({
         where: eq(post_comments.id, updated[0].id),
-        with: {
-          user: {
-            columns: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              image: true,
-            },
-          },
-        },
+        with: { user: { columns: COMMENT_USER_COLUMNS } },
       });
 
       return commentWithUser;
@@ -295,15 +254,7 @@ export class CommentService {
           isNull(post_comments.deleted_at)
         ),
         with: {
-          user: {
-            columns: {
-              id: true,
-              username: true,
-              first_name: true,
-              last_name: true,
-              image: true,
-            },
-          },
+          user: { columns: COMMENT_USER_COLUMNS },
           post: {
             columns: {
               id: true,
@@ -318,8 +269,8 @@ export class CommentService {
       });
 
       // Get total count
-      const totalResult = await db
-        .select({ count: sql<number>`count(*)` })
+      const [totalResult] = await db
+        .select({ count: count() })
         .from(post_comments)
         .where(
           and(
@@ -328,7 +279,7 @@ export class CommentService {
           )
         );
 
-      const total = Number(totalResult[0]?.count || 0);
+      const total = totalResult?.count ?? 0;
 
       return {
         data: comments,

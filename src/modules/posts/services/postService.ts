@@ -22,42 +22,33 @@ export class PostService {
     body: Partial<PostCreateBody>
   ) {
     return await db.transaction(async (tx) => {
-      try {
-        const existingPost = await tx.query.posts.findFirst({
-          where: and(
-            eq(postsModel.id, post_id),
-            eq(postsModel.created_by, auth_id),
-            isNull(postsModel.deleted_at)
-          ),
-          columns: { id: true },
-        });
+      const existingPost = await tx.query.posts.findFirst({
+        where: and(
+          eq(postsModel.id, post_id),
+          eq(postsModel.created_by, auth_id),
+          isNull(postsModel.deleted_at)
+        ),
+        columns: { id: true },
+      });
 
-        if (!existingPost) {
-          throw Errors.NotFound("Post not found or unauthorized");
-        }
-
-        const updateData: any = { ...body };
-        delete updateData.tags;
-        updateData.updated_at = new Date().toISOString();
-
-        const [updatedPost] = await tx
-          .update(postsModel)
-          .set(updateData)
-          .where(eq(postsModel.id, post_id))
-          .returning();
-
-        if (body.tags) {
-          await PostTagManager.updatePostTags(post_id, body.tags, tx);
-        }
-
-        return updatedPost;
-      } catch (error) {
-        if (error instanceof Error && error.message.includes("Post not found")) {
-          throw error;
-        }
-        console.error("Error updating post:", error);
-        throw Errors.DatabaseError({ message: "Failed to update post", error });
+      if (!existingPost) {
+        throw Errors.NotFound("Post not found or unauthorized");
       }
+
+      const { tags, ...updateFields } = body;
+      const updateData = { ...updateFields, updated_at: new Date().toISOString() };
+
+      const [updatedPost] = await tx
+        .update(postsModel)
+        .set(updateData)
+        .where(eq(postsModel.id, post_id))
+        .returning();
+
+      if (tags) {
+        await PostTagManager.updatePostTags(post_id, tags, tx);
+      }
+
+      return updatedPost;
     });
   }
 
@@ -233,7 +224,7 @@ export class PostService {
     return { data: response, meta };
   }
 
-  async getPostsByTag($tag: string) {
+  async getPostsByTag(tag: string) {
     return await db
       .select({
         id: postsModel.id,
@@ -248,7 +239,7 @@ export class PostService {
       .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
       .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
       .where(and(
-        eq(tagsModel.name, $tag),
+        eq(tagsModel.name, tag),
         eq(postsModel.published, true),
         isNull(postsModel.deleted_at)
       ))
@@ -487,16 +478,13 @@ export class PostService {
     return result;
   }
 
-  /**
-   * Get top posts by views
-   * @param limit Number of posts to return (default: 10)
-   */
-  async getTopPostsByViews(limit = 10) {
+  private async getTopPostsBy(
+    orderByField: 'view_count' | 'like_count',
+    limit = 10
+  ) {
+    const column = orderByField === 'view_count' ? postsModel.view_count : postsModel.like_count;
     const posts = await db.query.posts.findMany({
-      where: and(
-        isNull(postsModel.deleted_at),
-        eq(postsModel.published, true)
-      ),
+      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       columns: {
         id: true,
         title: true,
@@ -515,14 +503,19 @@ export class PostService {
           },
         },
       },
-      orderBy: desc(postsModel.view_count),
+      orderBy: desc(column),
       limit,
     });
 
-    return posts.map((post) => ({
-      ...post,
-      creator: post.user,
-    }));
+    return posts.map((post) => ({ ...post, creator: post.user }));
+  }
+
+  /**
+   * Get top posts by views
+   * @param limit Number of posts to return (default: 10)
+   */
+  async getTopPostsByViews(limit = 10) {
+    return this.getTopPostsBy('view_count', limit);
   }
 
   /**
@@ -530,37 +523,7 @@ export class PostService {
    * @param limit Number of posts to return (default: 10)
    */
   async getTopPostsByLikes(limit = 10) {
-    const posts = await db.query.posts.findMany({
-      where: and(
-        isNull(postsModel.deleted_at),
-        eq(postsModel.published, true)
-      ),
-      columns: {
-        id: true,
-        title: true,
-        slug: true,
-        view_count: true,
-        like_count: true,
-        created_at: true,
-      },
-      with: {
-        user: {
-          columns: {
-            id: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-          },
-        },
-      },
-      orderBy: desc(postsModel.like_count),
-      limit,
-    });
-
-    return posts.map((post) => ({
-      ...post,
-      creator: post.user,
-    }));
+    return this.getTopPostsBy('like_count', limit);
   }
 
   /**

@@ -77,17 +77,10 @@ export class UserService {
    */
   async getUserMe(id: string, profile = false) {
     try {
-      if (profile) {
-        return await db.query.users.findFirst({
-          columns: { password: false },
-          where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
-          with: { profiles: true },
-        });
-      }
-
       return await db.query.users.findFirst({
         columns: { password: false },
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
+        ...(profile && { with: { profiles: true } }),
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -407,9 +400,9 @@ export class UserService {
         }
       }
 
-      // Handle name - split if available, otherwise use defaults
-      let firstName = "pilput";
-      let lastName = "admin";
+      // Handle name - split if available, otherwise fall back to login name
+      let firstName = githubUser.login || "user";
+      let lastName = "";
       if (githubUser.name) {
         const nameParts = githubUser.name.trim().split(/\s+/);
         if (nameParts.length >= 2) {

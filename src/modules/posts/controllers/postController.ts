@@ -219,9 +219,9 @@ postController.post(
   auth,
   validateRequest("json", createPostSchema),
   async (c) => {
-    const auth = c.get("user");
+    const authUser = c.get("user");
     const body = c.req.valid("json");
-    const post = await postService.addPost(auth.user_id, body);
+    const post = await postService.addPost(authUser.user_id, body);
     return sendSuccess(c, post, "Post created successfully", 201);
   }
 );
@@ -233,9 +233,9 @@ postController.patch(
   validateRequest("json", updatePostSchema),
   async (c) => {
     const id = c.req.param("id");
-    const auth = c.get("user") as jwtPayload;
+    const authUser = c.get("user") as jwtPayload;
     const body = c.req.valid("json");
-    const post = await postService.updatePost(id, auth.user_id, body);
+    const post = await postService.updatePost(id, authUser.user_id, body);
     return sendSuccess(c, post, "Post updated successfully");
   }
 );
@@ -252,14 +252,14 @@ postController.post(
 
 postController.delete("/:id", auth, async (c) => {
   const id = c.req.param("id");
-  const auth = c.get("user") as jwtPayload;
-  const post = await postService.deletePost(id, auth.user_id);
+  const authUser = c.get("user") as jwtPayload;
+  const post = await postService.deletePost(id, authUser.user_id);
   return sendSuccess(c, post, "Post deleted successfully");
 });
 
 // Upload image endpoint
 postController.post("/upload/image", auth, async (c) => {
-  const auth = c.get("user") as jwtPayload;
+  const authUser = c.get("user") as jwtPayload;
   const formData = await c.req.formData();
   const file = formData.get("image") as File;
 
@@ -283,7 +283,7 @@ postController.post("/upload/image", auth, async (c) => {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
   const extension = file.name.split(".").pop() || "jpg";
-  const key = `posts/${auth.user_id}/${timestamp}-${randomStr}.${extension}`;
+  const key = `posts/${authUser.user_id}/${timestamp}-${randomStr}.${extension}`;
 
   // Get file buffer
   const arrayBuffer = await file.arrayBuffer();

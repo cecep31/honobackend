@@ -17,7 +17,7 @@ export class LikeService {
         );
       if (checkLike.length > 0) {
         // Hard delete
-        const deletresult = await db
+        const deleteResult = await db
           .delete(post_likes)
           .where(
             and(
@@ -26,7 +26,7 @@ export class LikeService {
             )
           )
           .returning();
-        return deletresult[0];
+        return deleteResult[0];
       } else {
         // Create new like
         const like = await db

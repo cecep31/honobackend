@@ -7,7 +7,7 @@ import type { GithubUser } from "../../../types/auth";
 import config from "../../../config";
 import { externalApiClient } from "../../../utils/httpClient";
 import { randomUUIDv7 } from "bun";
-import { Errors } from "../../../utils/error";
+import { ApiError, Errors } from "../../../utils/error";
 import { db } from "../../../database/drizzle";
 import {
   sessions as sessionModel,
@@ -18,9 +18,7 @@ import { AuthActivityService } from "./authActivityService";
 export class AuthService {
   private activityService: AuthActivityService;
 
-  constructor(
-    private userService: UserService
-  ) {
+  constructor(private userService: UserService) {
     this.activityService = new AuthActivityService();
   }
 
@@ -30,6 +28,22 @@ export class AuthService {
     }
     const pattern = /^[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$/;
     return pattern.test(email);
+  }
+
+  private createJwtPayload(user: { id: string; email: string; is_super_admin: boolean | null }) {
+    return {
+      user_id: user.id,
+      email: user.email,
+      is_super_admin: user.is_super_admin,
+      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
+    };
+  }
+
+  private async updateLastLoggedAt(userId: string) {
+    await db
+      .update(users)
+      .set({ last_logged_at: new Date().toISOString() })
+      .where(eq(users.id, userId));
   }
 
   async signIn(username: string, password: string, user_agent: string, ip_address?: string) {
@@ -43,7 +57,6 @@ export class AuthService {
       }
 
       if (!user) {
-        // Log failed login attempt
         await this.activityService.logActivity({
           activityType: "login_failed",
           ipAddress: ip_address,
@@ -62,7 +75,6 @@ export class AuthService {
       );
 
       if (!isPasswordValid) {
-        // Log failed login attempt
         await this.activityService.logActivity({
           userId: user.id,
           activityType: "login_failed",
@@ -74,25 +86,20 @@ export class AuthService {
         throw Errors.InvalidCredentials();
       }
 
-      const payload = {
-        user_id: user.id,
-        email: user.email,
-        is_super_admin: user.is_super_admin,
-        exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
-      };
+      const payload = this.createJwtPayload(user);
 
-      const session = await db.insert(sessionModel).values({
-        user_id: user.id ?? "",
-        refresh_token: randomUUIDv7().toString(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
-        user_agent: user_agent,
-      }).returning({
-        refresh_token: sessionModel.refresh_token,
-      });
+      const session = await db
+        .insert(sessionModel)
+        .values({
+          user_id: user.id ?? "",
+          refresh_token: randomUUIDv7().toString(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
+          user_agent: user_agent,
+        })
+        .returning({ refresh_token: sessionModel.refresh_token });
 
       const token = await sign(payload, config.jwt.secret);
 
-      // Log successful login
       await this.activityService.logActivity({
         userId: user.id,
         activityType: "login",
@@ -101,23 +108,18 @@ export class AuthService {
         status: "success",
       });
 
-      // Update last logged at timestamp
-      await db
-        .update(users)
-        .set({ last_logged_at: new Date().toISOString() })
-        .where(eq(users.id, user.id));
+      await this.updateLastLoggedAt(user.id);
 
       return { access_token: token, refresh_token: session[0].refresh_token };
     } catch (error) {
-      // If error is not already logged, log it
-      if (error instanceof Error && !error.message.includes("Invalid credentials")) {
+      if (!(error instanceof ApiError)) {
         await this.activityService.logActivity({
           userId: user?.id,
           activityType: "login_failed",
           ipAddress: ip_address,
           userAgent: user_agent,
           status: "failure",
-          errorMessage: error.message,
+          errorMessage: error instanceof Error ? error.message : "Unknown error",
         });
       }
       throw error;
@@ -126,46 +128,15 @@ export class AuthService {
 
   async signInWithGithub(githubUser: GithubUser, ip_address?: string, user_agent?: string) {
     try {
-      // Check if user with this GitHub ID already exists
       let user = await this.userService.getUserByGithubId(githubUser.id);
-      
-      // If user doesn't exist, create new user from GitHub data
+
       if (!user) {
-        try {
-          user = await this.userService.createUserFromGithub(githubUser);
-        } catch (error) {
-          // Log failed OAuth login
-          await this.activityService.logActivity({
-            activityType: "oauth_login_failed",
-            ipAddress: ip_address,
-            userAgent: user_agent,
-            status: "failure",
-            errorMessage: error instanceof Error ? error.message : "Unknown error",
-            metadata: { provider: "github", github_id: githubUser.id },
-          });
-          
-          // If email is already used by another account, throw clear error
-          if (
-            error instanceof Error &&
-            error.message.includes("already registered")
-          ) {
-            throw error;
-          }
-          // Re-throw other errors
-          throw error;
-        }
+        user = await this.userService.createUserFromGithub(githubUser);
       }
 
-      const payload = {
-        user_id: user.id,
-        email: user.email,
-        is_super_admin: user.is_super_admin,
-        exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
-      };
-
+      const payload = this.createJwtPayload(user);
       const token = await sign(payload, config.jwt.secret);
 
-      // Log successful OAuth login
       await this.activityService.logActivity({
         userId: user.id,
         activityType: "oauth_login",
@@ -175,25 +146,18 @@ export class AuthService {
         metadata: { provider: "github" },
       });
 
-      // Update last logged at timestamp
-      await db
-        .update(users)
-        .set({ last_logged_at: new Date().toISOString() })
-        .where(eq(users.id, user.id));
+      await this.updateLastLoggedAt(user.id);
 
       return { access_token: token };
     } catch (error) {
-      // Log error if not already logged
-      if (error instanceof Error && !error.message.includes("already registered")) {
-        await this.activityService.logActivity({
-          activityType: "oauth_login_failed",
-          ipAddress: ip_address,
-          userAgent: user_agent,
-          status: "failure",
-          errorMessage: error.message,
-          metadata: { provider: "github" },
-        });
-      }
+      await this.activityService.logActivity({
+        activityType: "oauth_login_failed",
+        ipAddress: ip_address,
+        userAgent: user_agent,
+        status: "failure",
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        metadata: { provider: "github" },
+      });
       throw error;
     }
   }
@@ -204,18 +168,10 @@ export class AuthService {
         algorithm: "bcrypt",
         cost: 12,
       });
-      data.password = hashedPassword;
-      const user = await this.userService.createUser(data);
-      const payload = {
-        user_id: user.id,
-        email: user.email,
-        is_super_admin: user.is_super_admin,
-        exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
-      };
-
+      const user = await this.userService.createUser({ ...data, password: hashedPassword });
+      const payload = this.createJwtPayload(user);
       const token = await sign(payload, config.jwt.secret);
 
-      // Log successful registration
       await this.activityService.logActivity({
         userId: user.id,
         activityType: "register",
@@ -226,7 +182,6 @@ export class AuthService {
 
       return { access_token: token };
     } catch (error) {
-      // Log failed registration
       await this.activityService.logActivity({
         activityType: "register",
         ipAddress: ip_address,
@@ -250,13 +205,11 @@ export class AuthService {
           redirect_uri: config.github.REDIRECT_URI,
         },
         {
-          headers: {
-            accept: "application/json",
-          },
+          headers: { accept: "application/json" },
         }
       );
 
-      return await tokenResponse.data.access_token;
+      return tokenResponse.data.access_token;
     } catch (error) {
       console.error("Failed to get GitHub token");
       throw Errors.ExternalServiceError("GitHub");
@@ -264,30 +217,20 @@ export class AuthService {
   }
 
   async checkUsername(username: string) {
-    const user = await this.userService.getUserCountByUsername(username);
-    if (user > 0) {
-      return true;
-    }
-    return false;
+    const count = await this.userService.getUserCountByUsername(username);
+    return count > 0;
   }
 
   async checkEmail(email: string) {
-    const user = await this.userService.getUserCountByEmail(email);
-    if (user > 0) {
-      return true;
-    }
-    return false;
+    const count = await this.userService.getUserCountByEmail(email);
+    return count > 0;
   }
+
   async refreshToken(refreshToken: string, ip_address?: string, user_agent?: string) {
     try {
       const session = await db.query.sessions.findFirst({
-        where: and(
-          eq(sessionModel.refresh_token, refreshToken),
-          // Add expiration check if you have a way to compare ISO strings or use native DB date comparison
-        ),
-        with: {
-          user: true,
-        },
+        where: eq(sessionModel.refresh_token, refreshToken),
+        with: { user: true },
       });
 
       if (
@@ -296,7 +239,6 @@ export class AuthService {
         !session.expires_at ||
         new Date(session.expires_at) < new Date()
       ) {
-        // Log failed token refresh
         await this.activityService.logActivity({
           activityType: "token_refresh",
           ipAddress: ip_address,
@@ -307,16 +249,9 @@ export class AuthService {
         throw Errors.Unauthorized();
       }
 
-      const payload = {
-        user_id: session.user.id,
-        email: session.user.email,
-        is_super_admin: session.user.is_super_admin,
-        exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60,
-      };
-
+      const payload = this.createJwtPayload(session.user);
       const token = await sign(payload, config.jwt.secret);
 
-      // Log successful token refresh
       await this.activityService.logActivity({
         userId: session.user.id,
         activityType: "token_refresh",
@@ -325,15 +260,11 @@ export class AuthService {
         status: "success",
       });
 
-      // Update last logged at timestamp on token refresh
-      await db
-        .update(users)
-        .set({ last_logged_at: new Date().toISOString() })
-        .where(eq(users.id, session.user.id));
+      await this.updateLastLoggedAt(session.user.id);
 
       return { access_token: token };
     } catch (error) {
-      if (!(error instanceof Error && error.message.includes("Unauthorized"))) {
+      if (!(error instanceof ApiError)) {
         await this.activityService.logActivity({
           activityType: "token_refresh",
           ipAddress: ip_address,
@@ -356,14 +287,7 @@ export class AuthService {
     try {
       const user = await this.userService.getUserWithPassword(userId);
 
-      if (
-        !(await Bun.password.verify(
-          currentPassword,
-          user?.password ?? "",
-          "bcrypt"
-        ))
-      ) {
-        // Log failed password change
+      if (!(await Bun.password.verify(currentPassword, user?.password ?? "", "bcrypt"))) {
         await this.activityService.logActivity({
           userId,
           activityType: "password_change",
@@ -375,13 +299,9 @@ export class AuthService {
         throw Errors.InvalidCredentials();
       }
 
-      const hashedPassword = Bun.password.hashSync(newPassword, {
-        algorithm: "bcrypt",
-      });
-
+      const hashedPassword = Bun.password.hashSync(newPassword, { algorithm: "bcrypt" });
       const result = await this.userService.updatePassword(userId, hashedPassword);
 
-      // Log successful password change
       await this.activityService.logActivity({
         userId,
         activityType: "password_change",
@@ -392,7 +312,7 @@ export class AuthService {
 
       return result;
     } catch (error) {
-      if (!(error instanceof Error && error.message.includes("Invalid credentials"))) {
+      if (!(error instanceof ApiError)) {
         await this.activityService.logActivity({
           userId,
           activityType: "password_change",
@@ -408,19 +328,18 @@ export class AuthService {
 
   async requestPasswordReset(email: string, ip_address?: string, user_agent?: string) {
     const user = await this.userService.getUserByEmailRaw(email);
-    
+
     if (!user) {
       // Return success even if user doesn't exist (security best practice)
       return {
         message: "If the email exists, a password reset link has been sent",
-        ...(process.env.NODE_ENV === "development" && { token: null, resetLink: null })
+        ...(process.env.NODE_ENV === "development" && { token: null, resetLink: null }),
       };
     }
 
     try {
-      // Generate a secure random token
       const token = randomUUIDv7().toString();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       // Delete any existing unused tokens for this user
       await db
@@ -432,7 +351,6 @@ export class AuthService {
           )
         );
 
-      // Create new reset token
       await db.insert(passwordResetTokensModel).values({
         id: randomUUIDv7(),
         user_id: user.id,
@@ -440,7 +358,6 @@ export class AuthService {
         expires_at: expiresAt.toISOString(),
       });
 
-      // Log password reset request
       await this.activityService.logActivity({
         userId: user.id,
         activityType: "password_reset_request",
@@ -449,15 +366,11 @@ export class AuthService {
         status: "success",
       });
 
-      // TODO: Send email with reset link
-      // For now, we'll return the token (in production, this should be sent via email)
-      // Example reset link: https://yourapp.com/reset-password?token=${token}
       const resetLink = `${config.frontend.resetPasswordUrl}?token=${token}`;
 
       return {
         message: "If the email exists, a password reset link has been sent",
-        // Remove this in production - only for development
-        ...(process.env.NODE_ENV === "development" && { token, resetLink })
+        ...(process.env.NODE_ENV === "development" && { token, resetLink }),
       };
     } catch (error) {
       await this.activityService.logActivity({
@@ -474,19 +387,15 @@ export class AuthService {
 
   async resetPassword(token: string, newPassword: string, ip_address?: string, user_agent?: string) {
     try {
-      // Find the token
       const resetToken = await db.query.password_reset_tokens.findFirst({
         where: and(
           eq(passwordResetTokensModel.token, token),
           isNull(passwordResetTokensModel.used_at)
         ),
-        with: {
-          user: true,
-        },
+        with: { user: true },
       });
 
       if (!resetToken) {
-        // Log failed password reset
         await this.activityService.logActivity({
           activityType: "password_reset",
           ipAddress: ip_address,
@@ -497,9 +406,7 @@ export class AuthService {
         throw Errors.InvalidInput("token", "Invalid or expired reset token");
       }
 
-      // Check if token is expired
       if (new Date(resetToken.expires_at) < new Date()) {
-        // Log failed password reset
         await this.activityService.logActivity({
           userId: resetToken.user_id,
           activityType: "password_reset",
@@ -511,27 +418,21 @@ export class AuthService {
         throw Errors.InvalidInput("token", "Reset token has expired");
       }
 
-      // Hash the new password
       const hashedPassword = Bun.password.hashSync(newPassword, {
         algorithm: "bcrypt",
         cost: 12,
       });
 
-      // Update user password
       await this.userService.updatePassword(resetToken.user_id, hashedPassword);
 
-      // Mark token as used
       await db
         .update(passwordResetTokensModel)
         .set({ used_at: new Date().toISOString() })
         .where(eq(passwordResetTokensModel.token, token));
 
-      // Optionally: Invalidate all existing sessions for this user
-      await db
-        .delete(sessionModel)
-        .where(eq(sessionModel.user_id, resetToken.user_id));
+      // Invalidate all existing sessions for security
+      await db.delete(sessionModel).where(eq(sessionModel.user_id, resetToken.user_id));
 
-      // Log successful password reset
       await this.activityService.logActivity({
         userId: resetToken.user_id,
         activityType: "password_reset",
@@ -542,7 +443,7 @@ export class AuthService {
 
       return { message: "Password has been reset successfully" };
     } catch (error) {
-      if (!(error instanceof Error && error.message.includes("Invalid"))) {
+      if (!(error instanceof ApiError)) {
         await this.activityService.logActivity({
           activityType: "password_reset",
           ipAddress: ip_address,
@@ -556,7 +457,6 @@ export class AuthService {
   }
 
   async cleanupExpiredTokens() {
-    // Clean up expired tokens (can be run as a cron job)
     const now = new Date().toISOString();
     await db
       .delete(passwordResetTokensModel)
