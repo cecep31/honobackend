@@ -84,7 +84,7 @@ export class PostQueryHelpers {
     return {
       ...post,
       body: post.body_snippet ? post.body_snippet + "..." : "",
-      creator: post.user,
+      user: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     };
   }
@@ -92,7 +92,7 @@ export class PostQueryHelpers {
   static transformPostWithRelations(post: any) {
     return {
       ...post,
-      creator: post.user,
+      user: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     };
   }

@@ -82,7 +82,7 @@ export class PostService {
     return posts.map((post) => ({
       ...post,
       body: post.body ? post.body + "..." : "",
-      creator: post.user,
+      user: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     }));
   }
@@ -176,7 +176,7 @@ export class PostService {
 
     return {
       ...post,
-      creator: post.user,
+      user: post.user,
       tags: post.posts_to_tags.map((t) => t.tag),
     };
   }
@@ -216,7 +216,7 @@ export class PostService {
       published: post.published,
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
-      creator: post.user,
+      user: post.user,
       tags: post.posts_to_tags.map((tag: any) => tag.tag),
     }));
 
@@ -254,7 +254,7 @@ export class PostService {
         slug: postsModel.slug,
         body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
         created_at: postsModel.created_at,
-        creator: {
+        user: {
           id: usersModel.id,
           username: usersModel.username,
           email: usersModel.email,
@@ -379,7 +379,7 @@ export class PostService {
         created_at: postsModel.created_at,
         view_count: postsModel.view_count,
         like_count: postsModel.like_count,
-        creator: {
+        user: {
           id: usersModel.id,
           username: usersModel.username,
           email: usersModel.email,
@@ -507,7 +507,7 @@ export class PostService {
       limit,
     });
 
-    return posts.map((post) => ({ ...post, creator: post.user }));
+    return posts.map((post) => ({ ...post, user: post.user }));
   }
 
   /**
