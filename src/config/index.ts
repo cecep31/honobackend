@@ -16,6 +16,16 @@ function getNumberEnv(key: string, defaultValue: number): number {
   return isNaN(num) ? defaultValue : num;
 }
 
+function validateDatabaseUrl(): string {
+  const url = process.env["DATABASE_URL"];
+  if (!url || url === "") {
+    throw new Error(
+      "DATABASE_URL is not set. Please configure a valid PostgreSQL connection URL."
+    );
+  }
+  return url;
+}
+
 function getMainDomain(): string | undefined {
   const domain = process.env["MAIN_DOMAIN"];
   return domain && domain !== "" ? domain : "pilput.net";
@@ -65,7 +75,7 @@ const getConfig = {
   rateLimiter: process.env["RATE_LIMITER"] === "true",
   rateLimitConfig,
   database: {
-    url: process.env["DATABASE_URL"] ?? "",
+    url: validateDatabaseUrl(),
     max_connections: getNumberEnv("DB_MAX_CONNECTIONS", 20),
     idle_timeout: getNumberEnv("DB_IDLE_TIMEOUT", 30),
     connect_timeout: getNumberEnv("DB_CONNECT_TIMEOUT", 5),

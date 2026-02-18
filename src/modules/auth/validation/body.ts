@@ -86,6 +86,10 @@ export const resetPasswordSchema = z
     path: ["new_password"],
   });
 
+export const refreshTokenSchema = z.object({
+  refresh_token: z.string().min(1, "Refresh token is required"),
+});
+
 export const updateEmailSchema = z.object({
   email: z.string().email("Invalid email address"),
 });

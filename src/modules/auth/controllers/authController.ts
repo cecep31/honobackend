@@ -10,6 +10,7 @@ import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
 import { sendSuccess } from "../../../utils/response";
 import { Errors } from "../../../utils/error";
+import { getClientIp } from "../../../utils/request";
 import {
   activityLogsQuerySchema,
   activityLogsRecentQuerySchema,
@@ -17,6 +18,7 @@ import {
   failedLoginsQuerySchema,
   githubCallbackQuerySchema,
   loginSchema,
+  refreshTokenSchema,
   registerSchema,
   updatePasswordSchema,
   usernameSchema,
@@ -84,10 +86,7 @@ authController.get(
       }
 
       // Sign in or create user with full GitHub user data
-      const ipAddress =
-        c.req.header("x-forwarded-for") ||
-        c.req.header("x-real-ip") ||
-        c.req.header("cf-connecting-ip");
+      const ipAddress = getClientIp(c);
       const userAgent = c.req.header("User-Agent");
       const jwtToken = await authService.signInWithGithub(
         githubUserData,
@@ -133,10 +132,7 @@ authController.post(
   async (c) => {
     const body = c.req.valid("json");
     const { email, password } = body;
-    const ipAddress =
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip");
+    const ipAddress = getClientIp(c);
     const userAgent = c.req.header("User-Agent");
     const token = await authService.signIn(
       email,
@@ -153,10 +149,7 @@ authController.post(
   validateRequest("json", registerSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const ipAddress =
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip");
+    const ipAddress = getClientIp(c);
     const userAgent = c.req.header("User-Agent");
     const token = await authService.signUp(body, ipAddress, userAgent);
     return sendSuccess(c, token, "User created successfully", 201);
@@ -184,16 +177,9 @@ authController.get(
   },
 );
 
-authController.post("/refresh-token", async (c) => {
-  const body = await c.req.json();
-  const refreshToken = body.refresh_token;
-  if (!refreshToken) {
-    throw Errors.InvalidInput("refresh_token", "Refresh token is required");
-  }
-  const ipAddress =
-    c.req.header("x-forwarded-for") ||
-    c.req.header("x-real-ip") ||
-    c.req.header("cf-connecting-ip");
+authController.post("/refresh-token", validateRequest("json", refreshTokenSchema), async (c) => {
+  const { refresh_token: refreshToken } = c.req.valid("json");
+  const ipAddress = getClientIp(c);
   const userAgent = c.req.header("User-Agent");
   const result = await authService.refreshToken(
     refreshToken,
@@ -227,14 +213,11 @@ authController.patch(
   auth,
   validateRequest("json", updatePasswordSchema),
   async (c) => {
-    const body = c.req.valid("json");
-    const user = c.get("user");
-    const ipAddress =
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip");
-    const userAgent = c.req.header("User-Agent");
-    const result = await authService.updatePassword(
+  const body = c.req.valid("json");
+  const user = c.get("user");
+  const ipAddress = getClientIp(c);
+  const userAgent = c.req.header("User-Agent");
+  const result = await authService.updatePassword(
       body.old_password,
       body.new_password,
       user.user_id,
@@ -261,10 +244,7 @@ authController.post(
   validateRequest("json", forgotPasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const ipAddress =
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip");
+    const ipAddress = getClientIp(c);
     const userAgent = c.req.header("User-Agent");
     const result = await authService.requestPasswordReset(
       body.email,
@@ -291,10 +271,7 @@ authController.post(
   validateRequest("json", resetPasswordSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const ipAddress =
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip");
+    const ipAddress = getClientIp(c);
     const userAgent = c.req.header("User-Agent");
     const result = await authService.resetPassword(
       body.token,

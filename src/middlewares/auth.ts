@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { verify } from "hono/jwt";
 import config from "../config";
-import { Errors } from "../utils/error";
+import { ApiError, Errors } from "../utils/error";
 import type { Variables } from "../types/context";
 import type { jwtPayload } from "../types/auth";
 
@@ -30,7 +30,7 @@ export const auth = createMiddleware<{ Variables: Variables }>(async (c, next) =
     const userPayload = payload as unknown as jwtPayload;
     c.set("user", userPayload);
   } catch (error) {
-    if (error instanceof Error && error.name === "ApiError") {
+    if (error instanceof ApiError) {
       throw error;
     }
     c.res.headers.set("WWW-Authenticate", 'Bearer error="invalid_token"');

@@ -131,7 +131,74 @@ postController.get("/all", auth, superAdminMiddleware, async (c) => {
   return sendSuccess(c, posts, "All posts fetched successfully");
 });
 
-// Get post by id (auth required, owner only)
+// Chart endpoints — must be registered BEFORE /:id to prevent route shadowing.
+// Hono matches routes in registration order; /:id would otherwise capture /charts/* requests.
+postController.get(
+  "/charts/posts-over-time",
+  validateRequest("query", postsOverTimeQuerySchema),
+  async (c) => {
+    const { days, groupBy } = c.req.valid("query");
+    const data = await postService.getPostsOverTime(days, groupBy);
+    return sendSuccess(c, data, "Posts over time data fetched successfully");
+  }
+);
+
+postController.get(
+  "/charts/posts-by-tag",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getPostsByTagDistribution(limit);
+    return sendSuccess(c, data, "Posts by tag distribution fetched successfully");
+  }
+);
+
+postController.get(
+  "/charts/top-by-views",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getTopPostsByViews(limit);
+    return sendSuccess(c, data, "Top posts by views fetched successfully");
+  }
+);
+
+postController.get(
+  "/charts/top-by-likes",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getTopPostsByLikes(limit);
+    return sendSuccess(c, data, "Top posts by likes fetched successfully");
+  }
+);
+
+postController.get(
+  "/charts/user-activity",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getUserActivity(limit);
+    return sendSuccess(c, data, "User activity data fetched successfully");
+  }
+);
+
+postController.get("/charts/engagement-metrics", async (c) => {
+  const data = await postService.getEngagementMetrics();
+  return sendSuccess(c, data, "Engagement metrics fetched successfully");
+});
+
+postController.get(
+  "/charts/engagement-comparison",
+  validateRequest("query", chartLimitQuerySchema),
+  async (c) => {
+    const { limit } = c.req.valid("query");
+    const data = await postService.getEngagementComparison(limit);
+    return sendSuccess(c, data, "Engagement comparison data fetched successfully");
+  }
+);
+
+// Get post by id (auth required, owner only) — keep this AFTER all static/prefix GET routes
 postController.get(
   "/:id",
   auth,
@@ -229,68 +296,3 @@ postController.post("/upload/image", auth, async (c) => {
   return sendSuccess(c, { url }, "Image uploaded successfully", 201);
 });
 
-// Chart endpoints
-postController.get(
-  "/charts/posts-over-time",
-  validateRequest("query", postsOverTimeQuerySchema),
-  async (c) => {
-    const { days, groupBy } = c.req.valid("query");
-    const data = await postService.getPostsOverTime(days, groupBy);
-    return sendSuccess(c, data, "Posts over time data fetched successfully");
-  }
-);
-
-postController.get(
-  "/charts/posts-by-tag",
-  validateRequest("query", chartLimitQuerySchema),
-  async (c) => {
-    const { limit } = c.req.valid("query");
-    const data = await postService.getPostsByTagDistribution(limit);
-    return sendSuccess(c, data, "Posts by tag distribution fetched successfully");
-  }
-);
-
-postController.get(
-  "/charts/top-by-views",
-  validateRequest("query", chartLimitQuerySchema),
-  async (c) => {
-    const { limit } = c.req.valid("query");
-    const data = await postService.getTopPostsByViews(limit);
-    return sendSuccess(c, data, "Top posts by views fetched successfully");
-  }
-);
-
-postController.get(
-  "/charts/top-by-likes",
-  validateRequest("query", chartLimitQuerySchema),
-  async (c) => {
-    const { limit } = c.req.valid("query");
-    const data = await postService.getTopPostsByLikes(limit);
-    return sendSuccess(c, data, "Top posts by likes fetched successfully");
-  }
-);
-
-postController.get(
-  "/charts/user-activity",
-  validateRequest("query", chartLimitQuerySchema),
-  async (c) => {
-    const { limit } = c.req.valid("query");
-    const data = await postService.getUserActivity(limit);
-    return sendSuccess(c, data, "User activity data fetched successfully");
-  }
-);
-
-postController.get("/charts/engagement-metrics", async (c) => {
-  const data = await postService.getEngagementMetrics();
-  return sendSuccess(c, data, "Engagement metrics fetched successfully");
-});
-
-postController.get(
-  "/charts/engagement-comparison",
-  validateRequest("query", chartLimitQuerySchema),
-  async (c) => {
-    const { limit } = c.req.valid("query");
-    const data = await postService.getEngagementComparison(limit);
-    return sendSuccess(c, data, "Engagement comparison data fetched successfully");
-  }
-);

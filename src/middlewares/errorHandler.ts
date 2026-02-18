@@ -83,8 +83,8 @@ export function withErrorHandling(handler: (c: Context) => Promise<Response>) {
     try {
       return await handler(c);
     } catch (error) {
-      const handler = c.env?.errorHandler || errorHandler();
-      return handler(error, c);
+      const errHandler = errorHandler();
+      return errHandler(error, c);
     }
   };
 }
