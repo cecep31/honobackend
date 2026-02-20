@@ -137,11 +137,12 @@ authController.post(
   validateRequest("json", loginSchema),
   async (c) => {
     const body = c.req.valid("json");
-    const { email, password } = body;
+    const { identifier, email, password } = body;
+    const loginIdentifier = identifier ?? email ?? "";
     const ipAddress = getClientIp(c);
     const userAgent = c.req.header("User-Agent");
     const token = await authService.signIn(
-      email,
+      loginIdentifier,
       password,
       userAgent ?? "",
       ipAddress,

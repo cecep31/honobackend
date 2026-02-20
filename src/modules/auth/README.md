@@ -45,7 +45,7 @@ GET /oauth/github/callback?code=your_authorization_code
 ---
 
 ### 3. Login
-Authenticate user with email and password.
+Authenticate user with email/username and password.
 
 - **URL:** `/login`
 - **Method:** `POST`
@@ -55,7 +55,7 @@ Authenticate user with email and password.
 **Request Body:**
 ```json
 {
-  "email": "user@example.com",
+  "identifier": "user@example.com",
   "password": "your_password"
 }
 ```
@@ -63,14 +63,14 @@ Authenticate user with email and password.
 **Validation Rules:**
 | Field | Type | Rules |
 |-------|------|-------|
-| email | string | Min 5 chars, max 254 chars, valid email format |
+| identifier | string | Min 3 chars, max 254 chars, can be email or username |
 | password | string | Min 6 chars, max 25 chars |
 
 **Example Request:**
 ```bash
 curl -X POST /v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "password123"}'
+  -d '{"identifier": "user@example.com", "password": "password123"}'
 ```
 
 **Response (200):**

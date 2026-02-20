@@ -2,8 +2,12 @@ import { z } from "zod";
 import { validatePassword } from "../../../utils/password";
 
 export const loginSchema = z.object({
-  email: z.string().min(5).max(254),
+  identifier: z.string().min(3).max(254).optional(),
+  email: z.string().min(5).max(254).optional(),
   password: z.string().min(6).max(25),
+}).refine((data) => Boolean(data.identifier || data.email), {
+  message: 'identifier or email is required',
+  path: ['identifier'],
 });
 
 export const registerSchema = z.object({
