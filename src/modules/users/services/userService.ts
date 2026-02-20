@@ -32,7 +32,7 @@ export class UserService {
     try {
       const { limit, offset } = params;
       const data = await db.query.users.findMany({
-        columns: { password: false },
+        columns: { password: false, github_id: false },
         orderBy: [desc(usersModel.created_at)],
         where: isNull(usersModel.deleted_at),
         limit,
@@ -60,7 +60,7 @@ export class UserService {
   async getUser(id: string) {
     try {
       return await db.query.users.findFirst({
-        columns: { password: false },
+        columns: { password: false, last_logged_at: false, github_id: false },
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
@@ -78,7 +78,7 @@ export class UserService {
   async getUserMe(id: string, profile = false) {
     try {
       return await db.query.users.findFirst({
-        columns: { password: false },
+        columns: { password: false, last_logged_at: false, github_id: false },
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
         ...(profile && { with: { profiles: true } }),
       });
@@ -473,7 +473,7 @@ export class UserService {
   async getUserProfile(id: string) {
     try {
       return await db.query.users.findFirst({
-        columns: { password: false },
+        columns: { password: false, last_logged_at: false, github_id: false },
         with: { profiles: true },
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
       });
@@ -535,7 +535,7 @@ export class UserService {
   async getUserByUsername(username: string) {
     try {
       return await db.query.users.findFirst({
-        columns: { password: false },
+        columns: { password: false, last_logged_at: false, github_id: false },
         with: { profiles: true },
         where: and(
           eq(usersModel.username, username),

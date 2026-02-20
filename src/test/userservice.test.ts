@@ -110,6 +110,7 @@ describe('UserService', () => {
       expect(result.meta).toHaveProperty('total_items');
       expect(result.meta.total_items).toBe(2);
       expect(mockUserFindMany).toHaveBeenCalled();
+      expect(result.data[0]).not.toHaveProperty('github_id');
     });
 
     it('handles database errors', async () => {
@@ -135,6 +136,8 @@ describe('UserService', () => {
 
       expect(result).toEqual(mockUser);
       expect(mockUserFindFirst).toHaveBeenCalled();
+      expect(result).not.toHaveProperty('last_logged_at');
+      expect(result).not.toHaveProperty('github_id');
     });
 
     it('returns null when user not found', async () => {
@@ -166,6 +169,8 @@ describe('UserService', () => {
 
       expect(result).toEqual(mockUser);
       expect(mockUserFindFirst).toHaveBeenCalled();
+      expect(result).not.toHaveProperty('last_logged_at');
+      expect(result).not.toHaveProperty('github_id');
     });
 
     it('returns user with profile when profile flag is true', async () => {
@@ -457,6 +462,8 @@ describe('UserService', () => {
 
       expect(result).toEqual(mockUser);
       expect(result).toHaveProperty('profiles');
+      expect(result).not.toHaveProperty('last_logged_at');
+      expect(result).not.toHaveProperty('github_id');
     });
   });
 
