@@ -1,18 +1,17 @@
 import { describe, it, expect, mock } from 'bun:test';
 import { Hono } from 'hono';
 import { testClient } from 'hono/testing';
-import { userController } from '../modules/users/controllers/userController';
-import { auth } from '../middlewares/auth'; // Import the actual auth middleware
 import { errorHandler } from '../middlewares/errorHandler';
-import { sendSuccess } from '../utils/response';
-import { userService } from '../services';
 
-// Mock hono/jwt to control the verify function
-mock.module('hono/jwt', () => ({
-  verify: mock(async (token, secret, algo) => {
-    // Return a mock decoded payload
-    return { user_id: 'test-user-id', role: 'user' };
-  }),
+mock.module('../middlewares/auth', () => ({
+  auth: async (c: any, next: any) => {
+    c.set('user', {
+      user_id: 'test-user-id',
+      email: 'test@example.com',
+      is_super_admin: false,
+    });
+    await next();
+  },
 }));
 
 // Mock the user service
@@ -26,6 +25,9 @@ mock.module('../services/index', () => ({
     }),
   },
 }));
+
+const { userController } = await import('../modules/users/controllers/userController');
+const { userService } = await import('../services');
 
 describe('User Image Update Endpoint', () => {
   const app = new Hono();
@@ -50,7 +52,7 @@ describe('User Image Update Endpoint', () => {
       },
       {
         headers: {
-          Authorization: 'Bearer fake-token', // Provide a fake token for the auth middleware
+          Authorization: 'Bearer test-token',
         },
       }
     );
@@ -81,7 +83,7 @@ describe('User Image Update Endpoint', () => {
       },
       {
         headers: {
-          Authorization: 'Bearer fake-token',
+          Authorization: 'Bearer test-token',
         },
       }
     );
