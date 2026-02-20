@@ -9,7 +9,9 @@ export class PostQueryHelpers {
     return {
       where: isNull(postsModel.deleted_at),
       with: {
-        user: { columns: { password: false } },
+        user: {
+          columns: { password: false, github_id: false, last_logged_at: false },
+        },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
     };
@@ -19,7 +21,9 @@ export class PostQueryHelpers {
     return {
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
       with: {
-        user: { columns: { password: false } },
+        user: {
+          columns: { password: false, github_id: false, last_logged_at: false },
+        },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
     };
@@ -32,7 +36,9 @@ export class PostQueryHelpers {
         body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
       },
       with: {
-        user: { columns: { password: false } },
+        user: {
+          columns: { password: false, github_id: false, last_logged_at: false },
+        },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
     };
