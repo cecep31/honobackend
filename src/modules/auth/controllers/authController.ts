@@ -22,8 +22,6 @@ import {
   registerSchema,
   updatePasswordSchema,
   usernameSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
   checkUsernameSchema,
 } from "../validation";
 
@@ -232,43 +230,6 @@ authController.patch(
       userAgent,
     );
     return sendSuccess(c, result, "Password updated successfully");
-  },
-);
-
-// Forgot password - request password reset
-authController.post(
-  "/forgot-password",
-  createRateLimiter(15 * 60 * 1000, 3), // 3 requests per 15 minutes
-  validateRequest("json", forgotPasswordSchema),
-  async (c) => {
-    const body = c.req.valid("json");
-    const ipAddress = getClientIp(c);
-    const userAgent = c.req.header("User-Agent");
-    const result = await authService.requestPasswordReset(
-      body.email,
-      ipAddress,
-      userAgent,
-    );
-    return sendSuccess(c, result, result.message);
-  },
-);
-
-// Reset password - actually reset the password with token
-authController.post(
-  "/reset-password",
-  createRateLimiter(15 * 60 * 1000, 5), // 5 requests per 15 minutes
-  validateRequest("json", resetPasswordSchema),
-  async (c) => {
-    const body = c.req.valid("json");
-    const ipAddress = getClientIp(c);
-    const userAgent = c.req.header("User-Agent");
-    const result = await authService.resetPassword(
-      body.token,
-      body.new_password,
-      ipAddress,
-      userAgent,
-    );
-    return sendSuccess(c, result, result.message);
   },
 );
 

@@ -1,94 +1,76 @@
-# Project Overview
+# GEMINI.md - Hono Backend
 
-This is a high-performance backend API built with **Hono** on the **Bun** runtime, using **PostgreSQL** with **Drizzle ORM**. It features a service-oriented architecture, where business logic and data access are integrated in the service layer.
+## Project Overview
+
+This is a high-performance backend API built with **Hono** running on the **Bun** runtime. It uses **PostgreSQL** as the primary database, with **Drizzle ORM** for type-safe database access and migrations.
+
+The project follows a **Service-Oriented Architecture**, where business logic and data access are encapsulated in the service layer, separated from controllers and routing.
 
 **Key Technologies:**
+- **Framework:** Hono
+- **Runtime:** Bun
+- **Database:** PostgreSQL
+- **ORM:** Drizzle ORM
+- **Validation:** Zod (via `@hono/zod-validator`)
+- **Language:** TypeScript
 
-*   **Framework:** Hono
-*   **Runtime:** Bun
-*   **Database:** PostgreSQL
-*   **ORM:** Drizzle
-*   **Language:** TypeScript
+## Building and Running
 
-**Features:**
+### Prerequisites
+- [Bun](https://bun.sh/) runtime installed.
+- PostgreSQL database instance.
 
-*   Authentication and user management
-*   Content management (posts, tags, comments, likes)
-*   Social features (bookmarks, follows)
-*   Chat functionality (via OpenRouter)
-*   Request validation with Zod
+### Commands
+- **Install dependencies:** `bun install`
+- **Development:** `bun run dev` (hot-reloading at `http://localhost:3001`)
+- **Build:** `bun run build` (outputs to `dist/`)
+- **Production Start:** `bun run start:prod`
+- **Type Checking:** `bun run typecheck`
+- **Formatting:** `bun run format` (Prettier)
 
-# Building and Running
+### Database Management
+- **Generate migrations:** `bun run db:generate`
+- **Push schema to DB:** `bun run db:push`
+- **Run migrations:** `bun run db:migrate` (via `README.md` reference)
+- **Drizzle Studio:** `bun run db:studio`
 
-**Installation:**
+### Testing
+- **Run tests:** `bun test`
+- **Watch mode:** `bun test:watch`
+- **Coverage:** `bun test:coverage`
 
-```bash
-bun install
-```
+## Development Conventions
 
-**Development:**
+### Architecture: Service-Oriented
+The codebase is organized into modules under `src/modules/`. Each module typically contains:
+- `controllers/`: Hono route handlers.
+- `services/`: Business logic and database operations (using Drizzle).
+- `validation/`: Zod schemas for request validation (body, query, params).
 
-To run the development server with hot-reloading:
+### Routing
+Routes are defined modularly within each controller and aggregated in `src/router/index.ts`. The API is versioned under `/v1`.
 
-```bash
-bun run dev
-```
+### Request Validation
+Use the `validateRequest` middleware (in `src/middlewares/validateRequest.ts`) to validate incoming requests against Zod schemas.
 
-The application will be available at `http://localhost:3001`.
+### Error Handling
+A centralized error handling system is used:
+- `src/utils/error.ts`: Defines `ApiError`, `Errors` utility, and error codes.
+- `src/middlewares/errorHandler.ts`: Global middleware to catch and format errors consistently.
 
-**Building for Production:**
+### Database Patterns
+- Schemas are defined in `src/database/schemas/postgre/schema.ts`.
+- Database instance is exported from `src/database/drizzle.ts`.
+- Prefer using Drizzle's `tx` (transaction) for multi-step operations in services.
 
-To build the project for production:
+### Coding Style
+- **Naming:** CamelCase for files/classes, camelCase for variables/functions.
+- **Formatting:** Prettier is enforced (`bun run format`).
+- **BigInt:** Custom JSON serialization for BigInt is handled in `src/server/app.ts`.
 
-```bash
-bun run build
-```
-
-This will create a production-ready build in the `dist/` directory.
-
-**Running in Production:**
-
-To start the production server:
-
-```bash
-bun run start:prod
-```
-
-# Testing
-
-To run the test suite:
-
-```bash
-bun test
-```
-
-To run tests in watch mode:
-
-```bash
-bun test:watch
-```
-
-To generate a test coverage report:
-
-```bash
-bun test:coverage
-```
-
-# Database Management
-
-This project uses Drizzle ORM for database migrations and management.
-
-*   **Generate migrations:** `bun run db:generate`
-*   **Apply migrations:** `bun run db:push`
-*   **Drizzle Studio:** `bun run db:studio` (launches a GUI for the database)
-
-# Development Conventions
-
-*   **Code Style:** The project uses Prettier for code formatting. To format the code, run:
-    ```bash
-    bun run format
-    ```
-*   **Architecture:** The project follows a service-oriented architecture. Business logic is handled in service files (e.g., `userService.ts`), which are then used by controllers.
-*   **Validation:** Request validation is done using Zod. Validation schemas are defined in the `validation` directory of each module.
-*   **Routing:** Routes are defined in controller files within each module (e.g., `src/modules/users/controllers/userController.ts`) and then aggregated in `src/router/index.ts`.
-*   **Error Handling:** A custom error handler is used to manage errors. See `src/middlewares/errorHandler.ts`.
+## Key Files
+- `index.ts`: Entry point.
+- `src/server/app.ts`: Hono app initialization and global middleware.
+- `src/router/index.ts`: Centralized route registration.
+- `src/database/schemas/postgre/schema.ts`: Single source of truth for DB schema.
+- `src/utils/error.ts`: Standardized error responses.

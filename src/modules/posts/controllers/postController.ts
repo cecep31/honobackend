@@ -273,16 +273,19 @@ postController.post("/upload/image", auth, async (c) => {
     throw Errors.InvalidInput("image", "Invalid file type. Allowed: JPEG, PNG, GIF, WebP");
   }
 
-  // Validate file size (5MB limit)
-  const maxSize = 5 * 1024 * 1024;
-  if (file.size > maxSize) {
-    throw Errors.InvalidInput("image", "File size exceeds 5MB limit");
-  }
+  // Map MIME types to safe extensions
+  const mimeToExtension: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+  };
+
+  const extension = mimeToExtension[file.type] || "jpg";
 
   // Generate unique key for the file
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
-  const extension = file.name.split(".").pop() || "jpg";
   const key = `posts/${authUser.user_id}/${timestamp}-${randomStr}.${extension}`;
 
   // Get file buffer
