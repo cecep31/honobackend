@@ -81,14 +81,18 @@ export class ChatService {
   }
 
   async getConversation(conversationId: string, userId: string) {
-    const conversation = await db.select()
-      .from(chat_conversations)
-      .where(and(
-        eq(chat_conversations.id, conversationId),
-        eq(chat_conversations.user_id, userId)
-      ))
-      .limit(1)
-      .then(rows => rows[0] || null);
+    const conversation = await db.query.chat_conversations.findFirst({
+      where: (chat_conversations, { eq, and }) =>
+        and(
+          eq(chat_conversations.id, conversationId),
+          eq(chat_conversations.user_id, userId)
+        ),
+      with: {
+        chatMessages: {
+          orderBy: (chatMessages, { asc }) => [asc(chatMessages.created_at)],
+        },
+      },
+    });
 
     if (!conversation) {
       throw Errors.NotFound("Conversation");
