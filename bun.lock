@@ -157,7 +157,7 @@
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
 
-    "hono": ["hono@4.12.0", "", {}, "sha512-NekXntS5M94pUfiVZ8oXXK/kkri+5WpX2/Ik+LVsl+uvw+soj4roXIsPqO+XsWrAw20mOzaXOZf3Q7PfB9A/IA=="],
+    "hono": ["hono@4.12.1", "", {}, "sha512-hi9afu8g0lfJVLolxElAZGANCTTl6bewIdsRNhaywfP9K8BPf++F2z6OLrYGIinUwpRKzbZHMhPwvc0ZEpAwGw=="],
 
     "hono-rate-limiter": ["hono-rate-limiter@0.5.3", "", { "peerDependencies": { "hono": "^4.10.8", "unstorage": "^1.17.3" }, "optionalPeers": ["unstorage"] }, "sha512-M0DxbVMpPELEzLi0AJg1XyBHLGJXz7GySjsPoK+gc5YeeBsdGDGe+2RvVuCAv8ydINiwlbxqYMNxUEyYfRji/A=="],
 
