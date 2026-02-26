@@ -177,6 +177,16 @@ export class AuthService {
       const payload = this.createJwtPayload(user);
       const token = await sign(payload, config.jwt.secret);
 
+      const session = await db
+        .insert(sessionModel)
+        .values({
+          user_id: user.id ?? "",
+          refresh_token: randomUUIDv7().toString(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          user_agent: user_agent,
+        })
+        .returning({ refresh_token: sessionModel.refresh_token });
+
       await this.activityService.logActivity({
         userId: user.id,
         activityType: "register",
@@ -185,7 +195,7 @@ export class AuthService {
         status: "success",
       });
 
-      return { access_token: token };
+      return { access_token: token, refresh_token: session[0].refresh_token };
     } catch (error) {
       await this.activityService.logActivity({
         activityType: "register",

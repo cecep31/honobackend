@@ -157,7 +157,7 @@ authController.post(
     const ipAddress = getClientIp(c);
     const userAgent = c.req.header("User-Agent");
     const token = await authService.signUp(body, ipAddress, userAgent);
-    return sendSuccess(c, token, "User created successfully", 201);
+    return sendSuccess(c, token, "User registered successfully", 201);
   },
 );
 
