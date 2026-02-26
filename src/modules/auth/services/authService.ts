@@ -167,7 +167,13 @@ export class AuthService {
         algorithm: "bcrypt",
         cost: 12,
       });
-      const user = await this.userService.createUser({ ...data, password: hashedPassword });
+      const signupPayload = {
+        ...data,
+        password: hashedPassword,
+        first_name: data.username,
+        last_name: null,
+      };
+      const user = await this.userService.createUser(signupPayload);
       const payload = this.createJwtPayload(user);
       const token = await sign(payload, config.jwt.secret);
 
