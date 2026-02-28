@@ -21,7 +21,6 @@ import {
   refreshTokenSchema,
   registerSchema,
   updatePasswordSchema,
-  usernameSchema,
   checkUsernameSchema,
 } from "../validation";
 
