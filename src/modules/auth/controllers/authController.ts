@@ -9,6 +9,7 @@ import { rateLimiter } from "hono-rate-limiter";
 import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
 import { sendSuccess } from "../../../utils/response";
+import { getPaginationMetadata } from "../../../utils/paginate";
 import { Errors } from "../../../utils/error";
 import { getClientIp } from "../../../utils/request";
 import {
@@ -259,16 +260,10 @@ authController.get(
 
     return sendSuccess(
       c,
-      {
-        logs,
-        pagination: {
-          total,
-          limit,
-          offset,
-          hasMore: offset + logs.length < total,
-        },
-      },
+      logs,
       "Activity logs retrieved successfully",
+      200,
+      getPaginationMetadata(total, offset, limit)
     );
   },
 );

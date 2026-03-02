@@ -3,6 +3,7 @@ import { db } from "../../../database/drizzle";
 import { and, eq, isNull, desc, count } from "drizzle-orm";
 import { Errors } from "../../../utils/error";
 import { randomUUIDv7 } from "bun";
+import { getPaginationMetadata } from "../../../utils/paginate";
 import type {
   CreateCommentInput,
   UpdateCommentInput,
@@ -74,10 +75,8 @@ export class CommentService {
     }
   }
 
-  async getCommentsByPost(post_id: string, page: number = 1, limit: number = 20) {
+  async getCommentsByPost(post_id: string, offset: number = 0, limit: number = 20) {
     try {
-      const offset = (page - 1) * limit;
-
       // Get top-level comments (no parent)
       const comments = await db.query.post_comments.findMany({
         where: and(
@@ -107,12 +106,7 @@ export class CommentService {
 
       return {
         data: comments,
-        meta: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+        meta: getPaginationMetadata(total, offset, limit),
       };
     } catch (error) {
       console.error("Get comments error:", error);
@@ -244,10 +238,8 @@ export class CommentService {
     }
   }
 
-  async getCommentsByUser(user_id: string, page: number = 1, limit: number = 20) {
+  async getCommentsByUser(user_id: string, offset: number = 0, limit: number = 20) {
     try {
-      const offset = (page - 1) * limit;
-
       const comments = await db.query.post_comments.findMany({
         where: and(
           eq(post_comments.created_by, user_id),
@@ -283,12 +275,7 @@ export class CommentService {
 
       return {
         data: comments,
-        meta: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+        meta: getPaginationMetadata(total, offset, limit),
       };
     } catch (error) {
       console.error("Get user comments error:", error);

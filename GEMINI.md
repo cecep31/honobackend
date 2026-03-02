@@ -4,14 +4,14 @@
 
 This is a high-performance backend API built with **Hono** running on the **Bun** runtime. It uses **PostgreSQL** as the primary database, with **Drizzle ORM** for type-safe database access and migrations.
 
-The project follows a **Service-Oriented Architecture**, where business logic and data access are encapsulated in the service layer, separated from controllers and routing.
+The project follows a **Service-Oriented Architecture (SOA)**, where business logic and data access are encapsulated in the service layer, separated from controllers and routing.
 
 **Key Technologies:**
 - **Framework:** Hono
 - **Runtime:** Bun
 - **Database:** PostgreSQL
 - **ORM:** Drizzle ORM
-- **Validation:** Zod (via `@hono/zod-validator`)
+- **Validation:** Zod (via `@hono/zod-validator` and custom middleware)
 - **Language:** TypeScript
 
 ## Building and Running
@@ -31,7 +31,7 @@ The project follows a **Service-Oriented Architecture**, where business logic an
 ### Database Management
 - **Generate migrations:** `bun run db:generate`
 - **Push schema to DB:** `bun run db:push`
-- **Run migrations:** `bun run db:migrate` (via `README.md` reference)
+- **Pull from DB:** `bun run db:pull`
 - **Drizzle Studio:** `bun run db:studio`
 
 ### Testing
@@ -47,30 +47,36 @@ The codebase is organized into modules under `src/modules/`. Each module typical
 - `services/`: Business logic and database operations (using Drizzle).
 - `validation/`: Zod schemas for request validation (body, query, params).
 
+### Service Instantiation
+Services are centrally managed in `src/services/index.ts` using a **lazy-loading proxy pattern**. This ensures services are only instantiated when needed and provides a single point of access for all cross-module service dependencies.
+
 ### Routing
-Routes are defined modularly within each controller and aggregated in `src/router/index.ts`. The API is versioned under `/v1`.
+Routes are defined modularly within each controller and aggregated in `src/router/index.ts`. All API routes are versioned under `/v1`.
 
 ### Request Validation
-Use the `validateRequest` middleware (in `src/middlewares/validateRequest.ts`) to validate incoming requests against Zod schemas.
+Use the `validateRequest` middleware (in `src/middlewares/validateRequest.ts`) to validate incoming requests against Zod schemas. It handles `json`, `query`, and `param` validation consistently.
 
 ### Error Handling
 A centralized error handling system is used:
-- `src/utils/error.ts`: Defines `ApiError`, `Errors` utility, and error codes.
-- `src/middlewares/errorHandler.ts`: Global middleware to catch and format errors consistently.
+- `src/utils/error.ts`: Defines `ApiError`, `Errors` utility, and standardized error codes (e.g., `AUTH_001`, `DB_001`).
+- `src/middlewares/errorHandler.ts`: Global middleware to catch and format errors into a consistent JSON response.
 
 ### Database Patterns
-- Schemas are defined in `src/database/schemas/postgre/schema.ts`.
-- Database instance is exported from `src/database/drizzle.ts`.
-- Prefer using Drizzle's `tx` (transaction) for multi-step operations in services.
+- **Schema:** The single source of truth for the DB schema is `src/database/schemas/postgre/schema.ts`.
+- **Instance:** The database instance is exported from `src/database/drizzle.ts`.
+- **BigInt:** Custom JSON serialization for BigInt is handled in `src/server/app.ts` to prevent serialization errors.
+- **Transactions:** Prefer using Drizzle's `tx` (transaction) for multi-step operations to ensure data integrity.
 
 ### Coding Style
-- **Naming:** CamelCase for files/classes, camelCase for variables/functions.
-- **Formatting:** Prettier is enforced (`bun run format`).
-- **BigInt:** Custom JSON serialization for BigInt is handled in `src/server/app.ts`.
+- **Naming:** CamelCase for files and classes, camelCase for variables and functions.
+- **Formatting:** Prettier is used for code formatting (`bun run format`).
+- **Standardized Responses:** Use `sendSuccess` and `sendError` utilities (found in `src/utils/response.ts` and `src/utils/error.ts`) for consistent API responses.
 
-## Key Files
-- `index.ts`: Entry point.
-- `src/server/app.ts`: Hono app initialization and global middleware.
+## Key Files & Directories
+- `index.ts`: Application entry point.
+- `src/server/app.ts`: Hono app initialization, global middleware, and health checks.
 - `src/router/index.ts`: Centralized route registration.
-- `src/database/schemas/postgre/schema.ts`: Single source of truth for DB schema.
-- `src/utils/error.ts`: Standardized error responses.
+- `src/database/schemas/postgre/schema.ts`: Drizzle schema definitions.
+- `src/services/index.ts`: Central service registry.
+- `src/utils/error.ts`: Standardized error response utilities.
+- `src/middlewares/`: Shared middlewares (auth, logger, validation, etc.).

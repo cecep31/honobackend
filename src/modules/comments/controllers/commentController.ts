@@ -31,8 +31,8 @@ commentController.get(
   validateRequest("query", getCommentsQuerySchema),
   async (c) => {
     const { post_id } = c.req.param();
-    const { page, limit } = c.req.valid("query");
-    const result = await commentService.getCommentsByPost(post_id, page, limit);
+    const { offset, limit } = c.req.valid("query");
+    const result = await commentService.getCommentsByPost(post_id, offset, limit);
     return sendSuccess(
       c,
       result.data,
@@ -85,10 +85,10 @@ commentController.get(
   validateRequest("query", getCommentsQuerySchema),
   async (c) => {
     const { user_id } = c.req.param();
-    const { page, limit } = c.req.valid("query");
+    const { offset, limit } = c.req.valid("query");
     const result = await commentService.getCommentsByUser(
       user_id,
-      page,
+      offset,
       limit
     );
     return sendSuccess(
