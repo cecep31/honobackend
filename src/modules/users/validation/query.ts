@@ -1,19 +1,9 @@
 import { z } from "zod";
-
-const safeNonNegativeInt = (v: string | undefined, fallback: number) => {
-  const n = v ? Number(v) : NaN;
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-};
-const safeLimit = (v: string | undefined, fallback: number) => {
-  const n = v ? Number(v) : NaN;
-  return Number.isFinite(n) && n >= 1
-    ? Math.min(100, Math.max(1, Math.floor(n)))
-    : fallback;
-};
+import { safeLimit, safeOffset } from "../../../utils/request";
 
 /** Query for list/paginated endpoints: GET /, GET /:id/followers, GET /:id/following */
 export const listUsersQuerySchema = z.object({
-  offset: z.string().optional().transform((v) => safeNonNegativeInt(v, 0)),
+  offset: z.string().optional().transform((v) => safeOffset(v, 0)),
   limit: z.string().optional().transform((v) => safeLimit(v, 10)),
   search: z.string().optional(),
   q: z.string().optional(),

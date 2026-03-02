@@ -16,3 +16,30 @@ export function getClientIp(c: Context): string | undefined {
     undefined
   );
 }
+
+/**
+ * Safely converts a string or undefined to a limited number.
+ * Ensures the value is between 1 and 100 (default max).
+ */
+export const safeLimit = (v: string | undefined, fallback: number = 10, max: number = 100) => {
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) && n >= 1
+    ? Math.min(max, Math.max(1, Math.floor(n)))
+    : fallback;
+};
+
+/**
+ * Safely converts a string or undefined to a non-negative integer (offset).
+ */
+export const safeOffset = (v: string | undefined, fallback: number = 0) => {
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+};
+
+/**
+ * Safely converts a string or undefined to a positive integer (page).
+ */
+export const safePage = (v: string | undefined, fallback: number = 1) => {
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback;
+};

@@ -1,15 +1,5 @@
 import { z } from "zod";
-
-const safeNonNegativeInt = (v: string | undefined, fallback: number) => {
-  const n = v ? Number(v) : NaN;
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-};
-const safeLimit = (v: string | undefined, fallback: number) => {
-  const n = v ? Number(v) : NaN;
-  return Number.isFinite(n) && n >= 1
-    ? Math.min(100, Math.max(1, Math.floor(n)))
-    : fallback;
-};
+import { safeLimit, safeOffset } from "../../../utils/request";
 
 /** Query for GET /oauth/github/callback */
 export const githubCallbackQuerySchema = z.object({
@@ -19,7 +9,7 @@ export const githubCallbackQuerySchema = z.object({
 /** Query for GET /activity-logs */
 export const activityLogsQuerySchema = z.object({
   limit: z.string().optional().transform((v) => safeLimit(v, 20)),
-  offset: z.string().optional().transform((v) => safeNonNegativeInt(v, 0)),
+  offset: z.string().optional().transform((v) => safeOffset(v, 0)),
   activity_type: z
     .enum([
       "login",
