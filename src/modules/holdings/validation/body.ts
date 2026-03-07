@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createHoldingSchema = z.object({
   name: z.string(),
+  symbol: z.string().nullable().optional(),
   platform: z.string(),
   holding_type_id: z.number(),
   currency: z.string().length(3),
@@ -18,6 +19,7 @@ export const createHoldingSchema = z.object({
 
 export const updateHoldingSchema = z.object({
   name: z.string().optional(),
+  symbol: z.string().nullable().optional(),
   platform: z.string().optional(),
   holding_type_id: z.number().optional(),
   currency: z.string().length(3).optional(),

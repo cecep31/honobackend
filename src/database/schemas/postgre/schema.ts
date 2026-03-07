@@ -741,6 +741,7 @@ export const holdings = pgTable(
     id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
     user_id: uuid("user_id").notNull(),
     name: text().notNull(),
+    symbol: text(),
     platform: text().notNull(),
     holding_type_id: smallint("holding_type_id").notNull(),
     currency: char({ length: 3 }).notNull(),

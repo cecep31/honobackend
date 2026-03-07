@@ -1,5 +1,5 @@
 import { db } from "../../../database/drizzle";
-import { and, asc, desc, eq, inArray, sql, count } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql, count, isNotNull } from "drizzle-orm";
 import { holdings, holding_types } from "../../../database/schemas/postgre/schema";
 import type {
   DuplicateHoldingPayload,
@@ -7,6 +7,7 @@ import type {
   HoldingUpdate,
 } from "../validation";
 import { Errors } from "../../../utils/error";
+import { stockPriceService } from "./stockPriceService";
 
 export class HoldingService {
   async createHolding(userId: string, data: HoldingCreate) {
@@ -24,6 +25,58 @@ export class HoldingService {
         year: data.year === null ? undefined : data.year,
       })
       .returning();
+  }
+
+  async syncCurrentMonthPrices(userId: string) {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    // 1. Get all holdings with a symbol for the current month
+    const userHoldings = await db.query.holdings.findMany({
+      where: and(
+        eq(holdings.user_id, userId),
+        eq(holdings.month, currentMonth),
+        eq(holdings.year, currentYear),
+        isNotNull(holdings.symbol)
+      ),
+    });
+
+    if (userHoldings.length === 0) return [];
+
+    // 2. Extract unique symbols
+    const symbols = Array.from(new Set(userHoldings.map((h) => h.symbol).filter(Boolean) as string[]));
+
+    // 3. Fetch current prices
+    const latestPrices = await stockPriceService.getMultiplePrices(symbols);
+    const priceMap = new Map(latestPrices.map((p) => [p.symbol, p.price]));
+
+    // 4. Update each holding
+    const updatePromises = userHoldings.map((h) => {
+      const latestPrice = priceMap.get(h.symbol as string);
+      if (latestPrice === undefined) return null;
+
+      const units = Number(h.units || 0);
+      const newValue = units * latestPrice;
+
+      return db
+        .update(holdings)
+        .set({
+          current_price: String(latestPrice),
+          current_value: String(newValue),
+          last_updated: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .where(eq(holdings.id, h.id));
+    });
+
+    await Promise.all(updatePromises.filter(Boolean));
+
+    return {
+      syncedCount: userHoldings.length,
+      month: currentMonth,
+      year: currentYear,
+    };
   }
 
   async getHoldingById(id: number) {

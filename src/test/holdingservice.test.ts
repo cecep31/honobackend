@@ -9,6 +9,7 @@ const mockHoldingsFindFirst = mock();
 const mockHoldingsFindMany = mock();
 const mockHoldingTypesFindFirst = mock();
 const mockHoldingTypesFindMany = mock();
+const mockGetMultiplePrices = mock();
 
 // Transaction mocks
 const mockTxDelete = mock(() => ({ where: mock(() => Promise.resolve()) }));
@@ -42,6 +43,14 @@ mock.module('../database/drizzle', () => {
     }
 });
 
+mock.module('../modules/holdings/services/stockPriceService', () => {
+    return {
+        stockPriceService: {
+            getMultiplePrices: mockGetMultiplePrices,
+        }
+    }
+});
+
 describe('HoldingService', () => {
     beforeEach(() => {
         mocks.reset();
@@ -49,6 +58,7 @@ describe('HoldingService', () => {
         mockHoldingsFindMany.mockReset();
         mockHoldingTypesFindFirst.mockReset();
         mockHoldingTypesFindMany.mockReset();
+        mockGetMultiplePrices.mockReset();
         mockTransaction.mockClear();
         mockTxDelete.mockClear();
         mockTxInsert.mockClear();
@@ -73,6 +83,38 @@ describe('HoldingService', () => {
 
             expect(result).toEqual([mockHolding]);
             expect(mocks.mockInsert).toHaveBeenCalled();
+        });
+    });
+
+    describe('syncCurrentMonthPrices', () => {
+        it('should sync prices for current month holdings with symbols', async () => {
+            const userId = 'user-1';
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+
+            const mockHoldings = [
+                { id: BigInt(1), symbol: 'AAPL', units: '10', current_price: '150', current_value: '1500' },
+                { id: BigInt(2), symbol: 'MSFT', units: '5', current_price: '300', current_value: '1500' }
+            ];
+
+            mockHoldingsFindMany.mockResolvedValue(mockHoldings);
+            mockGetMultiplePrices.mockResolvedValue([
+                { symbol: 'AAPL', price: 160 },
+                { symbol: 'MSFT', price: 310 }
+            ]);
+
+            const result = await holdingService.syncCurrentMonthPrices(userId);
+
+            expect(result.syncedCount).toBe(2);
+            expect(mockGetMultiplePrices).toHaveBeenCalledWith(['AAPL', 'MSFT']);
+            expect(mocks.mockUpdate).toHaveBeenCalledTimes(2);
+        });
+
+        it('should return empty array if no holdings with symbols found', async () => {
+            mockHoldingsFindMany.mockResolvedValue([]);
+            const result = await holdingService.syncCurrentMonthPrices('user-1');
+            expect(result).toEqual([]);
         });
     });
 

@@ -109,6 +109,11 @@ export const holdingController = new Hono<{ Variables: Variables }>()
     const holding = await holdingService.createHolding(authUser.user_id, body);
     return sendSuccess(c, holding, "Holding created successfully", 201);
   })
+  .post("/sync", auth, async (c) => {
+    const authUser = c.get("user");
+    const result = await holdingService.syncCurrentMonthPrices(authUser.user_id);
+    return sendSuccess(c, result, "Prices synced successfully for current month");
+  })
   .post(
     "/duplicate",
     auth,
