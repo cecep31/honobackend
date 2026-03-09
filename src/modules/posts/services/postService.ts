@@ -228,8 +228,15 @@ export class PostService {
     return { data: response, meta };
   }
 
-  async getPostsByTag(tag: string) {
-    return await db
+  async getPostsByTag(tag: string, params: { offset: number; limit: number }) {
+    const { offset, limit } = params;
+    const whereByTag = and(
+      eq(tagsModel.name, tag),
+      eq(postsModel.published, true),
+      isNull(postsModel.deleted_at)
+    );
+
+    const data = await db
       .select({
         id: postsModel.id,
         title: postsModel.title,
@@ -242,12 +249,21 @@ export class PostService {
       .from(postsModel)
       .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
       .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
-      .where(and(
-        eq(tagsModel.name, tag),
-        eq(postsModel.published, true),
-        isNull(postsModel.deleted_at)
-      ))
-      .orderBy(desc(postsModel.created_at));
+      .where(whereByTag)
+      .orderBy(desc(postsModel.created_at))
+      .limit(limit)
+      .offset(offset);
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(postsModel)
+      .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+      .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
+      .where(whereByTag);
+
+    const total = totalResult?.count ?? 0;
+    const meta = getPaginationMetadata(total, offset, limit);
+    return { data, meta };
   }
 
   async getPostsRandom(limit = 6) {

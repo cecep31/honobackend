@@ -57,9 +57,12 @@ postController.get('/me', auth, validateRequest('query', listPostsQuerySchema), 
   return sendSuccess(c, data, 'My posts fetched successfully', 200, meta);
 });
 
-postController.get('/tag/:tag', async (c) => {
-  const posts = await postService.getPostsByTag(c.req.param('tag'));
-  return sendSuccess(c, posts, 'Posts by tag fetched successfully');
+postController.get('/tag/:tag', validateRequest('query', listPostsQuerySchema), async (c) => {
+  const tag = c.req.param('tag');
+  const q = c.req.valid('query');
+  const params = { offset: q.offset, limit: q.limit };
+  const { data, meta } = await postService.getPostsByTag(tag, params);
+  return sendSuccess(c, data, 'Posts by tag fetched successfully', 200, meta);
 });
 
 postController.get(

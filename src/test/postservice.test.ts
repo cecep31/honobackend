@@ -316,24 +316,31 @@ describe('PostService', () => {
     });
 
     describe('getPostsByTag', () => {
-        it('returns posts for a valid tag', async () => {
+        it('returns posts for a valid tag with pagination', async () => {
             const mockPosts = [
                 { id: '1', title: 'JS Post 1' },
                 { id: '2', title: 'JS Post 2' }
             ];
-
-            // Mock the chain: select -> from -> innerJoin -> innerJoin -> where -> orderBy -> (promise resolves)
-            const mockOrderBy = mock(() => Promise.resolve(mockPosts));
-            const mockWhere = mock(() => ({ orderBy: mockOrderBy }));
+            let whereCallCount = 0;
+            const mockOffset = mock(() => Promise.resolve(mockPosts));
+            const mockLimit = mock(() => ({ offset: mockOffset }));
+            const mockOrderBy = mock(() => ({ limit: mockLimit }));
+            const mockWhere = mock(() => {
+                whereCallCount++;
+                if (whereCallCount === 1) return { orderBy: mockOrderBy };
+                return Promise.resolve([{ count: 2 }]);
+            });
             const mockInnerJoin2 = mock(() => ({ where: mockWhere }));
             const mockInnerJoin1 = mock(() => ({ innerJoin: mockInnerJoin2 }));
             const mockFrom = mock(() => ({ innerJoin: mockInnerJoin1 }));
-            
+
             mockSelect.mockReturnValue({ from: mockFrom });
 
-            const result = await postService.getPostsByTag('javascript');
+            const result = await postService.getPostsByTag('javascript', { offset: 0, limit: 10 });
 
-            expect(result).toEqual(mockPosts);
+            expect(result).toHaveProperty('data', mockPosts);
+            expect(result).toHaveProperty('meta');
+            expect(result.meta).toMatchObject({ total_items: 2, offset: 0, limit: 10 });
             expect(mockSelect).toHaveBeenCalled();
         });
     });
