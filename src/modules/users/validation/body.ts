@@ -36,8 +36,6 @@ export const updateUserSchema = z.object({
     )
     .optional(),
   email: z.string().email("Invalid email format").optional(),
-  image: z.string().url("Invalid image URL").optional(),
-  is_super_admin: z.boolean().optional(),
 });
 
 export const followUserSchema = z.object({

@@ -198,8 +198,10 @@ export class UserService {
         }
       }
 
-      const updateData: any = {
-        ...body,
+      const updateData = {
+        ...Object.fromEntries(
+          Object.entries(body).filter(([, v]) => v !== undefined)
+        ) as Partial<UserUpdateBody>,
         updated_at: new Date().toISOString(),
       };
 
