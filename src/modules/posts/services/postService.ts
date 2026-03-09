@@ -245,10 +245,19 @@ export class PostService {
         created_at: postsModel.created_at,
         view_count: postsModel.view_count,
         like_count: postsModel.like_count,
+        user: {
+          id: usersModel.id,
+          username: usersModel.username,
+          email: usersModel.email,
+          first_name: usersModel.first_name,
+          last_name: usersModel.last_name,
+          image: usersModel.image,
+        },
       })
       .from(postsModel)
       .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
       .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
+      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(whereByTag)
       .orderBy(desc(postsModel.created_at))
       .limit(limit)
@@ -280,6 +289,7 @@ export class PostService {
           email: usersModel.email,
           first_name: usersModel.first_name,
           last_name: usersModel.last_name,
+          image: usersModel.image,
         },
       })
       .from(postsModel)
@@ -413,6 +423,7 @@ export class PostService {
           email: usersModel.email,
           first_name: usersModel.first_name,
           last_name: usersModel.last_name,
+          image: usersModel.image,
         },
       })
       .from(postsModel)

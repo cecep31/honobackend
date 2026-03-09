@@ -318,8 +318,8 @@ describe('PostService', () => {
     describe('getPostsByTag', () => {
         it('returns posts for a valid tag with pagination', async () => {
             const mockPosts = [
-                { id: '1', title: 'JS Post 1' },
-                { id: '2', title: 'JS Post 2' }
+                { id: '1', title: 'JS Post 1', user: { id: 'u1', username: 'user1', email: null, first_name: null, last_name: null, image: null } },
+                { id: '2', title: 'JS Post 2', user: { id: 'u2', username: 'user2', email: null, first_name: null, last_name: null, image: null } }
             ];
             let whereCallCount = 0;
             const mockOffset = mock(() => Promise.resolve(mockPosts));
@@ -330,7 +330,8 @@ describe('PostService', () => {
                 if (whereCallCount === 1) return { orderBy: mockOrderBy };
                 return Promise.resolve([{ count: 2 }]);
             });
-            const mockInnerJoin2 = mock(() => ({ where: mockWhere }));
+            const mockLeftJoin = mock(() => ({ where: mockWhere }));
+            const mockInnerJoin2 = mock(() => ({ leftJoin: mockLeftJoin, where: mockWhere }));
             const mockInnerJoin1 = mock(() => ({ innerJoin: mockInnerJoin2 }));
             const mockFrom = mock(() => ({ innerJoin: mockInnerJoin1 }));
 
