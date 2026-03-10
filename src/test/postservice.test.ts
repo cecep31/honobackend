@@ -411,4 +411,36 @@ describe('PostService', () => {
             expect(result).toHaveProperty('slug', slug);
         });
     });
+
+    describe('getPostsForSitemap', () => {
+        it('returns minimal data for sitemap with correct limit', async () => {
+            const mockSitemapPosts = [
+                {
+                    slug: 'test-post',
+                    username: 'testuser',
+                    created_at: '2025-01-01T00:00:00.000Z',
+                    updated_at: '2025-01-02T00:00:00.000Z',
+                },
+            ];
+
+            const mockLimit = mock(() => Promise.resolve(mockSitemapPosts));
+            const mockOrderBy = mock(() => ({ limit: mockLimit }));
+            const mockWhere = mock(() => ({ orderBy: mockOrderBy }));
+            const mockInnerJoin = mock(() => ({ where: mockWhere }));
+            const localMockFrom = mock(() => ({ innerJoin: mockInnerJoin }));
+
+            // Override select chain just for this test
+            mockSelect.mockReturnValue({ from: localMockFrom });
+
+            const result = await postService.getPostsForSitemap();
+
+            expect(result).toEqual(mockSitemapPosts);
+            expect(mockSelect).toHaveBeenCalled();
+            expect(localMockFrom).toHaveBeenCalled();
+            expect(mockInnerJoin).toHaveBeenCalled();
+            expect(mockWhere).toHaveBeenCalled();
+            expect(mockOrderBy).toHaveBeenCalled();
+            expect(mockLimit).toHaveBeenCalledWith(200);
+        });
+    });
 });
