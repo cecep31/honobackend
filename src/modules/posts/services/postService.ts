@@ -651,4 +651,28 @@ export class PostService {
 
     return posts;
   }
+
+  /**
+   * Get minimal post data for sitemap (slug + author username)
+   */
+  async getPostsForSitemap() {
+    const posts = await db
+      .select({
+        slug: postsModel.slug,
+        username: usersModel.username,
+      })
+      .from(postsModel)
+      .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+      .where(
+        and(
+          isNull(postsModel.deleted_at),
+          eq(postsModel.published, true),
+          isNull(usersModel.deleted_at)
+        )
+      )
+      .orderBy(desc(postsModel.created_at))
+      .limit(200);
+
+    return posts;
+  }
 }

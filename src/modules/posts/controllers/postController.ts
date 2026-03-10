@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { postService } from '../../../services/index';
+import { rateLimiter } from 'hono-rate-limiter';
 import { auth } from '../../../middlewares/auth';
 import type { jwtPayload } from '../../../types/auth';
 import { superAdminMiddleware } from '../../../middlewares/superAdmin';
@@ -94,6 +95,25 @@ postController.get('/slug/:slug', async (c) => {
   }
   return sendSuccess(c, post, 'Post fetched successfully');
 });
+
+// Public endpoint for sitemap: minimal data (slug + author username)
+postController.get(
+  '/sitemap',
+  rateLimiter({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    limit: 10, // max 10 sitemap requests per IP per window
+    standardHeaders: 'draft-6',
+    keyGenerator: (c) =>
+      c.req.header('x-forwarded-for') ||
+      c.req.header('x-real-ip') ||
+      c.req.header('cf-connecting-ip') ||
+      'unknown',
+  }),
+  async (c) => {
+    const posts = await postService.getPostsForSitemap();
+    return sendSuccess(c, posts, 'Sitemap posts fetched successfully');
+  }
+);
 
 postController.get(
   '/u/:username/:slug',

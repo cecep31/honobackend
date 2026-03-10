@@ -111,7 +111,7 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
     app.use(
       rateLimiter({
         windowMs: rateLimitConfig.windowMs, // 1 minute
-        limit: rateLimitConfig.limit, // Limit each IP to 300 requests per `window` (here, per 1 minute).
+        limit: rateLimitConfig.limit, // Limit each IP to 150 requests per `window` (here, per 1 minute) by default.
         standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
         keyGenerator: (c) =>
           c.req.header("x-forwarded-for") ||
