@@ -653,13 +653,15 @@ export class PostService {
   }
 
   /**
-   * Get minimal post data for sitemap (slug + author username)
+   * Get minimal post data for sitemap (slug + author username + timestamps)
    */
   async getPostsForSitemap() {
     const posts = await db
       .select({
         slug: postsModel.slug,
         username: usersModel.username,
+        created_at: postsModel.created_at,
+        updated_at: postsModel.updated_at,
       })
       .from(postsModel)
       .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
