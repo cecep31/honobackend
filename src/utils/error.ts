@@ -62,6 +62,25 @@ export interface ApiErrorResponse {
   timestamp: string;
 }
 
+const GENERIC_CLIENT_ERROR_MESSAGE = 'Request failed';
+const GENERIC_SERVER_ERROR_MESSAGE = 'Internal server error';
+
+function isServerErrorStatus(statusCode: number): boolean {
+  return statusCode >= 500;
+}
+
+function getSafeMessage(statusCode: number, message?: string): string {
+  if (isServerErrorStatus(statusCode)) {
+    return GENERIC_SERVER_ERROR_MESSAGE;
+  }
+
+  if (message && message.trim().length > 0) {
+    return message;
+  }
+
+  return GENERIC_CLIENT_ERROR_MESSAGE;
+}
+
 /**
  * Enhanced error utility with error classification
  * @param message Error message
@@ -91,7 +110,7 @@ export function createErrorResponse(
   if (error instanceof ApiError) {
     return {
       success: false,
-      message: error.message,
+      message: getSafeMessage(error.statusCode, error.message),
       error: {
         code: error.errorCode,
         details: error.details,
@@ -102,9 +121,11 @@ export function createErrorResponse(
   }
 
   if (error instanceof HTTPException) {
+    const safeMessage = getSafeMessage(error.status, error.message);
+
     return {
       success: false,
-      message: error.message,
+      message: safeMessage,
       error: {},
       request_id: requestId,
       timestamp
@@ -112,13 +133,13 @@ export function createErrorResponse(
   }
 
   // Handle unknown errors
-  const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+  const errorMessage = error instanceof Error ? error.message : undefined;
   if (!(error instanceof ApiError) && !(error instanceof HTTPException)) {
     console.error('Unexpected error:', error);
   }
   return {
     success: false,
-    message: errorMessage,
+    message: getSafeMessage(500, errorMessage),
     error: {},
     request_id: requestId,
     timestamp

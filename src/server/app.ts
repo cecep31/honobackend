@@ -45,14 +45,13 @@ app.get("/health", async (c) => {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return c.json({
       status: "unhealthy",
       timestamp: new Date().toISOString(),
       services: {
         database: "disconnected",
       },
-      error: errorMessage,
+      error: "Database health check failed",
     }, 503);
   }
 });
@@ -72,7 +71,7 @@ app.get("/ready", async (c) => {
     return c.json({
       ready: false,
       timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: "Readiness check failed",
     }, 503);
   }
 });
