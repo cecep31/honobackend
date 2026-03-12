@@ -134,6 +134,13 @@
       "when": 1772852162429,
       "tag": "0018_hesitant_supreme_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1773302037792,
+      "tag": "0019_cynical_luminals",
+      "breakpoints": true
     }
   ]
 }

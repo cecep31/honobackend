@@ -19,335 +19,317 @@ import {
   smallint,
   char,
   numeric,
-} from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm/relations";
-import { sql } from "drizzle-orm";
+} from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm/relations';
+import { sql } from 'drizzle-orm';
 
 export const post_comments = pgTable(
-  "post_comments",
+  'post_comments',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
     text: text().notNull(),
-    post_id: uuid("post_id").notNull(),
-    parent_comment_id: uuid("parent_comment_id"),
-    created_by: uuid("created_by").notNull(),
+    post_id: uuid('post_id').notNull(),
+    parent_comment_id: uuid('parent_comment_id'),
+    created_by: uuid('created_by').notNull(),
   },
   (table) => [
-    index("idx_post_comments_post_id").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_comments_post_id').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_post_comments_created_by").using(
-      "btree",
-      table.created_by.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_comments_created_by').using(
+      'btree',
+      table.created_by.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_post_comments_parent_id").using(
-      "btree",
-      table.parent_comment_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_comments_parent_id').using(
+      'btree',
+      table.parent_comment_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_post_comments_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_comments_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_post_comments_post_parent").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.parent_comment_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_comments_post_parent').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops'),
+      table.parent_comment_id.asc().nullsLast().op('uuid_ops')
     ),
     // Indeks komposit untuk query komentar berdasarkan post dan waktu
-    index("idx_post_comments_post_created_at").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_comments_post_created_at').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.created_by],
       foreignColumns: [users.id],
-      name: "fk_post_comments_creator",
-    }).onDelete("cascade"),
+      name: 'fk_post_comments_creator',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.post_id],
       foreignColumns: [posts.id],
-      name: "fk_posts_post_comments",
-    }).onDelete("cascade"),
+      name: 'fk_posts_post_comments',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.parent_comment_id],
       foreignColumns: [table.id],
-      name: "fk_post_comments_parent_comment",
-    }).onDelete("set null"),
-  ],
+      name: 'fk_post_comments_parent_comment',
+    }).onDelete('set null'),
+  ]
 );
 
 export const chat_conversations = pgTable(
-  "chat_conversations",
+  'chat_conversations',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       precision: 6,
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       precision: 6,
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    deleted_at: timestamp("deleted_at", {
+    deleted_at: timestamp('deleted_at', {
       precision: 6,
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }),
     title: varchar({ length: 255 }).notNull(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid('user_id').notNull(),
   },
   (table) => [
-    index("idx_chat_conversations_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_chat_conversations_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_chat_conversations_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_chat_conversations_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "chat_conversations_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'chat_conversations_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const chat_messages = pgTable(
-  "chat_messages",
+  'chat_messages',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       precision: 6,
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       precision: 6,
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
-    conversation_id: uuid("conversation_id").notNull(),
-    user_id: uuid("user_id").notNull(),
+    conversation_id: uuid('conversation_id').notNull(),
+    user_id: uuid('user_id').notNull(),
     role: varchar({ length: 20 }).notNull(),
     content: text().notNull(),
     model: varchar({ length: 100 }),
-    prompt_tokens: integer("prompt_tokens").default(0),
-    completion_tokens: integer("completion_tokens").default(0),
-    total_tokens: integer("total_tokens").default(0),
+    prompt_tokens: integer('prompt_tokens').default(0),
+    completion_tokens: integer('completion_tokens').default(0),
+    total_tokens: integer('total_tokens').default(0),
   },
   (table) => [
-    index("idx_chat_messages_conversation_id").using(
-      "btree",
-      table.conversation_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_chat_messages_conversation_id').using(
+      'btree',
+      table.conversation_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_chat_messages_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_chat_messages_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_chat_messages_created_at").using(
-      "btree",
-      table.created_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_chat_messages_created_at').using(
+      'btree',
+      table.created_at.asc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.conversation_id],
       foreignColumns: [chat_conversations.id],
-      name: "chat_messages_conversation_id_chat_conversations_id_fk",
-    }).onDelete("cascade"),
+      name: 'chat_messages_conversation_id_chat_conversations_id_fk',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "chat_messages_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'chat_messages_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const posts = pgTable(
-  "posts",
+  'posts',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
     title: varchar({ length: 255 }).notNull(),
-    created_by: uuid("created_by").notNull(),
+    created_by: uuid('created_by').notNull(),
     body: text(),
     slug: varchar({ length: 255 }).notNull(),
-    photo_url: text("photo_url"),
+    photo_url: text('photo_url'),
     published: boolean().default(true),
-    view_count: bigint("view_count", { mode: "number" }).default(0),
-    like_count: bigint("like_count", { mode: "number" }).default(0),
+    view_count: bigint('view_count', { mode: 'number' }).default(0),
+    like_count: bigint('like_count', { mode: 'number' }).default(0),
   },
   (table) => [
-    index("idx_posts_created_by").using(
-      "btree",
-      table.created_by.asc().nullsLast().op("uuid_ops"),
+    index('idx_posts_created_by').using('btree', table.created_by.asc().nullsLast().op('uuid_ops')),
+    index('idx_posts_slug').using('btree', table.slug.asc().nullsLast().op('text_ops')),
+    index('idx_posts_published').using('btree', table.published.asc().nullsLast().op('bool_ops')),
+    index('idx_posts_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_posts_slug").using(
-      "btree",
-      table.slug.asc().nullsLast().op("text_ops"),
-    ),
-    index("idx_posts_published").using(
-      "btree",
-      table.published.asc().nullsLast().op("bool_ops"),
-    ),
-    index("idx_posts_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
-    ),
-    index("idx_posts_created_at").using(
-      "btree",
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_posts_created_at').using(
+      'btree',
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.created_by],
       foreignColumns: [users.id],
-      name: "fk_posts_creator",
+      name: 'fk_posts_creator',
     })
-      .onUpdate("cascade")
-      .onDelete("cascade"),
-    unique("creator and slug unique").on(table.created_by, table.slug),
-    check(
-      "chk_posts_counts_positive",
-      sql`view_count >= 0 AND like_count >= 0`,
-    ),
-  ],
+      .onUpdate('cascade')
+      .onDelete('cascade'),
+    unique('creator and slug unique').on(table.created_by, table.slug),
+    check('chk_posts_counts_positive', sql`view_count >= 0 AND like_count >= 0`),
+  ]
 );
 
 export const sessions = pgTable(
-  "sessions",
+  'sessions',
   {
-    refresh_token: text("refresh_token").primaryKey().notNull(),
-    user_id: uuid("user_id").notNull(),
-    created_at: timestamp("created_at", {
+    refresh_token: text('refresh_token').primaryKey().notNull(),
+    user_id: uuid('user_id').notNull(),
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    user_agent: text("user_agent"),
-    expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    user_agent: text('user_agent'),
+    expires_at: timestamp('expires_at', { withTimezone: true, mode: 'string' }),
   },
   (table) => [
-    index("idx_sessions_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-    ),
-    index("idx_sessions_expires_at").using(
-      "btree",
-      table.expires_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_sessions_user_id').using('btree', table.user_id.asc().nullsLast().op('uuid_ops')),
+    index('idx_sessions_expires_at').using(
+      'btree',
+      table.expires_at.asc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "sessions_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'sessions_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const password_reset_tokens = pgTable(
-  "password_reset_tokens",
+  'password_reset_tokens',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid('user_id').notNull(),
     token: varchar({ length: 255 }).notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    expires_at: timestamp("expires_at", {
+    expires_at: timestamp('expires_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).notNull(),
-    used_at: timestamp("used_at", { withTimezone: true, mode: "string" }),
+    used_at: timestamp('used_at', { withTimezone: true, mode: 'string' }),
   },
   (table) => [
-    uniqueIndex("idx_password_reset_tokens_token").using(
-      "btree",
-      table.token.asc().nullsLast().op("text_ops"),
+    uniqueIndex('idx_password_reset_tokens_token').using(
+      'btree',
+      table.token.asc().nullsLast().op('text_ops')
     ),
-    index("idx_password_reset_tokens_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_password_reset_tokens_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "password_reset_tokens_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'password_reset_tokens_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const tags = pgTable(
-  "tags",
+  'tags',
   {
     id: serial().primaryKey().notNull(),
     name: varchar({ length: 30 }).notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_tags_name").using(
-      "btree",
-      table.name.asc().nullsLast().op("text_ops"),
-    ),
-  ],
+    uniqueIndex('idx_tags_name').using('btree', table.name.asc().nullsLast().op('text_ops')),
+  ]
 );
 
 export const profiles = pgTable(
-  "profiles",
+  'profiles',
   {
     id: serial().primaryKey().notNull(),
-    user_id: uuid("user_id").notNull(),
-    created_at: timestamp("created_at", {
+    user_id: uuid('user_id').notNull(),
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
     bio: text(),
     website: text(),
@@ -355,407 +337,379 @@ export const profiles = pgTable(
     location: varchar({ length: 255 }),
   },
   (table) => [
-    uniqueIndex("idx_profiles_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    uniqueIndex('idx_profiles_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "profiles_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'profiles_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const files = pgTable(
-  "files",
+  'files',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
     name: varchar({ length: 255 }),
     path: text(),
     size: integer(),
     type: varchar({ length: 255 }),
-    created_by: uuid("created_by"),
+    created_by: uuid('created_by'),
   },
   (table) => [
-    index("idx_files_created_by").using(
-      "btree",
-      table.created_by.asc().nullsLast().op("uuid_ops"),
-    ),
-    index("idx_files_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_files_created_by').using('btree', table.created_by.asc().nullsLast().op('uuid_ops')),
+    index('idx_files_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.created_by],
       foreignColumns: [users.id],
-      name: "files_created_by_users_id_fk",
-    }).onDelete("set null"),
-  ],
+      name: 'files_created_by_users_id_fk',
+    }).onDelete('set null'),
+  ]
 );
 
 export const users = pgTable(
-  "users",
+  'users',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    created_at: timestamp("created_at", {
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" }),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-    first_name: varchar("first_name", { length: 255 }),
-    last_name: varchar("last_name", { length: 255 }),
+    updated_at: timestamp('updated_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).defaultNow(),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
+    first_name: varchar('first_name', { length: 255 }),
+    last_name: varchar('last_name', { length: 255 }),
     email: varchar({ length: 255 }).notNull(),
     password: varchar({ length: 255 }),
     image: text(),
-    is_super_admin: boolean("is_super_admin").default(false),
+    is_super_admin: boolean('is_super_admin').default(false),
     username: varchar({ length: 255 }),
-    github_id: bigint("github_id", { mode: "number" }),
-    followers_count: bigint("followers_count", { mode: "number" }).default(0),
-    following_count: bigint("following_count", { mode: "number" }).default(0),
-    last_logged_at: timestamp("last_logged_at", {
+    github_id: bigint('github_id', { mode: 'number' }),
+    followers_count: bigint('followers_count', { mode: 'number' }).default(0),
+    following_count: bigint('following_count', { mode: 'number' }).default(0),
+    last_logged_at: timestamp('last_logged_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }),
   },
   (table) => [
-    uniqueIndex("idx_users_email").using(
-      "btree",
-      table.email.asc().nullsLast().op("text_ops"),
+    uniqueIndex('idx_users_email').using('btree', table.email.asc().nullsLast().op('text_ops')),
+    uniqueIndex('idx_users_username').using(
+      'btree',
+      table.username.asc().nullsLast().op('text_ops')
     ),
-    uniqueIndex("idx_users_username").using(
-      "btree",
-      table.username.asc().nullsLast().op("text_ops"),
+    index('users_deleted_at_idx').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("users_deleted_at_idx").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_users_created_at').using(
+      'btree',
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_users_created_at").using(
-      "btree",
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
-    ),
-    unique("users_github_id_unique").on(table.github_id),
+    unique('users_github_id_unique').on(table.github_id),
     // Indeks baru untuk query last_logged_at
-    index("idx_users_last_logged_at").using(
-      "btree",
-      table.last_logged_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_users_last_logged_at').using(
+      'btree',
+      table.last_logged_at.desc().nullsLast().op('timestamptz_ops')
     ),
     // Indeks case-insensitive untuk username dan email
-    index("idx_users_username_lower").using(
-      "btree",
-      sql`lower(${table.username})`
-    ),
-    index("idx_users_email_lower").using(
-      "btree",
-      sql`lower(${table.email})`
-    ),
-  ],
+    index('idx_users_username_lower').using('btree', sql`lower(${table.username})`),
+    index('idx_users_email_lower').using('btree', sql`lower(${table.email})`),
+  ]
 );
 
 export const post_views = pgTable(
-  "post_views",
+  'post_views',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    post_id: uuid("post_id").notNull(),
-    user_id: uuid("user_id"),
-    ip_address: varchar("ip_address", { length: 45 }),
-    user_agent: text("user_agent"),
-    created_at: timestamp("created_at", {
+    post_id: uuid('post_id').notNull(),
+    user_id: uuid('user_id'),
+    ip_address: varchar('ip_address', { length: 45 }),
+    user_agent: text('user_agent'),
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
   },
   (table) => [
-    index("idx_post_views_created_at").using(
-      "btree",
-      table.created_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_views_created_at').using(
+      'btree',
+      table.created_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_post_views_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_views_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_post_views_post_id").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-    ),
-    uniqueIndex("idx_post_views_unique_user_post")
+    index('idx_post_views_post_id').using('btree', table.post_id.asc().nullsLast().op('uuid_ops')),
+    uniqueIndex('idx_post_views_unique_user_post')
       .using(
-        "btree",
-        table.post_id.asc().nullsLast().op("uuid_ops"),
-        table.user_id.asc().nullsLast().op("uuid_ops"),
+        'btree',
+        table.post_id.asc().nullsLast().op('uuid_ops'),
+        table.user_id.asc().nullsLast().op('uuid_ops')
       )
       .where(sql`((user_id IS NOT NULL) AND (deleted_at IS NULL))`),
-    index("idx_post_views_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-    ),
+    index('idx_post_views_user_id').using('btree', table.user_id.asc().nullsLast().op('uuid_ops')),
     // Indeks komposit untuk query post views berdasarkan post dan waktu
-    index("idx_post_views_post_created_at").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_views_post_created_at').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "fk_post_views_user_id",
-    }).onDelete("cascade"),
+      name: 'fk_post_views_user_id',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.post_id],
       foreignColumns: [posts.id],
-      name: "post_views_posts_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'post_views_posts_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const user_follows = pgTable(
-  "user_follows",
+  'user_follows',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    follower_id: uuid("follower_id").notNull(),
-    following_id: uuid("following_id").notNull(),
-    created_at: timestamp("created_at", {
+    follower_id: uuid('follower_id').notNull(),
+    following_id: uuid('following_id').notNull(),
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    updated_at: timestamp("updated_at", {
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
-    deleted_at: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
   },
   (table) => [
-    index("idx_user_follows_created_at").using(
-      "btree",
-      table.created_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_user_follows_created_at').using(
+      'btree',
+      table.created_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_user_follows_deleted_at").using(
-      "btree",
-      table.deleted_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_user_follows_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_user_follows_follower_id").using(
-      "btree",
-      table.follower_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_user_follows_follower_id').using(
+      'btree',
+      table.follower_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_user_follows_following_id").using(
-      "btree",
-      table.following_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_user_follows_following_id').using(
+      'btree',
+      table.following_id.asc().nullsLast().op('uuid_ops')
     ),
-    uniqueIndex("idx_user_follows_unique")
+    uniqueIndex('idx_user_follows_unique')
       .using(
-        "btree",
-        table.follower_id.asc().nullsLast().op("uuid_ops"),
-        table.following_id.asc().nullsLast().op("uuid_ops"),
+        'btree',
+        table.follower_id.asc().nullsLast().op('uuid_ops'),
+        table.following_id.asc().nullsLast().op('uuid_ops')
       )
       .where(sql`(deleted_at IS NULL)`),
     foreignKey({
       columns: [table.follower_id],
       foreignColumns: [users.id],
-      name: "fk_user_follows_follower_id",
-    }).onDelete("cascade"),
+      name: 'fk_user_follows_follower_id',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.following_id],
       foreignColumns: [users.id],
-      name: "fk_user_follows_following_id",
-    }).onDelete("cascade"),
-    check("chk_user_follows_no_self_follow", sql`follower_id <> following_id`),
-  ],
+      name: 'fk_user_follows_following_id',
+    }).onDelete('cascade'),
+    check('chk_user_follows_no_self_follow', sql`follower_id <> following_id`),
+  ]
 );
 
 export const post_likes = pgTable(
-  "post_likes",
+  'post_likes',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    post_id: uuid("post_id").notNull(),
-    user_id: uuid("user_id").notNull(),
-    created_at: timestamp("created_at", {
+    post_id: uuid('post_id').notNull(),
+    user_id: uuid('user_id').notNull(),
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
   },
   (table) => [
-    index("idx_post_likes_created_at").using(
-      "btree",
-      table.created_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_likes_created_at').using(
+      'btree',
+      table.created_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_post_likes_post_id").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_likes_post_id').using('btree', table.post_id.asc().nullsLast().op('uuid_ops')),
+    uniqueIndex('idx_post_likes_unique_user_post').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops'),
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
-    uniqueIndex("idx_post_likes_unique_user_post").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-    ),
-    index("idx_post_likes_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-    ),
+    index('idx_post_likes_user_id').using('btree', table.user_id.asc().nullsLast().op('uuid_ops')),
     // Indeks komposit untuk query like berdasarkan post dan waktu
-    index("idx_post_likes_post_created_at").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_likes_post_created_at').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.post_id],
       foreignColumns: [posts.id],
-      name: "fk_post_likes_post_id",
-    }).onDelete("cascade"),
+      name: 'fk_post_likes_post_id',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "fk_post_likes_user_id",
-    }).onDelete("cascade"),
-  ],
+      name: 'fk_post_likes_user_id',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const post_bookmarks = pgTable(
-  "post_bookmarks",
+  'post_bookmarks',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    post_id: uuid("post_id").notNull(),
-    user_id: uuid("user_id").notNull(),
-    created_at: timestamp("created_at", {
+    post_id: uuid('post_id').notNull(),
+    user_id: uuid('user_id').notNull(),
+    created_at: timestamp('created_at', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }).defaultNow(),
   },
   (table) => [
-    uniqueIndex("idx_post_bookmarks_unique_user_post").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    uniqueIndex('idx_post_bookmarks_unique_user_post').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops'),
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_post_bookmarks_created_at").using(
-      "btree",
-      table.created_at.asc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_bookmarks_created_at').using(
+      'btree',
+      table.created_at.asc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_post_bookmarks_post_id").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_bookmarks_post_id').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_post_bookmarks_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_post_bookmarks_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
     // Indeks komposit untuk query bookmark berdasarkan user dan waktu
-    index("idx_post_bookmarks_user_created_at").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_post_bookmarks_user_created_at').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.post_id],
       foreignColumns: [posts.id],
-      name: "fk_post_bookmarks_post_id",
-    }).onDelete("cascade"),
+      name: 'fk_post_bookmarks_post_id',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "fk_post_bookmarks_user_id",
-    }).onDelete("cascade"),
-  ],
+      name: 'fk_post_bookmarks_user_id',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const posts_to_tags = pgTable(
-  "posts_to_tags",
+  'posts_to_tags',
   {
-    post_id: uuid("post_id").notNull(),
-    tag_id: integer("tag_id").notNull(),
+    post_id: uuid('post_id').notNull(),
+    tag_id: integer('tag_id').notNull(),
   },
   (table) => [
-    index("idx_posts_to_tags_post_id").using(
-      "btree",
-      table.post_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_posts_to_tags_post_id').using(
+      'btree',
+      table.post_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_posts_to_tags_tag_id").using(
-      "btree",
-      table.tag_id.asc().nullsLast().op("int4_ops"),
-    ),
+    index('idx_posts_to_tags_tag_id').using('btree', table.tag_id.asc().nullsLast().op('int4_ops')),
     foreignKey({
       columns: [table.tag_id],
       foreignColumns: [tags.id],
-      name: "ptt_tag_id_tags_id_fk",
-    }).onDelete("cascade"),
+      name: 'ptt_tag_id_tags_id_fk',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.post_id],
       foreignColumns: [posts.id],
-      name: "ptt_post_id_posts_id_fk",
-    }).onDelete("cascade"),
+      name: 'ptt_post_id_posts_id_fk',
+    }).onDelete('cascade'),
     primaryKey({
       columns: [table.post_id, table.tag_id],
-      name: "posts_to_tags_posts_id_tags_id_pk",
+      name: 'posts_to_tags_posts_id_tags_id_pk',
     }),
-  ],
+  ]
 );
 
 export const holding_types = pgTable(
-  "holding_types",
+  'holding_types',
   {
     id: smallserial().primaryKey().notNull(),
     code: text().notNull(),
     name: text().notNull(),
     notes: text(),
   },
-  (table) => [unique("holding_types_code_key").on(table.code)],
+  (table) => [unique('holding_types_code_key').on(table.code)]
 );
 
 export const holdings = pgTable(
-  "holdings",
+  'holdings',
   {
-    id: bigserial({ mode: "bigint" }).primaryKey().notNull(),
-    user_id: uuid("user_id").notNull(),
+    id: bigserial({ mode: 'bigint' }).primaryKey().notNull(),
+    user_id: uuid('user_id').notNull(),
     name: text().notNull(),
     symbol: text(),
     platform: text().notNull(),
-    holding_type_id: smallint("holding_type_id").notNull(),
+    holding_type_id: smallint('holding_type_id').notNull(),
     currency: char({ length: 3 }).notNull(),
-    invested_amount: numeric("invested_amount", { precision: 18, scale: 2 })
-      .default("0")
-      .notNull(),
-    current_value: numeric("current_value", { precision: 18, scale: 2 })
-      .default("0")
-      .notNull(),
-    gain_amount: numeric("gain_amount", {
+    invested_amount: numeric('invested_amount', { precision: 18, scale: 2 }).default('0').notNull(),
+    current_value: numeric('current_value', { precision: 18, scale: 2 }).default('0').notNull(),
+    gain_amount: numeric('gain_amount', {
       precision: 18,
       scale: 2,
     }).generatedAlwaysAs(sql`current_value - invested_amount`),
-    gain_percent: numeric("gain_percent", {
+    gain_percent: numeric('gain_percent', {
       precision: 18,
       scale: 2,
     }).generatedAlwaysAs(
@@ -764,121 +718,112 @@ export const holdings = pgTable(
           WHEN invested_amount = 0 THEN 0
           ELSE ((current_value - invested_amount) / invested_amount) * 100
         END
-      `,
+      `
     ),
     units: numeric({ precision: 24, scale: 10 }),
-    avg_buy_price: numeric("avg_buy_price", { precision: 18, scale: 8 }),
-    current_price: numeric("current_price", { precision: 18, scale: 8 }),
-    last_updated: timestamp("last_updated", {
+    avg_buy_price: numeric('avg_buy_price', { precision: 18, scale: 8 }),
+    current_price: numeric('current_price', { precision: 18, scale: 8 }),
+    last_updated: timestamp('last_updated', {
       withTimezone: true,
-      mode: "string",
+      mode: 'string',
     }),
     notes: text(),
-    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    created_at: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
-    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
+    updated_at: timestamp('updated_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
     month: integer().default(1).notNull(),
     year: integer().default(2025).notNull(),
   },
   (table) => [
-    index("idx_holdings_user").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_holdings_user').using('btree', table.user_id.asc().nullsLast().op('uuid_ops')),
+    index('idx_holdings_holding_type_id').using(
+      'btree',
+      table.holding_type_id.asc().nullsLast().op('int2_ops')
     ),
-    index("idx_holdings_holding_type_id").using(
-      "btree",
-      table.holding_type_id.asc().nullsLast().op("int2_ops"),
+    index('idx_holdings_month_year').using(
+      'btree',
+      table.year.asc().nullsLast().op('int4_ops'),
+      table.month.asc().nullsLast().op('int4_ops')
     ),
-    index("idx_holdings_month_year").using(
-      "btree",
-      table.year.asc().nullsLast().op("int4_ops"),
-      table.month.asc().nullsLast().op("int4_ops"),
-    ),
-    index("idx_holdings_user_month_year").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-      table.year.asc().nullsLast().op("int4_ops"),
-      table.month.asc().nullsLast().op("int4_ops"),
+    index('idx_holdings_user_month_year').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.year.asc().nullsLast().op('int4_ops'),
+      table.month.asc().nullsLast().op('int4_ops')
     ),
     // Indeks komposit untuk query holdings berdasarkan user dan tipe
-    index("idx_holdings_user_type").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-      table.holding_type_id.asc().nullsLast().op("int2_ops"),
+    index('idx_holdings_user_type').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.holding_type_id.asc().nullsLast().op('int2_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "holdings_user_id_fkey",
-    }).onDelete("cascade"),
+      name: 'holdings_user_id_fkey',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.holding_type_id],
       foreignColumns: [holding_types.id],
-      name: "holdings_holding_type_id_fkey",
-    }).onDelete("restrict"),
-    check(
-      "chk_holdings_positive_amounts",
-      sql`invested_amount >= 0 AND current_value >= 0`,
-    ),
-    check("chk_holdings_valid_month", sql`month >= 1 AND month <= 12`),
-    check("chk_holdings_valid_year", sql`year >= 2000`),
-  ],
+      name: 'holdings_holding_type_id_fkey',
+    }).onDelete('restrict'),
+    check('chk_holdings_positive_amounts', sql`invested_amount >= 0 AND current_value >= 0`),
+    check('chk_holdings_valid_month', sql`month >= 1 AND month <= 12`),
+    check('chk_holdings_valid_year', sql`year >= 2000`),
+  ]
 );
 
 export const notifications = pgTable(
-  "notifications",
+  'notifications',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid('user_id').notNull(),
     type: varchar({ length: 50 }).notNull(),
     title: varchar({ length: 255 }).notNull(),
     message: text(),
     read: boolean().default(false).notNull(),
     data: text(),
-    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    created_at: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
-    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
+    updated_at: timestamp('updated_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    index("idx_notifications_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_notifications_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_notifications_read").using(
-      "btree",
-      table.read.asc().nullsLast().op("bool_ops"),
+    index('idx_notifications_read').using('btree', table.read.asc().nullsLast().op('bool_ops')),
+    index('idx_notifications_created_at').using(
+      'btree',
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_notifications_created_at").using(
-      "btree",
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
-    ),
-    index("idx_notifications_user_read").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-      table.read.asc().nullsLast().op("bool_ops"),
+    index('idx_notifications_user_read').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.read.asc().nullsLast().op('bool_ops')
     ),
     // Indeks komposit untuk query notifikasi unread user dengan sorting
-    index("idx_notifications_user_read_created_at").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-      table.read.asc().nullsLast().op("bool_ops"),
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_notifications_user_read_created_at').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.read.asc().nullsLast().op('bool_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "notifications_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'notifications_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -889,10 +834,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   files: many(files),
   post_views: many(post_views),
   user_follows_follower_id: many(user_follows, {
-    relationName: "userFollows_followerId_users_id",
+    relationName: 'userFollows_followerId_users_id',
   }),
   user_follows_following_id: many(user_follows, {
-    relationName: "userFollows_followingId_users_id",
+    relationName: 'userFollows_followingId_users_id',
   }),
   post_likes: many(post_likes),
   post_bookmarks: many(post_bookmarks),
@@ -931,12 +876,9 @@ export const chat_messages_relations = relations(chat_messages, ({ one }) => ({
   }),
 }));
 
-export const chat_conversations_relations = relations(
-  chat_conversations,
-  ({ many }) => ({
-    chatMessages: many(chat_messages),
-  }),
-);
+export const chat_conversations_relations = relations(chat_conversations, ({ many }) => ({
+  chatMessages: many(chat_messages),
+}));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
@@ -945,15 +887,12 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
-export const passwordResetTokensRelations = relations(
-  password_reset_tokens,
-  ({ one }) => ({
-    user: one(users, {
-      fields: [password_reset_tokens.user_id],
-      references: [users.id],
-    }),
+export const passwordResetTokensRelations = relations(password_reset_tokens, ({ one }) => ({
+  user: one(users, {
+    fields: [password_reset_tokens.user_id],
+    references: [users.id],
   }),
-);
+}));
 
 export const profilesRelations = relations(profiles, ({ one }) => ({
   user: one(users, {
@@ -984,12 +923,12 @@ export const user_follows_relations = relations(user_follows, ({ one }) => ({
   user_follower_id: one(users, {
     fields: [user_follows.follower_id],
     references: [users.id],
-    relationName: "userFollows_followerId_users_id",
+    relationName: 'userFollows_followerId_users_id',
   }),
   user_following_id: one(users, {
     fields: [user_follows.following_id],
     references: [users.id],
-    relationName: "userFollows_followingId_users_id",
+    relationName: 'userFollows_followingId_users_id',
   }),
 }));
 
@@ -1004,19 +943,16 @@ export const post_likes_relations = relations(post_likes, ({ one }) => ({
   }),
 }));
 
-export const post_bookmarks_relations = relations(
-  post_bookmarks,
-  ({ one }) => ({
-    post: one(posts, {
-      fields: [post_bookmarks.post_id],
-      references: [posts.id],
-    }),
-    user: one(users, {
-      fields: [post_bookmarks.user_id],
-      references: [users.id],
-    }),
+export const post_bookmarks_relations = relations(post_bookmarks, ({ one }) => ({
+  post: one(posts, {
+    fields: [post_bookmarks.post_id],
+    references: [posts.id],
   }),
-);
+  user: one(users, {
+    fields: [post_bookmarks.user_id],
+    references: [users.id],
+  }),
+}));
 
 export const posts_to_tags_relations = relations(posts_to_tags, ({ one }) => ({
   tag: one(tags, {
@@ -1056,59 +992,56 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 }));
 
 export const auth_activity_logs = pgTable(
-  "auth_activity_logs",
+  'auth_activity_logs',
   {
     id: uuid()
       .default(sql`uuid_generate_v4()`)
       .primaryKey()
       .notNull(),
-    user_id: uuid("user_id"),
-    activity_type: varchar("activity_type", { length: 50 }).notNull(),
-    ip_address: varchar("ip_address", { length: 45 }),
-    user_agent: text("user_agent"),
+    user_id: uuid('user_id'),
+    activity_type: varchar('activity_type', { length: 50 }).notNull(),
+    ip_address: varchar('ip_address', { length: 45 }),
+    user_agent: text('user_agent'),
     status: varchar({ length: 20 }).notNull(),
-    error_message: text("error_message"),
+    error_message: text('error_message'),
     metadata: text(),
-    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    created_at: timestamp('created_at', { withTimezone: true, mode: 'string' })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    index("idx_auth_activity_logs_user_id").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
+    index('idx_auth_activity_logs_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
     ),
-    index("idx_auth_activity_logs_activity_type").using(
-      "btree",
-      table.activity_type.asc().nullsLast().op("text_ops"),
+    index('idx_auth_activity_logs_activity_type').using(
+      'btree',
+      table.activity_type.asc().nullsLast().op('text_ops')
     ),
-    index("idx_auth_activity_logs_status").using(
-      "btree",
-      table.status.asc().nullsLast().op("text_ops"),
+    index('idx_auth_activity_logs_status').using(
+      'btree',
+      table.status.asc().nullsLast().op('text_ops')
     ),
-    index("idx_auth_activity_logs_created_at").using(
-      "btree",
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_auth_activity_logs_created_at').using(
+      'btree',
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
-    index("idx_auth_activity_logs_user_created").using(
-      "btree",
-      table.user_id.asc().nullsLast().op("uuid_ops"),
-      table.created_at.desc().nullsLast().op("timestamptz_ops"),
+    index('idx_auth_activity_logs_user_created').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
-      name: "auth_activity_logs_user_id_users_id_fk",
-    }).onDelete("cascade"),
-  ],
+      name: 'auth_activity_logs_user_id_users_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
-export const authActivityLogsRelations = relations(
-  auth_activity_logs,
-  ({ one }) => ({
-    user: one(users, {
-      fields: [auth_activity_logs.user_id],
-      references: [users.id],
-    }),
+export const authActivityLogsRelations = relations(auth_activity_logs, ({ one }) => ({
+  user: one(users, {
+    fields: [auth_activity_logs.user_id],
+    references: [users.id],
   }),
-);
+}));
