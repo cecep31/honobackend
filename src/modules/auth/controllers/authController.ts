@@ -35,11 +35,10 @@ function createRateLimiter(windowMs: number, limit: number) {
     windowMs,
     limit,
     standardHeaders: "draft-6",
-    keyGenerator: (c) =>
-      c.req.header("x-forwarded-for") ||
-      c.req.header("x-real-ip") ||
-      c.req.header("cf-connecting-ip") ||
-      "unknown",
+    keyGenerator: (c) => getClientIp(c) || "unknown",
+    handler: () => {
+      throw Errors.TooManyRequests(Math.ceil(windowMs / 1000));
+    },
   });
 }
 

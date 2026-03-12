@@ -6,6 +6,8 @@ import { requestId } from "hono/request-id";
 import { loggingMiddleware } from "./logger";
 import config, { originList, rateLimitConfig, bodyLimitConfig } from "../config";
 import type { Variables } from "../types/context";
+import { Errors } from "../utils/error";
+import { getClientIp } from "../utils/request";
 
 // Memory-safe rate limit store with automatic cleanup
 class CleanupStore implements Store {
@@ -113,12 +115,11 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
         windowMs: rateLimitConfig.windowMs, // 1 minute
         limit: rateLimitConfig.limit, // Limit each IP to 150 requests per `window` (here, per 1 minute) by default.
         standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-        keyGenerator: (c) =>
-          c.req.header("x-forwarded-for") ||
-          c.req.header("x-real-ip") ||
-          c.req.header("cf-connecting-ip") ||
-          "unknown",
+        keyGenerator: (c) => getClientIp(c) || "unknown",
         store: rateLimitStore,
+        handler: () => {
+          throw Errors.TooManyRequests(Math.ceil(rateLimitConfig.windowMs / 1000));
+        },
       })
     );
   }
