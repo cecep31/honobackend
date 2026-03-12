@@ -216,6 +216,24 @@ export function createMockDb(
   return { db: dbMock, mocks };
 }
 
+// Transaction mocks exported for inspection in tests
+export const mockTxInsert = mock(() => ({
+  values: mock(() => ({
+    returning: mock(), // Will be linked in setup
+    onConflictDoNothing: mock(() => ({ returning: mock() })),
+  })),
+}));
+
+export const mockTxUpdate = mock(() => ({
+  set: mock(() => ({
+    where: mock(() => ({ returning: mock() })),
+  })),
+}));
+
+export const mockTxDelete = mock(() => ({
+  where: mock(() => ({ returning: mock() })),
+}));
+
 /**
  * Helper to setup a transaction mock that passes through a transaction context
  * @param mocks The DrizzleMocks object
@@ -225,19 +243,26 @@ export function setupTransactionMock(
   mocks: DrizzleMocks,
   transactionTables: Record<string, { findFirst?: any; findMany?: any }> = {}
 ) {
-  const mockTxDelete = mock(() => ({
-    where: mock(() => ({ returning: mocks.mockReturning })),
+  // Re-link returning to use the central mocks.mockReturning
+  const txInsertValues = mock(() => ({
+    returning: mocks.mockReturning,
+    onConflictDoNothing: mock(() => ({ returning: mocks.mockReturning })),
   }));
-  const mockTxInsert = mock(() => ({
-    values: mock(() => ({
-      returning: mocks.mockReturning,
-      onConflictDoNothing: mocks.mockOnConflictDoNothing,
-    })),
+  mockTxInsert.mockImplementation(() => ({
+    values: txInsertValues,
   }));
-  const mockTxUpdate = mock(() => ({
-    set: mock(() => ({
-      where: mock(() => ({ returning: mocks.mockReturning })),
-    })),
+
+  const txUpdateWhere = mock(() => ({ returning: mocks.mockReturning }));
+  const txUpdateSet = mock(() => ({
+    where: txUpdateWhere,
+  }));
+  mockTxUpdate.mockImplementation(() => ({
+    set: txUpdateSet,
+  }));
+
+  const txDeleteWhere = mock(() => ({ returning: mocks.mockReturning }));
+  mockTxDelete.mockImplementation(() => ({
+    where: txDeleteWhere,
   }));
 
   mocks.mockTransaction.mockImplementation(async (callback: any) => {

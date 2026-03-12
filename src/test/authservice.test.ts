@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { createDrizzleMocks } from './helpers/drizzleMock';
+import { createDrizzleMocks, setupTransactionMock, mockTxInsert } from './helpers/drizzleMock';
 
 // Mock Config - Must be before other imports that use config
 mock.module('../config', () => ({
@@ -26,11 +26,22 @@ const mockUserFindFirst = mock();
 const mockUserCount = mock();
 const mockFrom = mock(() => ({ where: mockUserCount }));
 
+// Setup transaction mock
+setupTransactionMock(mocks, {
+    sessions: {
+        findFirst: mockSessionFindFirst,
+    },
+    users: {
+        findFirst: mockUserFindFirst,
+    }
+});
+
 mock.module('../database/drizzle', () => {
     return {
         db: {
             insert: mocks.mockInsert,
             update: mocks.mockUpdate,
+            transaction: mocks.mockTransaction,
             query: {
                 sessions: {
                     findFirst: mockSessionFindFirst,
@@ -64,6 +75,8 @@ describe('AuthService', () => {
         mockFrom.mockClear();
         process.env.JWT_SECRET = 'test-secret';
         mock(Bun.password, 'verifySync').mockReturnValue(true);
+        // Default returning value to avoid "undefined is not an object" error when accessing [0]
+        mocks.mockReturning.mockResolvedValue([{}]);
     });
 
     describe('signIn', () => {
@@ -88,7 +101,7 @@ describe('AuthService', () => {
             expect(result).toHaveProperty('refresh_token');
             expect(result.refresh_token).toBe('refresh-token');
             expect(mockUserFindFirst).toHaveBeenCalled();
-            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mockTxInsert).toHaveBeenCalled();
         });
 
         it('returns tokens for valid username credentials', async () => {
@@ -157,7 +170,12 @@ describe('AuthService', () => {
 
     describe('signInWithGithub', () => {
         it('returns token for valid github user', async () => {
-            const githubId = 12345;
+            const githubUser = {
+                id: 12345,
+                login: 'testghuser',
+                email: 'github@example.com',
+                avatar_url: 'https://example.com/avatar.png'
+            };
             const mockUser = {
                 id: 'user1',
                 email: 'github@example.com',
@@ -166,18 +184,18 @@ describe('AuthService', () => {
 
             mockUserFindFirst.mockResolvedValue(mockUser);
 
-            const result = await authService.signInWithGithub(githubId);
+            const result = await authService.signInWithGithub(githubUser);
 
             expect(result).toHaveProperty('access_token');
             expect(mockUserFindFirst).toHaveBeenCalled();
         });
 
         it('throws NotFound if github user does not exist', async () => {
-            const githubId = 99999;
+            const githubUser = { id: 99999, login: 'notfound' };
 
             mockUserFindFirst.mockResolvedValue(null);
 
-            await expect(authService.signInWithGithub(githubId)).rejects.toThrow();
+            await expect(authService.signInWithGithub(githubUser)).rejects.toThrow();
         });
     });
 
@@ -197,12 +215,14 @@ describe('AuthService', () => {
                 is_super_admin: false
             };
 
-            mocks.mockReturning.mockResolvedValue([mockCreatedUser]);
+            // Setup sequence for returning values in transaction
+            mocks.mockReturning.mockResolvedValueOnce([mockCreatedUser]);
+            mocks.mockReturning.mockResolvedValueOnce([{ refresh_token: 'refresh-token' }]);
 
             const result = await authService.signUp(signupData);
 
             expect(result).toHaveProperty('access_token');
-            expect(mocks.mockInsert).toHaveBeenCalled();
+            expect(mockTxInsert).toHaveBeenCalled();
         });
     });
 

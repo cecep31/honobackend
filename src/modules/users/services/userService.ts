@@ -331,16 +331,18 @@ export class UserService {
   /**
    * Create user from signup data (used by auth service)
    * @param data User signup data
+   * @param tx Optional database transaction
    * @returns Created user object
    */
-  async createUser(data: UserSignup) {
+  async createUser(data: UserSignup, tx?: any) {
     try {
-      const [user] = await db
+      const dbClient = tx || db;
+      const [user] = await dbClient
         .insert(usersModel)
         .values({ ...data, id: randomUUIDv7() })
         .returning();
 
-      await db.insert(profiles).values({ user_id: user.id });
+      await dbClient.insert(profiles).values({ user_id: user.id });
 
       return user;
     } catch (error) {
@@ -352,10 +354,12 @@ export class UserService {
   /**
    * Create user from GitHub OAuth data
    * @param githubUser GitHub user data from API
+   * @param tx Optional database transaction
    * @returns Created user object
    */
-  async createUserFromGithub(githubUser: GithubUser) {
+  async createUserFromGithub(githubUser: GithubUser, tx?: any) {
     try {
+      const dbClient = tx || db;
       // Handle email - if null, use fallback format
       let email = githubUser.email;
       if (!email || email.trim() === "") {
@@ -416,7 +420,7 @@ export class UserService {
       }
 
       // Create user
-      const [user] = await db
+      const [user] = await dbClient
         .insert(usersModel)
         .values({
           id: randomUUIDv7(),
@@ -432,7 +436,7 @@ export class UserService {
         .returning();
 
       // Create profile
-      await db.insert(profiles).values({ user_id: user.id });
+      await dbClient.insert(profiles).values({ user_id: user.id });
 
       return user;
     } catch (error) {
@@ -557,11 +561,13 @@ export class UserService {
    * Update user password
    * @param id User ID
    * @param password Hashed password
+   * @param tx Optional database transaction
    * @returns Updated user ID
    */
-  async updatePassword(id: string, password: string) {
+  async updatePassword(id: string, password: string, tx?: any) {
     try {
-      const [result] = await db
+      const dbClient = tx || db;
+      const [result] = await dbClient
         .update(usersModel)
         .set({ password, updated_at: new Date().toISOString() })
         .where(eq(usersModel.id, id))

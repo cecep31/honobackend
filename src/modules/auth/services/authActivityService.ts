@@ -41,9 +41,10 @@ export class AuthActivityService {
   /**
    * Log an authentication activity
    */
-  async logActivity(params: LogActivityParams) {
+  async logActivity(params: LogActivityParams, tx?: any) {
     try {
-      const activityLog = await db
+      const dbClient = tx || db;
+      const activityLog = await dbClient
         .insert(auth_activity_logs)
         .values({
           id: randomUUIDv7(),
