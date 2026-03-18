@@ -17,10 +17,12 @@ import {
   activityLogsRecentQuerySchema,
   emailSchema,
   failedLoginsQuerySchema,
+  forgotPasswordSchema,
   githubCallbackQuerySchema,
   loginSchema,
   refreshTokenSchema,
   registerSchema,
+  resetPasswordSchema,
   updatePasswordSchema,
   checkUsernameSchema,
 } from "../validation";
@@ -150,6 +152,7 @@ authController.post(
 
 authController.post(
   "/register",
+  createRateLimiter(15 * 60 * 1000, 5), // 5 requests per 15 minutes
   validateRequest("json", registerSchema),
   async (c) => {
     const body = c.req.valid("json");
@@ -163,6 +166,7 @@ authController.post(
 // check username exists
 authController.post(
   "/check-username",
+  createRateLimiter(15 * 60 * 1000, 30), // 30 requests per 15 minutes
   validateRequest("json", checkUsernameSchema),
   async (c) => {
     const { username } = c.req.valid("json");
@@ -173,6 +177,7 @@ authController.post(
 
 authController.get(
   "/email/:email",
+  createRateLimiter(15 * 60 * 1000, 10), // 10 requests per 15 minutes
   validateRequest("param", emailSchema),
   async (c) => {
     const email = c.req.valid("param").email;
@@ -181,17 +186,63 @@ authController.get(
   },
 );
 
-authController.post("/refresh-token", validateRequest("json", refreshTokenSchema), async (c) => {
-  const { refresh_token: refreshToken } = c.req.valid("json");
-  const ipAddress = getClientIp(c);
-  const userAgent = c.req.header("User-Agent");
-  const result = await authService.refreshToken(
-    refreshToken,
-    ipAddress,
-    userAgent,
-  );
-  return sendSuccess(c, result, "Token refreshed successfully");
-});
+authController.post(
+  "/refresh-token",
+  createRateLimiter(15 * 60 * 1000, 10), // 10 requests per 15 minutes
+  validateRequest("json", refreshTokenSchema),
+  async (c) => {
+    const { refresh_token: refreshToken } = c.req.valid("json");
+    const ipAddress = getClientIp(c);
+    const userAgent = c.req.header("User-Agent");
+    const result = await authService.refreshToken(
+      refreshToken,
+      ipAddress,
+      userAgent,
+    );
+    return sendSuccess(c, result, "Token refreshed successfully");
+  },
+);
+
+authController.post(
+  "/forgot-password",
+  createRateLimiter(15 * 60 * 1000, 3), // 3 requests per 15 minutes
+  validateRequest("json", forgotPasswordSchema),
+  async (c) => {
+    const { email } = c.req.valid("json");
+    const ipAddress = getClientIp(c);
+    const userAgent = c.req.header("User-Agent");
+    const result = await authService.requestPasswordReset(
+      email,
+      ipAddress,
+      userAgent,
+    );
+    const message =
+      "If the email exists, a password reset link has been sent";
+    const data =
+      Object.keys(result).length > 0
+        ? { message, ...result }
+        : { message };
+    return sendSuccess(c, data, message);
+  },
+);
+
+authController.post(
+  "/reset-password",
+  createRateLimiter(15 * 60 * 1000, 5), // 5 requests per 15 minutes
+  validateRequest("json", resetPasswordSchema),
+  async (c) => {
+    const body = c.req.valid("json");
+    const ipAddress = getClientIp(c);
+    const userAgent = c.req.header("User-Agent");
+    const result = await authService.resetPassword(
+      body.token,
+      body.new_password,
+      ipAddress,
+      userAgent,
+    );
+    return sendSuccess(c, result, result.message);
+  },
+);
 
 authController.post("/logout", auth, async (c) => {
   deleteCookie(c, "token", {

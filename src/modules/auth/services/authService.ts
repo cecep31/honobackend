@@ -11,8 +11,13 @@ import { ApiError, Errors } from "../../../utils/error";
 import { db } from "../../../database/drizzle";
 import {
   sessions as sessionModel,
+  password_reset_tokens as passwordResetTokensModel,
 } from "../../../database/schemas/postgre/schema";
 import { AuthActivityService } from "./authActivityService";
+import {
+  isEmailConfigured,
+  sendPasswordResetEmail,
+} from "../../../utils/email";
 
 export class AuthService {
   private activityService: AuthActivityService;
@@ -302,6 +307,158 @@ export class AuthService {
         }
         throw error;
       }
+    });
+  }
+
+  async requestPasswordReset(
+    email: string,
+    ip_address?: string,
+    user_agent?: string
+  ): Promise<{ token?: string; resetLink?: string }> {
+    return await db.transaction(async (tx) => {
+      const user = await this.userService.getUserByEmailRaw(email);
+
+      const message =
+        "If the email exists, a password reset link has been sent";
+      const result: { token?: string; resetLink?: string } = {};
+
+      if (user) {
+        const token = randomUUIDv7().toString();
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await tx
+          .delete(passwordResetTokensModel)
+          .where(eq(passwordResetTokensModel.user_id, user.id));
+
+        await tx.insert(passwordResetTokensModel).values({
+          user_id: user.id,
+          token,
+          expires_at: expiresAt.toISOString(),
+        });
+
+        const resetLink = `${config.frontend.resetPasswordUrl}?token=${token}`;
+
+        if (isEmailConfigured()) {
+          const sent = await sendPasswordResetEmail(email, resetLink);
+          if (!sent) {
+            await this.activityService.logActivity(
+              {
+                userId: user.id,
+                activityType: "password_reset_request",
+                ipAddress: ip_address,
+                userAgent: user_agent,
+                status: "failure",
+                errorMessage: "Failed to send email",
+              },
+              tx
+            );
+          } else {
+            await this.activityService.logActivity(
+              {
+                userId: user.id,
+                activityType: "password_reset_request",
+                ipAddress: ip_address,
+                userAgent: user_agent,
+                status: "success",
+              },
+              tx
+            );
+          }
+        } else {
+          result.token = token;
+          result.resetLink = resetLink;
+          await this.activityService.logActivity(
+            {
+              userId: user.id,
+              activityType: "password_reset_request",
+              ipAddress: ip_address,
+              userAgent: user_agent,
+              status: "success",
+              metadata: { devMode: true },
+            },
+            tx
+          );
+        }
+      } else {
+        await this.activityService.logActivity(
+          {
+            activityType: "password_reset_request",
+            ipAddress: ip_address,
+            userAgent: user_agent,
+            status: "success",
+            metadata: { emailNotFound: true },
+          },
+          tx
+        );
+      }
+
+      return result;
+    });
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+    ip_address?: string,
+    user_agent?: string
+  ) {
+    return await db.transaction(async (tx) => {
+      const now = new Date();
+      const resetToken = await tx.query.password_reset_tokens.findFirst({
+        where: eq(passwordResetTokensModel.token, token),
+        with: { user: true },
+      });
+
+      if (
+        !resetToken ||
+        !resetToken.user ||
+        new Date(resetToken.expires_at) < now ||
+        resetToken.used_at
+      ) {
+        await this.activityService.logActivity(
+          {
+            activityType: "password_reset",
+            ipAddress: ip_address,
+            userAgent: user_agent,
+            status: "failure",
+            errorMessage: "Invalid or expired reset token",
+          },
+          tx
+        );
+        throw Errors.ValidationFailed({ message: "Invalid or expired reset token" });
+      }
+
+      const hashedPassword = Bun.password.hashSync(newPassword, {
+        algorithm: "bcrypt",
+        cost: 12,
+      });
+      await this.userService.updatePassword(
+        resetToken.user.id,
+        hashedPassword,
+        tx
+      );
+
+      await tx
+        .update(passwordResetTokensModel)
+        .set({ used_at: now.toISOString() })
+        .where(eq(passwordResetTokensModel.id, resetToken.id));
+
+      await tx
+        .delete(sessionModel)
+        .where(eq(sessionModel.user_id, resetToken.user.id));
+
+      await this.activityService.logActivity(
+        {
+          userId: resetToken.user.id,
+          activityType: "password_reset",
+          ipAddress: ip_address,
+          userAgent: user_agent,
+          status: "success",
+        },
+        tx
+      );
+
+      return { message: "Password has been reset successfully" };
     });
   }
 

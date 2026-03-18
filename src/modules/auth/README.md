@@ -137,13 +137,24 @@ curl -X POST /v1/auth/register \
 ### 5. Check Username Availability
 Check if a username is already taken.
 
-- **URL:** `/username/:username`
-- **Method:** `GET`
+- **URL:** `/check-username`
+- **Method:** `POST`
+- **Content-Type:** `application/json`
 - **Authentication:** Not required
+- **Rate Limit:** 30 requests per 15 minutes per IP
+
+**Request Body:**
+```json
+{
+  "username": "johndoe"
+}
+```
 
 **Example Request:**
-```
-GET /v1/auth/username/johndoe
+```bash
+curl -X POST /v1/auth/check-username \
+  -H "Content-Type: application/json" \
+  -d '{"username": "johndoe"}'
 ```
 
 **Response (200):**

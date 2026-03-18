@@ -1,9 +1,11 @@
 import { Hono } from "hono";
+import { rateLimiter } from "hono-rate-limiter";
 import { chatService } from "../../../services/index";
 import { auth } from "../../../middlewares/auth";
 import { validateRequest } from "../../../middlewares/validateRequest";
 import type { Variables } from "../../../types/context";
 import { sendSuccess } from "../../../utils/response";
+import { Errors } from "../../../utils/error";
 import getConfig from "../../../config";
 import {
   conversationIdSchema,
@@ -13,6 +15,17 @@ import {
   createMessageSchema,
   listConversationsQuerySchema,
 } from "../validation";
+
+// Rate limiter for AI endpoints - per user, 30 requests per hour
+const chatAiRateLimiter = rateLimiter<{ Variables: Variables }>({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  limit: 30,
+  standardHeaders: "draft-6",
+  keyGenerator: (c) => c.var.user?.user_id || "unknown",
+  handler: () => {
+    throw Errors.TooManyRequests(3600); // retry after 1 hour
+  },
+});
 
 export const chatController = new Hono<{ Variables: Variables }>()
   // Conversation endpoints
@@ -34,6 +47,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .post(
     "/conversations/stream",
     auth,
+    chatAiRateLimiter,
     validateRequest("json", createConversationStreamSchema),
     async (c) => {
       const authUser = c.get("user");
@@ -205,6 +219,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .post(
     "/conversations/:conversationId/messages",
     auth,
+    chatAiRateLimiter,
     validateRequest("param", conversationParamSchema),
     validateRequest("json", createMessageSchema),
     async (c) => {
@@ -223,6 +238,7 @@ export const chatController = new Hono<{ Variables: Variables }>()
   .post(
     "/conversations/:conversationId/messages/stream",
     auth,
+    chatAiRateLimiter,
     validateRequest("param", conversationParamSchema),
     validateRequest("json", createMessageSchema),
     async (c) => {

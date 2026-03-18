@@ -72,6 +72,28 @@ export const refreshTokenSchema = z.object({
   refresh_token: z.string().min(1, "Refresh token is required"),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "Reset token is required"),
+    new_password: z.string(),
+    confirm_password: z.string(),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  })
+  .refine((data) => {
+    const result = validatePassword(data.new_password);
+    return result.isValid;
+  }, {
+    message: "Password does not meet strength requirements",
+    path: ["new_password"],
+  });
+
 export const updateEmailSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
