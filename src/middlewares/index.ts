@@ -1,81 +1,14 @@
-import type { Hono } from "hono";
-import { cors } from "hono/cors";
-import { bodyLimit } from "hono/body-limit";
-import { rateLimiter, type Store, type ClientRateLimitInfo } from "hono-rate-limiter";
-import { requestId } from "hono/request-id";
-import { loggingMiddleware } from "./logger";
-import config, { originList, rateLimitConfig, bodyLimitConfig } from "../config";
-import type { Variables } from "../types/context";
-import { Errors } from "../utils/error";
-import { getClientIp } from "../utils/request";
-
-// Memory-safe rate limit store with automatic cleanup
-class CleanupStore implements Store {
-  private clients = new Map<string, { totalHits: number; resetTime: Date }>();
-  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-  private windowMs: number;
-
-  constructor(windowMs: number) {
-    this.windowMs = windowMs;
-    // Run cleanup every window period to prevent memory growth
-    this.cleanupInterval = setInterval(() => this.cleanup(), windowMs);
-  }
-
-  private cleanup() {
-    const now = Date.now();
-    for (const [key, value] of this.clients) {
-      if (value.resetTime.getTime() <= now) {
-        this.clients.delete(key);
-      }
-    }
-  }
-
-  async get(key: string): Promise<ClientRateLimitInfo | undefined> {
-    const client = this.clients.get(key);
-    if (!client) return undefined;
-    
-    // Check if expired
-    if (client.resetTime.getTime() <= Date.now()) {
-      this.clients.delete(key);
-      return undefined;
-    }
-    
-    return { totalHits: client.totalHits, resetTime: client.resetTime };
-  }
-
-  async increment(key: string): Promise<ClientRateLimitInfo> {
-    const now = Date.now();
-    const client = this.clients.get(key);
-    
-    if (client && client.resetTime.getTime() > now) {
-      client.totalHits++;
-      return { totalHits: client.totalHits, resetTime: client.resetTime };
-    }
-    
-    const resetTime = new Date(now + this.windowMs);
-    this.clients.set(key, { totalHits: 1, resetTime });
-    return { totalHits: 1, resetTime };
-  }
-
-  async decrement(key: string): Promise<void> {
-    const client = this.clients.get(key);
-    if (client && client.totalHits > 0) {
-      client.totalHits--;
-    }
-  }
-
-  async resetKey(key: string): Promise<void> {
-    this.clients.delete(key);
-  }
-
-  shutdown() {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
-    this.clients.clear();
-  }
-}
+import { bodyLimit } from 'hono/body-limit';
+import { cors } from 'hono/cors';
+import type { Hono } from 'hono';
+import { requestId } from 'hono/request-id';
+import { rateLimiter } from 'hono-rate-limiter';
+import config, { bodyLimitConfig, originList, rateLimitConfig } from '../config';
+import type { Variables } from '../types/context';
+import { Errors } from '../utils/error';
+import { getClientIp } from '../utils/request';
+import { loggingMiddleware } from './logger';
+import { CleanupStore } from './rateLimitStore';
 
 // Store instance for rate limiter
 let rateLimitStore: CleanupStore | null = null;
@@ -114,8 +47,8 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
       rateLimiter({
         windowMs: rateLimitConfig.windowMs, // 1 minute
         limit: rateLimitConfig.limit, // Limit each IP to 150 requests per `window` (here, per 1 minute) by default.
-        standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-        keyGenerator: (c) => getClientIp(c) || "unknown",
+        standardHeaders: 'draft-6', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+        keyGenerator: (c) => getClientIp(c) || 'unknown',
         store: rateLimitStore,
         handler: () => {
           throw Errors.TooManyRequests(Math.ceil(rateLimitConfig.windowMs / 1000));
