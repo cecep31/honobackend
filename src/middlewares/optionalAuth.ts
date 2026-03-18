@@ -12,18 +12,29 @@ import type { Variables } from "../types/context";
 export const optionalAuth = createMiddleware<{ Variables: Variables }>(async (c, next) => {
   const authorization = c.req.header("Authorization");
 
-  if (authorization?.startsWith("Bearer ")) {
-    const token = authorization.slice(7);
+  if (!authorization) {
+    await next();
+    return;
+  }
 
-    if (token) {
-      try {
-        const payload = await verify(token, config.jwt.secret, "HS256");
-        const userPayload = payload as unknown as jwtPayload;
-        c.set("user", userPayload);
-      } catch {
-        // Silently fail - token verification is optional
-      }
-    }
+  const parts = authorization.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    await next();
+    return;
+  }
+
+  const token = parts[1];
+  if (!token) {
+    await next();
+    return;
+  }
+
+  try {
+    const payload = await verify(token, config.jwt.secret, "HS256");
+    const userPayload = payload as unknown as jwtPayload;
+    c.set("user", userPayload);
+  } catch {
+    // Silently fail - token verification is optional
   }
 
   await next();
