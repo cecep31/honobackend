@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import type { Variables } from '../types/context';
-import { getBearerToken, verifyJwtToken } from './authToken';
+import { getBearerToken, verifyJwtToken } from '../utils/auth';
 
 /**
  * Optional authentication middleware.

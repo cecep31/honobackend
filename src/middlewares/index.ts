@@ -8,7 +8,7 @@ import type { Variables } from '../types/context';
 import { Errors } from '../utils/error';
 import { getClientIp } from '../utils/request';
 import { loggingMiddleware } from './logger';
-import { CleanupStore } from './rateLimitStore';
+import { CleanupStore } from '../utils/rateLimitStore';
 
 // Store instance for rate limiter
 let rateLimitStore: CleanupStore | null = null;
