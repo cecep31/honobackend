@@ -440,7 +440,7 @@ describe('PostService', () => {
             expect(mockInnerJoin).toHaveBeenCalled();
             expect(mockWhere).toHaveBeenCalled();
             expect(mockOrderBy).toHaveBeenCalled();
-            expect(mockLimit).toHaveBeenCalledWith(1000);
+            expect(mockLimit).toHaveBeenCalledWith(250);
         });
     });
 });
