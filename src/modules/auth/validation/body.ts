@@ -1,24 +1,23 @@
-import { z } from "zod";
-import { validatePassword } from "../../../utils/password";
+import { z } from 'zod';
+import { validatePassword } from '../../../utils/password';
 
-export const loginSchema = z.object({
-  identifier: z.string().min(3).max(254).optional(),
-  email: z.string().min(5).max(254).optional(),
-  password: z.string().min(6).max(25),
-}).refine((data) => Boolean(data.identifier || data.email), {
-  message: 'identifier or email is required',
-  path: ['identifier'],
-});
+export const loginSchema = z
+  .object({
+    identifier: z.string().min(3).max(254).optional(),
+    email: z.string().min(5).max(254).optional(),
+    password: z.string().min(6).max(25),
+  })
+  .refine((data) => Boolean(data.identifier || data.email), {
+    message: 'identifier or email is required',
+    path: ['identifier'],
+  });
 
 export const registerSchema = z.object({
   username: z
     .string()
-    .min(3, "Username must be at least 3 characters long")
-    .max(20, "Username must not exceed 20 characters")
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username can only contain letters, numbers, and underscores"
-    ),
+    .min(3, 'Username must be at least 3 characters long')
+    .max(20, 'Username must not exceed 20 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   email: z.string().email(),
   password: z.string().superRefine((password, ctx) => {
     const result = validatePassword(password);
@@ -42,12 +41,9 @@ export const usernameSchema = z.object({
 export const checkUsernameSchema = z.object({
   username: z
     .string()
-    .min(3, "Username must be at least 3 characters long")
-    .max(20, "Username must not exceed 20 characters")
-    .regex(
-      /^[a-zA-Z0-9_]+$/,
-      "Username can only contain letters, numbers, and underscores"
-    ),
+    .min(3, 'Username must be at least 3 characters long')
+    .max(20, 'Username must not exceed 20 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
 });
 
 export const updatePasswordSchema = z
@@ -57,59 +53,62 @@ export const updatePasswordSchema = z
     confirm_password: z.string(),
   })
   .refine((data) => data.new_password === data.confirm_password, {
-    message: "password not match",
-    path: ["confirm_password"],
+    message: 'password not match',
+    path: ['confirm_password'],
   })
-  .refine((data) => {
-    const result = validatePassword(data.new_password);
-    return result.isValid;
-  }, {
-    message: "Password does not meet strength requirements",
-    path: ["new_password"],
-  });
+  .refine(
+    (data) => {
+      const result = validatePassword(data.new_password);
+      return result.isValid;
+    },
+    {
+      message: 'Password does not meet strength requirements',
+      path: ['new_password'],
+    }
+  );
 
 export const refreshTokenSchema = z.object({
-  refresh_token: z.string().min(1, "Refresh token is required"),
+  refresh_token: z.string().min(1, 'Refresh token is required'),
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email('Invalid email address'),
 });
 
 export const resetPasswordSchema = z
   .object({
-    token: z.string().min(1, "Reset token is required"),
+    token: z.string().min(1, 'Reset token is required'),
     new_password: z.string(),
     confirm_password: z.string(),
   })
   .refine((data) => data.new_password === data.confirm_password, {
-    message: "Passwords do not match",
-    path: ["confirm_password"],
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
   })
-  .refine((data) => {
-    const result = validatePassword(data.new_password);
-    return result.isValid;
-  }, {
-    message: "Password does not meet strength requirements",
-    path: ["new_password"],
-  });
+  .refine(
+    (data) => {
+      const result = validatePassword(data.new_password);
+      return result.isValid;
+    },
+    {
+      message: 'Password does not meet strength requirements',
+      path: ['new_password'],
+    }
+  );
 
 export const updateEmailSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email('Invalid email address'),
 });
 
 export const updateUserSchema = z
   .object({
     username: z
       .string()
-      .min(3, "Username must be at least 3 characters long")
-      .max(20, "Username must not exceed 20 characters")
-      .regex(
-        /^[a-zA-Z0-9_]+$/,
-        "Username can only contain letters, numbers, and underscores"
-      )
+      .min(3, 'Username must be at least 3 characters long')
+      .max(20, 'Username must not exceed 20 characters')
+      .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
       .optional(),
-    email: z.string().email("Invalid email address").optional(),
+    email: z.string().email('Invalid email address').optional(),
     password: z.string().min(6).optional(),
     confirm_password: z.string().optional(),
   })
@@ -121,8 +120,8 @@ export const updateUserSchema = z
       return true;
     },
     {
-      message: "Passwords do not match",
-      path: ["confirm_password"],
+      message: 'Passwords do not match',
+      path: ['confirm_password'],
     }
   )
   .refine(
@@ -133,7 +132,7 @@ export const updateUserSchema = z
       return true;
     },
     {
-      message: "Both password and confirm_password are required",
-      path: ["password"],
+      message: 'Both password and confirm_password are required',
+      path: ['password'],
     }
   );

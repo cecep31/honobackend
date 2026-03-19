@@ -1,10 +1,10 @@
-import { validator } from "hono/validator";
-import type { z } from "zod";
-import { Errors } from "../utils/error";
+import { validator } from 'hono/validator';
+import type { z } from 'zod';
+import { Errors } from '../utils/error';
 
 export function validateRequest(
-  typereq: "json" | "query" | "param" | "cookie" | "header" | "form",
-  schema: z.Schema<any>,
+  typereq: 'json' | 'query' | 'param' | 'cookie' | 'header' | 'form',
+  schema: z.Schema<any>
 ) {
   return validator(typereq, (value) => {
     const parsed = schema.safeParse(value);
@@ -13,7 +13,7 @@ export function validateRequest(
       const erros = parsed.error.issues.map((issue) => {
         return {
           message: issue.message,
-          field: issue.path.join("."),
+          field: issue.path.join('.'),
         };
       });
       throw Errors.ValidationFailed(erros);

@@ -1,26 +1,22 @@
-import { and, count, desc, eq, isNull, sql, gte } from "drizzle-orm";
-import { db } from "../../../database/drizzle";
+import { and, count, desc, eq, isNull, sql, gte } from 'drizzle-orm';
+import { db } from '../../../database/drizzle';
 import {
   users as usersModel,
   posts as postsModel,
   posts_to_tags,
   tags as tagsModel,
-} from "../../../database/schemas/postgre/schema";
-import { PostQueryHelpers } from "./postQueryHelpers";
-import { PostTagManager } from "./postTagManager";
-import type { PostCreateBody } from "../validation";
-import type { GetPaginationParams } from "../../../types/paginate";
-import { getPaginationMetadata } from "../../../utils/paginate";
-import { Errors } from "../../../utils/error";
+} from '../../../database/schemas/postgre/schema';
+import { PostQueryHelpers } from './postQueryHelpers';
+import { PostTagManager } from './postTagManager';
+import type { PostCreateBody } from '../validation';
+import type { GetPaginationParams } from '../../../types/paginate';
+import { getPaginationMetadata } from '../../../utils/paginate';
+import { Errors } from '../../../utils/error';
 
 export class PostService {
   constructor() {}
 
-  async updatePost(
-    post_id: string,
-    auth_id: string,
-    body: Partial<PostCreateBody>
-  ) {
+  async updatePost(post_id: string, auth_id: string, body: Partial<PostCreateBody>) {
     return await db.transaction(async (tx) => {
       const existingPost = await tx.query.posts.findFirst({
         where: and(
@@ -32,7 +28,7 @@ export class PostService {
       });
 
       if (!existingPost) {
-        throw Errors.NotFound("Post not found or unauthorized");
+        throw Errors.NotFound('Post not found or unauthorized');
       }
 
       const { tags, ...updateFields } = body;
@@ -62,7 +58,7 @@ export class PostService {
 
   async getTrendingPosts(limit = 5) {
     const queryConfig = PostQueryHelpers.getPublishedPostQuery();
-    
+
     const posts = await db.query.posts.findMany({
       ...queryConfig,
       orderBy: [desc(postsModel.view_count), desc(postsModel.like_count)],
@@ -70,7 +66,7 @@ export class PostService {
         body: false,
       },
       extras: {
-        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
       },
       with: {
         user: { columns: { username: true } },
@@ -81,14 +77,14 @@ export class PostService {
 
     return posts.map((post) => ({
       ...post,
-      body: post.body ? post.body + "..." : "",
+      body: post.body ? post.body + '...' : '',
       user: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     }));
   }
 
   async getAllPosts(limit = 100, offset = 0) {
-     const posts = await db.query.posts.findMany({
+    const posts = await db.query.posts.findMany({
       where: isNull(postsModel.deleted_at),
       orderBy: desc(postsModel.created_at),
       with: {
@@ -128,8 +124,8 @@ export class PostService {
 
         return post;
       } catch (error) {
-        console.error("Error adding post:", error);
-        throw Errors.DatabaseError({ message: "Failed to create post", error });
+        console.error('Error adding post:', error);
+        throw Errors.DatabaseError({ message: 'Failed to create post', error });
       }
     });
   }
@@ -196,7 +192,7 @@ export class PostService {
         body: false,
       },
       extras: {
-        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
+        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body_snippet'),
       },
       with: {
         user: {
@@ -212,7 +208,7 @@ export class PostService {
     const response = posts.map((post: any) => ({
       id: post.id,
       title: post.title,
-      body: post.body_snippet ? post.body_snippet + "..." : "",
+      body: post.body_snippet ? post.body_snippet + '...' : '',
       slug: post.slug,
       photo_url: post.photo_url,
       created_at: post.created_at,
@@ -281,7 +277,7 @@ export class PostService {
         id: postsModel.id,
         title: postsModel.title,
         slug: postsModel.slug,
-        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
         created_at: postsModel.created_at,
         user: {
           id: usersModel.id,
@@ -295,12 +291,12 @@ export class PostService {
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
       .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
-      .orderBy(sql.raw("RANDOM()"))
+      .orderBy(sql.raw('RANDOM()'))
       .limit(limit);
 
     return data.map((post) => ({
       ...post,
-      body: post.body ? post.body + "..." : "",
+      body: post.body ? post.body + '...' : '',
     }));
   }
 
@@ -340,7 +336,7 @@ export class PostService {
   }
 
   async getPostBySlug(slug: string) {
-     return await db.query.posts.findFirst({
+    return await db.query.posts.findFirst({
       where: and(
         isNull(postsModel.deleted_at),
         eq(postsModel.slug, slug),
@@ -361,31 +357,28 @@ export class PostService {
       .set({ deleted_at: new Date().toISOString() })
       .where(and(eq(postsModel.id, post_id), eq(postsModel.created_by, auth_id)))
       .returning({ id: postsModel.id });
-      
+
     if (!deletedPost[0]) {
-      throw Errors.NotFound("Post");
+      throw Errors.NotFound('Post');
     }
     return deletedPost;
   }
 
   async getPostsByUser(user_id: string, params: GetPaginationParams) {
-     const { offset, limit } = params;
+    const { offset, limit } = params;
     const posts = await db.query.posts.findMany({
-      where: and(
-        eq(postsModel.created_by, user_id),
-        isNull(postsModel.deleted_at)
-      ),
+      where: and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)),
       columns: {
         body: false,
       },
       extras: {
-        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body_snippet"),
+        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body_snippet'),
       },
       with: {
         user: {
           columns: { password: false, github_id: false, last_logged_at: false },
         },
-          posts_to_tags: { columns: {}, with: { tag: true } },
+        posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
       offset: offset,
@@ -394,26 +387,24 @@ export class PostService {
     const total = await db
       .select({ count: count() })
       .from(postsModel)
-      .where(
-        and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at))
-      );
-      
+      .where(and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)));
+
     const data = posts.map((post) => ({
       ...post,
-      body: post.body_snippet ? post.body_snippet + "..." : "",
+      body: post.body_snippet ? post.body_snippet + '...' : '',
     }));
 
     const meta = getPaginationMetadata(total[0].count, params.offset, params.limit);
     return { data, meta };
   }
-  
+
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
     const posts = await db
       .select({
         id: postsModel.id,
         title: postsModel.title,
         slug: postsModel.slug,
-        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as("body"),
+        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
         created_at: postsModel.created_at,
         view_count: postsModel.view_count,
         like_count: postsModel.like_count,
@@ -428,25 +419,29 @@ export class PostService {
       })
       .from(postsModel)
       .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(and(
-        eq(usersModel.username, username),
-        eq(postsModel.published, true),
-        isNull(postsModel.deleted_at)
-      ))
+      .where(
+        and(
+          eq(usersModel.username, username),
+          eq(postsModel.published, true),
+          isNull(postsModel.deleted_at)
+        )
+      )
       .orderBy(desc(postsModel.created_at))
       .limit(limit)
       .offset(offset);
-      
+
     const total = await db
       .select({ count: count() })
       .from(postsModel)
       .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(and(
-        eq(usersModel.username, username),
-        eq(postsModel.published, true),
-        isNull(postsModel.deleted_at)
-      ));
-      
+      .where(
+        and(
+          eq(usersModel.username, username),
+          eq(postsModel.published, true),
+          isNull(postsModel.deleted_at)
+        )
+      );
+
     const meta = getPaginationMetadata(total[0].count, offset, limit);
     return { data: posts, meta };
   }
@@ -479,10 +474,7 @@ export class PostService {
       })
       .from(postsModel)
       .where(
-        and(
-          gte(postsModel.created_at, startDate.toISOString()),
-          isNull(postsModel.deleted_at)
-        )
+        and(gte(postsModel.created_at, startDate.toISOString()), isNull(postsModel.deleted_at))
       )
       .groupBy(sql`TO_CHAR(${postsModel.created_at}, ${dateFormat})`)
       .orderBy(sql`TO_CHAR(${postsModel.created_at}, ${dateFormat})`);
@@ -505,10 +497,7 @@ export class PostService {
       .leftJoin(posts_to_tags, eq(tagsModel.id, posts_to_tags.tag_id))
       .leftJoin(
         postsModel,
-        and(
-          eq(posts_to_tags.post_id, postsModel.id),
-          isNull(postsModel.deleted_at)
-        )
+        and(eq(posts_to_tags.post_id, postsModel.id), isNull(postsModel.deleted_at))
       )
       .groupBy(tagsModel.id, tagsModel.name)
       .orderBy(desc(count(posts_to_tags.post_id)))
@@ -517,10 +506,7 @@ export class PostService {
     return result;
   }
 
-  private async getTopPostsBy(
-    orderByField: 'view_count' | 'like_count',
-    limit = 10
-  ) {
+  private async getTopPostsBy(orderByField: 'view_count' | 'like_count', limit = 10) {
     const column = orderByField === 'view_count' ? postsModel.view_count : postsModel.like_count;
     const posts = await db.query.posts.findMany({
       where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
@@ -583,17 +569,9 @@ export class PostService {
       .from(usersModel)
       .leftJoin(
         postsModel,
-        and(
-          eq(usersModel.id, postsModel.created_by),
-          isNull(postsModel.deleted_at)
-        )
+        and(eq(usersModel.id, postsModel.created_by), isNull(postsModel.deleted_at))
       )
-      .groupBy(
-        usersModel.id,
-        usersModel.username,
-        usersModel.first_name,
-        usersModel.last_name
-      )
+      .groupBy(usersModel.id, usersModel.username, usersModel.first_name, usersModel.last_name)
       .orderBy(desc(count(postsModel.id)))
       .limit(limit);
 
@@ -640,12 +618,7 @@ export class PostService {
         created_at: postsModel.created_at,
       })
       .from(postsModel)
-      .where(
-        and(
-          isNull(postsModel.deleted_at),
-          eq(postsModel.published, true)
-        )
-      )
+      .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
       .orderBy(desc(postsModel.view_count))
       .limit(limit);
 

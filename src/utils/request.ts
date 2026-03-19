@@ -23,9 +23,7 @@ export function getClientIp(c: Context): string | undefined {
  */
 export const safeLimit = (v: string | undefined, fallback: number = 10, max: number = 100) => {
   const n = v ? Number(v) : NaN;
-  return Number.isFinite(n) && n >= 1
-    ? Math.min(max, Math.max(1, Math.floor(n)))
-    : fallback;
+  return Number.isFinite(n) && n >= 1 ? Math.min(max, Math.max(1, Math.floor(n))) : fallback;
 };
 
 /**

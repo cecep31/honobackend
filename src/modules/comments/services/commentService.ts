@@ -1,13 +1,10 @@
-import { post_comments, posts } from "../../../database/schemas/postgre/schema";
-import { db } from "../../../database/drizzle";
-import { and, eq, isNull, desc, count } from "drizzle-orm";
-import { Errors } from "../../../utils/error";
-import { randomUUIDv7 } from "bun";
-import { getPaginationMetadata } from "../../../utils/paginate";
-import type {
-  CreateCommentInput,
-  UpdateCommentInput,
-} from "../validation";
+import { post_comments, posts } from '../../../database/schemas/postgre/schema';
+import { db } from '../../../database/drizzle';
+import { and, eq, isNull, desc, count } from 'drizzle-orm';
+import { Errors } from '../../../utils/error';
+import { randomUUIDv7 } from 'bun';
+import { getPaginationMetadata } from '../../../utils/paginate';
+import type { CreateCommentInput, UpdateCommentInput } from '../validation';
 
 /** Reusable column selection for public user info on comments */
 const COMMENT_USER_COLUMNS = {
@@ -26,9 +23,9 @@ export class CommentService {
         .select({ id: posts.id })
         .from(posts)
         .where(and(eq(posts.id, data.post_id), isNull(posts.deleted_at)));
-      
+
       if (postExists.length === 0) {
-        throw Errors.NotFound("Post not found");
+        throw Errors.NotFound('Post not found');
       }
 
       // If parent_comment_id is provided, verify it exists
@@ -37,14 +34,11 @@ export class CommentService {
           .select({ id: post_comments.id })
           .from(post_comments)
           .where(
-            and(
-              eq(post_comments.id, data.parent_comment_id),
-              isNull(post_comments.deleted_at)
-            )
+            and(eq(post_comments.id, data.parent_comment_id), isNull(post_comments.deleted_at))
           );
-        
+
         if (parentExists.length === 0) {
-          throw Errors.NotFound("Parent comment not found");
+          throw Errors.NotFound('Parent comment not found');
         }
       }
 
@@ -67,8 +61,8 @@ export class CommentService {
 
       return commentWithUser;
     } catch (error) {
-      console.error("Create comment error:", error);
-      if (error instanceof Error && error.message.includes("not found")) {
+      console.error('Create comment error:', error);
+      if (error instanceof Error && error.message.includes('not found')) {
         throw error;
       }
       throw Errors.InternalServerError();
@@ -109,7 +103,7 @@ export class CommentService {
         meta: getPaginationMetadata(total, offset, limit),
       };
     } catch (error) {
-      console.error("Get comments error:", error);
+      console.error('Get comments error:', error);
       throw Errors.InternalServerError();
     }
   }
@@ -127,7 +121,7 @@ export class CommentService {
 
       return replies;
     } catch (error) {
-      console.error("Get comment replies error:", error);
+      console.error('Get comment replies error:', error);
       throw Errors.InternalServerError();
     }
   }
@@ -135,21 +129,18 @@ export class CommentService {
   async getCommentById(comment_id: string) {
     try {
       const comment = await db.query.post_comments.findFirst({
-        where: and(
-          eq(post_comments.id, comment_id),
-          isNull(post_comments.deleted_at)
-        ),
+        where: and(eq(post_comments.id, comment_id), isNull(post_comments.deleted_at)),
         with: { user: { columns: COMMENT_USER_COLUMNS } },
       });
 
       if (!comment) {
-        throw Errors.NotFound("Comment not found");
+        throw Errors.NotFound('Comment not found');
       }
 
       return comment;
     } catch (error) {
-      console.error("Get comment error:", error);
-      if (error instanceof Error && error.message.includes("not found")) {
+      console.error('Get comment error:', error);
+      if (error instanceof Error && error.message.includes('not found')) {
         throw error;
       }
       throw Errors.InternalServerError();
@@ -168,7 +159,7 @@ export class CommentService {
         .where(and(eq(post_comments.id, comment_id), isNull(post_comments.deleted_at)));
 
       if (existingComment.length === 0) {
-        throw Errors.NotFound("Comment not found");
+        throw Errors.NotFound('Comment not found');
       }
 
       if (existingComment[0].created_by !== user_id) {
@@ -192,8 +183,11 @@ export class CommentService {
 
       return commentWithUser;
     } catch (error) {
-      console.error("Update comment error:", error);
-      if (error instanceof Error && (error.message.includes("not found") || error.message.includes("Forbidden"))) {
+      console.error('Update comment error:', error);
+      if (
+        error instanceof Error &&
+        (error.message.includes('not found') || error.message.includes('Forbidden'))
+      ) {
         throw error;
       }
       throw Errors.InternalServerError();
@@ -212,7 +206,7 @@ export class CommentService {
         .where(and(eq(post_comments.id, comment_id), isNull(post_comments.deleted_at)));
 
       if (existingComment.length === 0) {
-        throw Errors.NotFound("Comment not found");
+        throw Errors.NotFound('Comment not found');
       }
 
       if (existingComment[0].created_by !== user_id) {
@@ -230,8 +224,11 @@ export class CommentService {
 
       return deleted[0];
     } catch (error) {
-      console.error("Delete comment error:", error);
-      if (error instanceof Error && (error.message.includes("not found") || error.message.includes("Forbidden"))) {
+      console.error('Delete comment error:', error);
+      if (
+        error instanceof Error &&
+        (error.message.includes('not found') || error.message.includes('Forbidden'))
+      ) {
         throw error;
       }
       throw Errors.InternalServerError();
@@ -241,10 +238,7 @@ export class CommentService {
   async getCommentsByUser(user_id: string, offset: number = 0, limit: number = 20) {
     try {
       const comments = await db.query.post_comments.findMany({
-        where: and(
-          eq(post_comments.created_by, user_id),
-          isNull(post_comments.deleted_at)
-        ),
+        where: and(eq(post_comments.created_by, user_id), isNull(post_comments.deleted_at)),
         with: {
           user: { columns: COMMENT_USER_COLUMNS },
           post: {
@@ -264,12 +258,7 @@ export class CommentService {
       const [totalResult] = await db
         .select({ count: count() })
         .from(post_comments)
-        .where(
-          and(
-            eq(post_comments.created_by, user_id),
-            isNull(post_comments.deleted_at)
-          )
-        );
+        .where(and(eq(post_comments.created_by, user_id), isNull(post_comments.deleted_at)));
 
       const total = totalResult?.count ?? 0;
 
@@ -278,7 +267,7 @@ export class CommentService {
         meta: getPaginationMetadata(total, offset, limit),
       };
     } catch (error) {
-      console.error("Get user comments error:", error);
+      console.error('Get user comments error:', error);
       throw Errors.InternalServerError();
     }
   }

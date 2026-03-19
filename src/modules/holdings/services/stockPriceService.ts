@@ -1,4 +1,4 @@
-import { externalApiClient } from "../../../utils/httpClient";
+import { externalApiClient } from '../../../utils/httpClient';
 
 export interface StockPrice {
   symbol: string;
@@ -18,7 +18,7 @@ export class StockPriceService {
       // Yahoo Finance Query API (v7)
       const symbolsStr = symbols.join(',');
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolsStr}`;
-      
+
       const response = await externalApiClient.get(url);
       const results = response.data?.quoteResponse?.result || [];
 

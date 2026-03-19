@@ -1,22 +1,18 @@
-import { getS3Helper } from "../../../utils/s3";
-import { randomUUIDv7 } from "bun";
-import { db } from "../../../database/drizzle";
-import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
+import { getS3Helper } from '../../../utils/s3';
+import { randomUUIDv7 } from 'bun';
+import { db } from '../../../database/drizzle';
+import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import {
   profiles,
   users as usersModel,
   user_follows,
-} from "../../../database/schemas/postgre/schema";
-import type {
-  UserCreateBody,
-  UserUpdateBody,
-  UpdateProfileBody,
-} from "../validation";
-import type { UserSignup } from "../../auth/validation";
-import type { GetPaginationParams } from "../../../types/paginate";
-import { getPaginationMetadata } from "../../../utils/paginate";
-import { Errors } from "../../../utils/error";
-import type { GithubUser } from "../../../types/auth";
+} from '../../../database/schemas/postgre/schema';
+import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from '../validation';
+import type { UserSignup } from '../../auth/validation';
+import type { GetPaginationParams } from '../../../types/paginate';
+import { getPaginationMetadata } from '../../../utils/paginate';
+import { Errors } from '../../../utils/error';
+import type { GithubUser } from '../../../types/auth';
 
 /**
  * Service class for managing user operations
@@ -47,8 +43,8 @@ export class UserService {
       const meta = getPaginationMetadata(total[0].count, offset, limit);
       return { data, meta };
     } catch (error) {
-      console.error("Error fetching users:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch users", error });
+      console.error('Error fetching users:', error);
+      throw Errors.DatabaseError({ message: 'Failed to fetch users', error });
     }
   }
 
@@ -64,8 +60,8 @@ export class UserService {
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user", error });
+      console.error('Error fetching user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to fetch user', error });
     }
   }
 
@@ -83,9 +79,9 @@ export class UserService {
         ...(profile && { with: { profiles: true } }),
       });
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      console.error('Error fetching user profile:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch user profile",
+        message: 'Failed to fetch user profile',
         error,
       });
     }
@@ -100,7 +96,7 @@ export class UserService {
     try {
       const existingUser = await this.getUser(userId);
       if (!existingUser) {
-        throw Errors.NotFound("User");
+        throw Errors.NotFound('User');
       }
 
       const result = await db
@@ -111,11 +107,11 @@ export class UserService {
 
       return result[0];
     } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
+      if (error instanceof Error && error.message.includes('not found')) {
         throw error;
       }
-      console.error("Error deleting user:", error);
-      throw Errors.DatabaseError({ message: "Failed to delete user", error });
+      console.error('Error deleting user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to delete user', error });
     }
   }
 
@@ -129,16 +125,16 @@ export class UserService {
       // Check for existing username or email
       const existingUsername = await this.getUserCountByUsername(body.username);
       if (existingUsername > 0) {
-        throw Errors.BusinessRuleViolation("Username already exists");
+        throw Errors.BusinessRuleViolation('Username already exists');
       }
 
       const existingEmail = await this.getUserCountByEmail(body.email);
       if (existingEmail > 0) {
-        throw Errors.BusinessRuleViolation("Email already exists");
+        throw Errors.BusinessRuleViolation('Email already exists');
       }
 
       const hashedPassword = await Bun.password.hash(body.password, {
-        algorithm: "bcrypt",
+        algorithm: 'bcrypt',
         cost: 12,
       });
 
@@ -162,11 +158,11 @@ export class UserService {
 
       return user;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("already exists")) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         throw error;
       }
-      console.error("Error creating user:", error);
-      throw Errors.DatabaseError({ message: "Failed to create user", error });
+      console.error('Error creating user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to create user', error });
     }
   }
 
@@ -180,28 +176,28 @@ export class UserService {
     try {
       const existingUser = await this.getUser(userId);
       if (!existingUser) {
-        throw Errors.NotFound("User");
+        throw Errors.NotFound('User');
       }
 
       // Check for username/email conflicts if being updated
       if (body.username && body.username !== existingUser.username) {
         const usernameCount = await this.getUserCountByUsername(body.username);
         if (usernameCount > 0) {
-          throw Errors.BusinessRuleViolation("Username already exists");
+          throw Errors.BusinessRuleViolation('Username already exists');
         }
       }
 
       if (body.email && body.email !== existingUser.email) {
         const emailCount = await this.getUserCountByEmail(body.email);
         if (emailCount > 0) {
-          throw Errors.BusinessRuleViolation("Email already exists");
+          throw Errors.BusinessRuleViolation('Email already exists');
         }
       }
 
       const updateData = {
-        ...Object.fromEntries(
+        ...(Object.fromEntries(
           Object.entries(body).filter(([, v]) => v !== undefined)
-        ) as Partial<UserUpdateBody>,
+        ) as Partial<UserUpdateBody>),
         updated_at: new Date().toISOString(),
       };
 
@@ -215,13 +211,12 @@ export class UserService {
     } catch (error) {
       if (
         error instanceof Error &&
-        (error.message.includes("not found") ||
-          error.message.includes("already exists"))
+        (error.message.includes('not found') || error.message.includes('already exists'))
       ) {
         throw error;
       }
-      console.error("Error updating user:", error);
-      throw Errors.DatabaseError({ message: "Failed to update user", error });
+      console.error('Error updating user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to update user', error });
     }
   }
 
@@ -236,7 +231,7 @@ export class UserService {
       // Check if user exists
       const existingUser = await this.getUser(userId);
       if (!existingUser) {
-        throw Errors.NotFound("User");
+        throw Errors.NotFound('User');
       }
 
       const [updatedProfile] = await db
@@ -247,12 +242,12 @@ export class UserService {
 
       return updatedProfile;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
+      if (error instanceof Error && error.message.includes('not found')) {
         throw error;
       }
-      console.error("Error updating profile:", error);
+      console.error('Error updating profile:', error);
       throw Errors.DatabaseError({
-        message: "Failed to update profile",
+        message: 'Failed to update profile',
         error,
       });
     }
@@ -270,15 +265,12 @@ export class UserService {
   async getUserByGithubId(githubId: number) {
     try {
       return await db.query.users.findFirst({
-        where: and(
-          eq(usersModel.github_id, githubId),
-          isNull(usersModel.deleted_at),
-        ),
+        where: and(eq(usersModel.github_id, githubId), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user by GitHub ID:", error);
+      console.error('Error fetching user by GitHub ID:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch user by GitHub ID",
+        message: 'Failed to fetch user by GitHub ID',
         error,
       });
     }
@@ -294,14 +286,12 @@ export class UserService {
       const result = await db
         .select({ count: count() })
         .from(usersModel)
-        .where(
-          and(eq(usersModel.username, username), isNull(usersModel.deleted_at)),
-        );
+        .where(and(eq(usersModel.username, username), isNull(usersModel.deleted_at)));
       return result[0].count;
     } catch (error) {
-      console.error("Error counting users by username:", error);
+      console.error('Error counting users by username:', error);
       throw Errors.DatabaseError({
-        message: "Failed to count users by username",
+        message: 'Failed to count users by username',
         error,
       });
     }
@@ -320,9 +310,9 @@ export class UserService {
         .where(and(eq(usersModel.email, email), isNull(usersModel.deleted_at)));
       return result[0].count;
     } catch (error) {
-      console.error("Error counting users by email:", error);
+      console.error('Error counting users by email:', error);
       throw Errors.DatabaseError({
-        message: "Failed to count users by email",
+        message: 'Failed to count users by email',
         error,
       });
     }
@@ -346,8 +336,8 @@ export class UserService {
 
       return user;
     } catch (error) {
-      console.error("Error creating user from signup:", error);
-      throw Errors.DatabaseError({ message: "Failed to create user", error });
+      console.error('Error creating user from signup:', error);
+      throw Errors.DatabaseError({ message: 'Failed to create user', error });
     }
   }
 
@@ -362,7 +352,7 @@ export class UserService {
       const dbClient = tx || db;
       // Handle email - if null, use fallback format
       let email = githubUser.email;
-      if (!email || email.trim() === "") {
+      if (!email || email.trim() === '') {
         email = `github-${githubUser.id}@github.oauth`;
       }
 
@@ -377,13 +367,13 @@ export class UserService {
       // Handle username - sanitize and check for conflicts
       let username = githubUser.login;
       // Sanitize username to match validation rules (letters, numbers, underscores, hyphens)
-      username = username.replace(/[^a-zA-Z0-9_-]/g, "").toLowerCase();
-      
+      username = username.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+
       // Ensure username meets minimum length
       if (username.length < 3) {
         username = `user${githubUser.id}`.substring(0, 20);
       }
-      
+
       // Ensure username doesn't exceed max length
       if (username.length > 20) {
         username = username.substring(0, 20);
@@ -392,28 +382,28 @@ export class UserService {
       // Check for username conflicts and append number if needed
       let finalUsername = username;
       let counter = 1;
-      while (await this.getUserCountByUsername(finalUsername) > 0) {
+      while ((await this.getUserCountByUsername(finalUsername)) > 0) {
         const suffix = counter.toString();
         const maxLength = 20 - suffix.length;
         finalUsername = `${username.substring(0, maxLength)}${suffix}`;
         counter++;
-        
+
         // Safety check to prevent infinite loop
         if (counter > 1000) {
           throw Errors.BusinessRuleViolation(
-            "Unable to generate unique username. Please contact support."
+            'Unable to generate unique username. Please contact support.'
           );
         }
       }
 
       // Handle name - split if available, otherwise fall back to login name
-      let firstName = githubUser.login || "user";
-      let lastName = "";
+      let firstName = githubUser.login || 'user';
+      let lastName = '';
       if (githubUser.name) {
         const nameParts = githubUser.name.trim().split(/\s+/);
         if (nameParts.length >= 2) {
           firstName = nameParts[0].substring(0, 100);
-          lastName = nameParts.slice(1).join(" ").substring(0, 100);
+          lastName = nameParts.slice(1).join(' ').substring(0, 100);
         } else if (nameParts.length === 1) {
           firstName = nameParts[0].substring(0, 100);
         }
@@ -442,14 +432,14 @@ export class UserService {
     } catch (error) {
       if (
         error instanceof Error &&
-        (error.message.includes("already registered") ||
-          error.message.includes("Unable to generate"))
+        (error.message.includes('already registered') ||
+          error.message.includes('Unable to generate'))
       ) {
         throw error;
       }
-      console.error("Error creating user from GitHub:", error);
+      console.error('Error creating user from GitHub:', error);
       throw Errors.DatabaseError({
-        message: "Failed to create user from GitHub",
+        message: 'Failed to create user from GitHub',
         error,
       });
     }
@@ -466,8 +456,8 @@ export class UserService {
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user with password:", error);
-      throw Errors.DatabaseError({ message: "Failed to fetch user", error });
+      console.error('Error fetching user with password:', error);
+      throw Errors.DatabaseError({ message: 'Failed to fetch user', error });
     }
   }
 
@@ -484,9 +474,9 @@ export class UserService {
         where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      console.error('Error fetching user profile:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch user profile",
+        message: 'Failed to fetch user profile',
         error,
       });
     }
@@ -503,9 +493,9 @@ export class UserService {
         where: and(eq(usersModel.email, email), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user by email:", error);
+      console.error('Error fetching user by email:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch user by email",
+        message: 'Failed to fetch user by email',
         error,
       });
     }
@@ -519,15 +509,12 @@ export class UserService {
   async getUserByUsernameRaw(username: string) {
     try {
       return await db.query.users.findFirst({
-        where: and(
-          eq(usersModel.username, username),
-          isNull(usersModel.deleted_at),
-        ),
+        where: and(eq(usersModel.username, username), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user by username:", error);
+      console.error('Error fetching user by username:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch user by username",
+        message: 'Failed to fetch user by username',
         error,
       });
     }
@@ -543,15 +530,12 @@ export class UserService {
       return await db.query.users.findFirst({
         columns: { password: false, last_logged_at: false, github_id: false },
         with: { profiles: true },
-        where: and(
-          eq(usersModel.username, username),
-          isNull(usersModel.deleted_at),
-        ),
+        where: and(eq(usersModel.username, username), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      console.error("Error fetching user by username:", error);
+      console.error('Error fetching user by username:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch user by username",
+        message: 'Failed to fetch user by username',
         error,
       });
     }
@@ -575,9 +559,9 @@ export class UserService {
 
       return result;
     } catch (error) {
-      console.error("Error updating password:", error);
+      console.error('Error updating password:', error);
       throw Errors.DatabaseError({
-        message: "Failed to update password",
+        message: 'Failed to update password',
         error,
       });
     }
@@ -599,8 +583,8 @@ export class UserService {
 
       return result;
     } catch (error) {
-      console.error("Error updating email:", error);
-      throw Errors.DatabaseError({ message: "Failed to update email", error });
+      console.error('Error updating email:', error);
+      throw Errors.DatabaseError({ message: 'Failed to update email', error });
     }
   }
 
@@ -610,25 +594,22 @@ export class UserService {
       const user = await this.getUser(userId);
 
       if (!user) {
-        throw Errors.NotFound("User not found");
+        throw Errors.NotFound('User not found');
       }
 
       // If user has an old image, delete it from S3
       if (user.image) {
         try {
-          const oldKey = user.image.substring(user.image.lastIndexOf("/") + 1);
+          const oldKey = user.image.substring(user.image.lastIndexOf('/') + 1);
           await s3.deleteFile(`avatars/${oldKey}`);
         } catch (error) {
-          console.warn(
-            "Old image deletion failed, continuing with upload:",
-            error,
-          );
+          console.warn('Old image deletion failed, continuing with upload:', error);
         }
       }
 
       const imageId = randomUUIDv7();
-      const imageKey = `avatars/${userId}/${imageId}.${imageFile.type.split("/")[1]}`;
-      
+      const imageKey = `avatars/${userId}/${imageId}.${imageFile.type.split('/')[1]}`;
+
       await s3.uploadFile(imageKey, imageFile);
 
       const [updatedUser] = await db
@@ -642,12 +623,12 @@ export class UserService {
 
       return updatedUser;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
+      if (error instanceof Error && error.message.includes('not found')) {
         throw error;
       }
-      console.error("Error updating user image:", error);
+      console.error('Error updating user image:', error);
       throw Errors.DatabaseError({
-        message: "Failed to update user image",
+        message: 'Failed to update user image',
         error,
       });
     }
@@ -668,12 +649,12 @@ export class UserService {
       // Check if users exist
       const follower = await this.getUser(follower_id);
       if (!follower) {
-        throw Errors.NotFound("Follower user");
+        throw Errors.NotFound('Follower user');
       }
 
       const following = await this.getUser(following_id);
       if (!following) {
-        throw Errors.NotFound("Following user");
+        throw Errors.NotFound('Following user');
       }
 
       // Check if already following
@@ -681,12 +662,12 @@ export class UserService {
         where: and(
           eq(user_follows.follower_id, follower_id),
           eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at),
+          isNull(user_follows.deleted_at)
         ),
       });
 
       if (existingFollow) {
-        throw Errors.BusinessRuleViolation("Already following this user");
+        throw Errors.BusinessRuleViolation('Already following this user');
       }
 
       // Create follow relationship
@@ -720,13 +701,12 @@ export class UserService {
     } catch (error) {
       if (
         error instanceof Error &&
-        (error.message.includes("not found") ||
-          error.message.includes("Already following"))
+        (error.message.includes('not found') || error.message.includes('Already following'))
       ) {
         throw error;
       }
-      console.error("Error following user:", error);
-      throw Errors.DatabaseError({ message: "Failed to follow user", error });
+      console.error('Error following user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to follow user', error });
     }
   }
 
@@ -743,12 +723,12 @@ export class UserService {
         where: and(
           eq(user_follows.follower_id, follower_id),
           eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at),
+          isNull(user_follows.deleted_at)
         ),
       });
 
       if (!existingFollow) {
-        throw Errors.NotFound("Follow relationship");
+        throw Errors.NotFound('Follow relationship');
       }
 
       // Soft delete the follow relationship
@@ -777,11 +757,11 @@ export class UserService {
 
       return unfollow;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("not found")) {
+      if (error instanceof Error && error.message.includes('not found')) {
         throw error;
       }
-      console.error("Error unfollowing user:", error);
-      throw Errors.DatabaseError({ message: "Failed to unfollow user", error });
+      console.error('Error unfollowing user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to unfollow user', error });
     }
   }
 
@@ -791,10 +771,7 @@ export class UserService {
    * @param params Pagination parameters
    * @returns Paginated list of followers
    */
-  async getFollowers(
-    userId: string,
-    params: GetPaginationParams = { offset: 0, limit: 10 },
-  ) {
+  async getFollowers(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
     try {
       const { limit, offset } = params;
 
@@ -817,8 +794,8 @@ export class UserService {
           and(
             eq(user_follows.following_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at),
-          ),
+            isNull(usersModel.deleted_at)
+          )
         )
         .orderBy(desc(user_follows.created_at))
         .limit(limit)
@@ -833,16 +810,16 @@ export class UserService {
           and(
             eq(user_follows.following_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at),
-          ),
+            isNull(usersModel.deleted_at)
+          )
         );
 
       const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
       return { data: followers, meta };
     } catch (error) {
-      console.error("Error fetching followers:", error);
+      console.error('Error fetching followers:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch followers",
+        message: 'Failed to fetch followers',
         error,
       });
     }
@@ -854,10 +831,7 @@ export class UserService {
    * @param params Pagination parameters
    * @returns Paginated list of following users
    */
-  async getFollowing(
-    userId: string,
-    params: GetPaginationParams = { offset: 0, limit: 10 },
-  ) {
+  async getFollowing(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
     try {
       const { limit, offset } = params;
 
@@ -880,8 +854,8 @@ export class UserService {
           and(
             eq(user_follows.follower_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at),
-          ),
+            isNull(usersModel.deleted_at)
+          )
         )
         .orderBy(desc(user_follows.created_at))
         .limit(limit)
@@ -896,16 +870,16 @@ export class UserService {
           and(
             eq(user_follows.follower_id, userId),
             isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at),
-          ),
+            isNull(usersModel.deleted_at)
+          )
         );
 
       const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
       return { data: following, meta };
     } catch (error) {
-      console.error("Error fetching following:", error);
+      console.error('Error fetching following:', error);
       throw Errors.DatabaseError({
-        message: "Failed to fetch following",
+        message: 'Failed to fetch following',
         error,
       });
     }
@@ -917,24 +891,21 @@ export class UserService {
    * @param following_id ID of the potential following
    * @returns Boolean indicating if following
    */
-  async isFollowing(
-    follower_id: string,
-    following_id: string,
-  ): Promise<boolean> {
+  async isFollowing(follower_id: string, following_id: string): Promise<boolean> {
     try {
       const follow = await db.query.user_follows.findFirst({
         where: and(
           eq(user_follows.follower_id, follower_id),
           eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at),
+          isNull(user_follows.deleted_at)
         ),
       });
 
       return !!follow;
     } catch (error) {
-      console.error("Error checking follow status:", error);
+      console.error('Error checking follow status:', error);
       throw Errors.DatabaseError({
-        message: "Failed to check follow status",
+        message: 'Failed to check follow status',
         error,
       });
     }

@@ -1,21 +1,21 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const getHoldingsQuerySchema = z.object({
   month: z.string().regex(/^\d+$/).transform(Number).optional(),
   year: z.string().regex(/^\d+$/).transform(Number).optional(),
   sortBy: z
     .enum([
-      "created_at",
-      "updated_at",
-      "name",
-      "platform",
-      "invested_amount",
-      "current_value",
-      "holding_type",
+      'created_at',
+      'updated_at',
+      'name',
+      'platform',
+      'invested_amount',
+      'current_value',
+      'holding_type',
     ])
     .optional()
-    .default("created_at"),
-  order: z.enum(["asc", "desc"]).optional().default("desc"),
+    .default('created_at'),
+  order: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
 export const getSummaryQuerySchema = z.object({
@@ -27,7 +27,7 @@ export const getTrendsQuerySchema = z.object({
   years: z
     .string()
     .optional()
-    .transform((val) => (val ? val.split(",").map(Number) : undefined)),
+    .transform((val) => (val ? val.split(',').map(Number) : undefined)),
 });
 
 export const getCompareMonthsSchema = z.object({

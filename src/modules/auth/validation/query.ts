@@ -1,35 +1,44 @@
-import { z } from "zod";
-import { safeLimit, safeOffset } from "../../../utils/request";
+import { z } from 'zod';
+import { safeLimit, safeOffset } from '../../../utils/request';
 
 /** Query for GET /oauth/github/callback */
 export const githubCallbackQuerySchema = z.object({
-  code: z.string().min(1, "code is required"),
+  code: z.string().min(1, 'code is required'),
 });
 
 /** Query for GET /activity-logs */
 export const activityLogsQuerySchema = z.object({
-  limit: z.string().optional().transform((v) => safeLimit(v, 20)),
-  offset: z.string().optional().transform((v) => safeOffset(v, 0)),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => safeLimit(v, 20)),
+  offset: z
+    .string()
+    .optional()
+    .transform((v) => safeOffset(v, 0)),
   activity_type: z
     .enum([
-      "login",
-      "login_failed",
-      "logout",
-      "register",
-      "password_change",
-      "password_reset_request",
-      "password_reset",
-      "token_refresh",
-      "oauth_login",
-      "oauth_login_failed",
+      'login',
+      'login_failed',
+      'logout',
+      'register',
+      'password_change',
+      'password_reset_request',
+      'password_reset',
+      'token_refresh',
+      'oauth_login',
+      'oauth_login_failed',
     ])
     .optional(),
-  status: z.enum(["success", "failure", "pending"]).optional(),
+  status: z.enum(['success', 'failure', 'pending']).optional(),
 });
 
 /** Query for GET /activity-logs/recent */
 export const activityLogsRecentQuerySchema = z.object({
-  limit: z.string().optional().transform((v) => safeLimit(v, 10)),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => safeLimit(v, 10)),
 });
 
 /** Query for GET /activity-logs/failed-logins */

@@ -1,13 +1,9 @@
-import { db } from "../../../database/drizzle";
-import { and, asc, desc, eq, inArray, sql, count, isNotNull } from "drizzle-orm";
-import { holdings, holding_types } from "../../../database/schemas/postgre/schema";
-import type {
-  DuplicateHoldingPayload,
-  HoldingCreate,
-  HoldingUpdate,
-} from "../validation";
-import { Errors } from "../../../utils/error";
-import { stockPriceService } from "./stockPriceService";
+import { db } from '../../../database/drizzle';
+import { and, asc, desc, eq, inArray, sql, count, isNotNull } from 'drizzle-orm';
+import { holdings, holding_types } from '../../../database/schemas/postgre/schema';
+import type { DuplicateHoldingPayload, HoldingCreate, HoldingUpdate } from '../validation';
+import { Errors } from '../../../utils/error';
+import { stockPriceService } from './stockPriceService';
 
 export class HoldingService {
   async createHolding(userId: string, data: HoldingCreate) {
@@ -45,7 +41,9 @@ export class HoldingService {
     if (userHoldings.length === 0) return [];
 
     // 2. Extract unique symbols
-    const symbols = Array.from(new Set(userHoldings.map((h) => h.symbol).filter(Boolean) as string[]));
+    const symbols = Array.from(
+      new Set(userHoldings.map((h) => h.symbol).filter(Boolean) as string[])
+    );
 
     // 3. Fetch current prices
     const latestPrices = await stockPriceService.getMultiplePrices(symbols);
@@ -87,7 +85,7 @@ export class HoldingService {
       },
     });
     if (!holding) {
-      throw Errors.NotFound("Holding");
+      throw Errors.NotFound('Holding');
     }
     return holding;
   }
@@ -96,8 +94,8 @@ export class HoldingService {
     userId: string,
     month?: number,
     year?: number,
-    sortBy: string = "created_at",
-    order: "asc" | "desc" = "desc"
+    sortBy: string = 'created_at',
+    order: 'asc' | 'desc' = 'desc'
   ) {
     const where = [eq(holdings.user_id, userId)];
     if (month) {
@@ -109,42 +107,29 @@ export class HoldingService {
 
     let orderByClause;
     switch (sortBy) {
-      case "name":
-        orderByClause =
-          order === "asc" ? asc(holdings.name) : desc(holdings.name);
+      case 'name':
+        orderByClause = order === 'asc' ? asc(holdings.name) : desc(holdings.name);
         break;
-      case "platform":
-        orderByClause =
-          order === "asc" ? asc(holdings.platform) : desc(holdings.platform);
+      case 'platform':
+        orderByClause = order === 'asc' ? asc(holdings.platform) : desc(holdings.platform);
         break;
-      case "invested_amount":
+      case 'invested_amount':
         orderByClause =
-          order === "asc"
-            ? asc(holdings.invested_amount)
-            : desc(holdings.invested_amount);
+          order === 'asc' ? asc(holdings.invested_amount) : desc(holdings.invested_amount);
         break;
-      case "current_value":
+      case 'current_value':
         orderByClause =
-          order === "asc"
-            ? asc(holdings.current_value)
-            : desc(holdings.current_value);
+          order === 'asc' ? asc(holdings.current_value) : desc(holdings.current_value);
         break;
-      case "holding_type":
-        orderByClause =
-          order === "asc" ? asc(holding_types.name) : desc(holding_types.name);
+      case 'holding_type':
+        orderByClause = order === 'asc' ? asc(holding_types.name) : desc(holding_types.name);
         break;
-      case "updated_at":
-        orderByClause =
-          order === "asc"
-            ? asc(holdings.updated_at)
-            : desc(holdings.updated_at);
+      case 'updated_at':
+        orderByClause = order === 'asc' ? asc(holdings.updated_at) : desc(holdings.updated_at);
         break;
-      case "created_at":
+      case 'created_at':
       default:
-        orderByClause =
-          order === "asc"
-            ? asc(holdings.created_at)
-            : desc(holdings.created_at);
+        orderByClause = order === 'asc' ? asc(holdings.created_at) : desc(holdings.created_at);
         break;
     }
 
@@ -167,21 +152,19 @@ export class HoldingService {
   async updateHolding(id: number, data: HoldingUpdate) {
     const existing = await this.getHoldingById(id);
     if (!existing) {
-      throw Errors.NotFound("Holding");
+      throw Errors.NotFound('Holding');
     }
 
     const updateData: any = { ...data };
     if (data.invested_amount !== undefined)
       updateData.invested_amount = String(data.invested_amount);
-    if (data.current_value !== undefined)
-      updateData.current_value = String(data.current_value);
+    if (data.current_value !== undefined) updateData.current_value = String(data.current_value);
     if (data.avg_buy_price !== undefined && data.avg_buy_price !== null)
       updateData.avg_buy_price = String(data.avg_buy_price);
     if (data.current_price !== undefined && data.current_price !== null)
       updateData.current_price = String(data.current_price);
-    if (data.units !== undefined && data.units !== null)
-      updateData.units = String(data.units);
-    
+    if (data.units !== undefined && data.units !== null) updateData.units = String(data.units);
+
     if (data.month === null) delete updateData.month;
     if (data.year === null) delete updateData.year;
 
@@ -195,7 +178,7 @@ export class HoldingService {
   async deleteHolding(id: number) {
     const existing = await this.getHoldingById(id);
     if (!existing) {
-      throw Errors.NotFound("Holding");
+      throw Errors.NotFound('Holding');
     }
     return db
       .delete(holdings)
@@ -212,7 +195,7 @@ export class HoldingService {
       where: eq(holding_types.id, id),
     });
     if (!holdingType) {
-      throw Errors.NotFound("Holding Type");
+      throw Errors.NotFound('Holding Type');
     }
     return holdingType;
   }
@@ -224,12 +207,8 @@ export class HoldingService {
 
     const [totals] = await db
       .select({
-        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(
-          Number
-        ),
-        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(
-          Number
-        ),
+        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
+        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
         holdingsCount: count(holdings.id),
       })
       .from(holdings)
@@ -258,12 +237,11 @@ export class HoldingService {
       const invested = r.invested || 0;
       const current = r.current || 0;
       return {
-        name: r.name || "Unknown",
+        name: r.name || 'Unknown',
         invested,
         current,
         profitLoss: current - invested,
-        profitLossPercentage:
-          invested > 0 ? ((current - invested) / invested) * 100 : 0,
+        profitLossPercentage: invested > 0 ? ((current - invested) / invested) * 100 : 0,
       };
     });
 
@@ -285,8 +263,7 @@ export class HoldingService {
         invested,
         current,
         profitLoss: current - invested,
-        profitLossPercentage:
-          invested > 0 ? ((current - invested) / invested) * 100 : 0,
+        profitLossPercentage: invested > 0 ? ((current - invested) / invested) * 100 : 0,
       };
     });
 
@@ -322,14 +299,13 @@ export class HoldingService {
     return results.map((r) => {
       const invested = r.invested || 0;
       const current = r.current || 0;
-      const date = `${r.year}-${String(r.month).padStart(2, "0")}`;
+      const date = `${r.year}-${String(r.month).padStart(2, '0')}`;
       return {
         date,
         invested,
         current,
         profitLoss: current - invested,
-        profitLossPercentage:
-          invested > 0 ? ((current - invested) / invested) * 100 : 0,
+        profitLossPercentage: invested > 0 ? ((current - invested) / invested) * 100 : 0,
       };
     });
   }
@@ -372,12 +348,8 @@ export class HoldingService {
       .select({
         month: holdings.month,
         year: holdings.year,
-        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(
-          Number
-        ),
-        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(
-          Number
-        ),
+        totalInvested: sql<number>`sum(${holdings.invested_amount})`.mapWith(Number),
+        totalCurrentValue: sql<number>`sum(${holdings.current_value})`.mapWith(Number),
         holdingsCount: count(holdings.id),
       })
       .from(holdings)
@@ -388,11 +360,11 @@ export class HoldingService {
     // Create a map of existing data for quick lookup
     const dataMap = new Map(
       results.map((r) => [
-        `${r.year}-${String(r.month).padStart(2, "0")}`,
+        `${r.year}-${String(r.month).padStart(2, '0')}`,
         {
           month: r.month,
           year: r.year,
-          date: `${r.year}-${String(r.month).padStart(2, "0")}`,
+          date: `${r.year}-${String(r.month).padStart(2, '0')}`,
           totalCurrentValue: r.totalCurrentValue || 0,
           totalInvested: r.totalInvested || 0,
           holdingsCount: Number(r.holdingsCount),
@@ -405,7 +377,7 @@ export class HoldingService {
     for (let ym = rangeStartYm; ym <= rangeEndYm; ym++) {
       const year = Math.floor((ym - 1) / 12);
       const month = ((ym - 1) % 12) + 1;
-      const dateKey = `${year}-${String(month).padStart(2, "0")}`;
+      const dateKey = `${year}-${String(month).padStart(2, '0')}`;
 
       allMonths.push(
         dataMap.get(dateKey) || {
@@ -422,10 +394,7 @@ export class HoldingService {
     return allMonths;
   }
 
-  async duplicateHoldingsByMonth(
-    userId: string,
-    data: DuplicateHoldingPayload
-  ) {
+  async duplicateHoldingsByMonth(userId: string, data: DuplicateHoldingPayload) {
     const { fromMonth, fromYear, toMonth, toYear, overwrite } = data;
 
     // 1. Get source holdings
@@ -438,10 +407,7 @@ export class HoldingService {
     });
 
     if (sourceHoldings.length === 0) {
-      throw Errors.InvalidInput(
-        "source holdings",
-        "No holdings found for the source period"
-      );
+      throw Errors.InvalidInput('source holdings', 'No holdings found for the source period');
     }
 
     return await db.transaction(async (tx) => {
@@ -515,19 +481,13 @@ export class HoldingService {
     const prevSummary = await this.getSummary(userId, fMonth, fYear);
     const currentSummary = await this.getSummary(userId, tMonth, tYear);
 
-    const investedDiff =
-      currentSummary.totalInvested - prevSummary.totalInvested;
-    const currentValueDiff =
-      currentSummary.totalCurrentValue - prevSummary.totalCurrentValue;
-    const profitLossDiff =
-      currentSummary.totalProfitLoss - prevSummary.totalProfitLoss;
-    const holdingsCountDiff =
-      currentSummary.holdingsCount - prevSummary.holdingsCount;
+    const investedDiff = currentSummary.totalInvested - prevSummary.totalInvested;
+    const currentValueDiff = currentSummary.totalCurrentValue - prevSummary.totalCurrentValue;
+    const profitLossDiff = currentSummary.totalProfitLoss - prevSummary.totalProfitLoss;
+    const holdingsCountDiff = currentSummary.holdingsCount - prevSummary.holdingsCount;
 
     const investedDiffPercentage =
-      prevSummary.totalInvested > 0
-        ? (investedDiff / prevSummary.totalInvested) * 100
-        : 0;
+      prevSummary.totalInvested > 0 ? (investedDiff / prevSummary.totalInvested) * 100 : 0;
 
     const currentValueDiffPercentage =
       prevSummary.totalCurrentValue > 0
@@ -535,9 +495,7 @@ export class HoldingService {
         : 0;
 
     const holdingsCountDiffPercentage =
-      prevSummary.holdingsCount > 0
-        ? (holdingsCountDiff / prevSummary.holdingsCount) * 100
-        : 0;
+      prevSummary.holdingsCount > 0 ? (holdingsCountDiff / prevSummary.holdingsCount) * 100 : 0;
 
     // Helper to compare breakdowns
     const compareBreakdowns = (
@@ -570,8 +528,7 @@ export class HoldingService {
           currentValueDiff: currData.current - prevData.current,
           investedDiffPercentage:
             prevData.invested > 0
-              ? ((currData.invested - prevData.invested) / prevData.invested) *
-                100
+              ? ((currData.invested - prevData.invested) / prevData.invested) * 100
               : 0,
           currentValueDiffPercentage:
             prevData.current > 0

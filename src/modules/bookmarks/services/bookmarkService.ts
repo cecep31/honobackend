@@ -1,7 +1,7 @@
-import { post_bookmarks } from "../../../database/schemas/postgre/schema";
-import { db } from "../../../database/drizzle";
-import { and, eq } from "drizzle-orm";
-import { Errors } from "../../../utils/error";
+import { post_bookmarks } from '../../../database/schemas/postgre/schema';
+import { db } from '../../../database/drizzle';
+import { and, eq } from 'drizzle-orm';
+import { Errors } from '../../../utils/error';
 
 export class BookmarkService {
   async toggleBookmark(post_id: string, user_id: string) {
@@ -20,14 +20,11 @@ export class BookmarkService {
         return { action: 'removed', ...deleted[0] };
       } else {
         // Create new bookmark
-        const bookmark = await db
-          .insert(post_bookmarks)
-          .values({ post_id, user_id })
-          .returning();
+        const bookmark = await db.insert(post_bookmarks).values({ post_id, user_id }).returning();
         return { action: 'added', ...bookmark[0] };
       }
     } catch (error) {
-      console.error("Toggle bookmark error:", error);
+      console.error('Toggle bookmark error:', error);
       throw Errors.InternalServerError();
     }
   }
@@ -48,7 +45,7 @@ export class BookmarkService {
       });
       return bookmarks;
     } catch (error) {
-      console.error("Get bookmarks error:", error);
+      console.error('Get bookmarks error:', error);
       throw Errors.InternalServerError();
     }
   }

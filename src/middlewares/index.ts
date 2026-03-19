@@ -20,21 +20,31 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
   app
     .use(requestId())
     .use(loggingMiddleware)
-    .use(bodyLimit({
-      maxSize: maxBodySizeBytes,
-      onError: (c) => {
-        return c.json({
-          success: false,
-          message: `Request body is too large. Maximum size is ${bodyLimitConfig.maxSizeMB}MB`,
-        }, 413);
-      },
-    }))
+    .use(
+      bodyLimit({
+        maxSize: maxBodySizeBytes,
+        onError: (c) => {
+          return c.json(
+            {
+              success: false,
+              message: `Request body is too large. Maximum size is ${bodyLimitConfig.maxSizeMB}MB`,
+            },
+            413
+          );
+        },
+      })
+    )
     .use(
       cors({
         origin: originList,
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-        exposeHeaders: ['X-Request-ID', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
+        exposeHeaders: [
+          'X-Request-ID',
+          'RateLimit-Limit',
+          'RateLimit-Remaining',
+          'RateLimit-Reset',
+        ],
         credentials: true,
         maxAge: 86400, // 24 hours preflight cache
       })

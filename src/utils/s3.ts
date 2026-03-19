@@ -1,5 +1,5 @@
-import { S3Client } from "bun";
-import getConfig from "../config";
+import { S3Client } from 'bun';
+import getConfig from '../config';
 
 interface S3HelperConfig {
   endpoint?: string;
@@ -10,13 +10,13 @@ interface S3HelperConfig {
 }
 
 type ResolvedS3Config = Required<S3HelperConfig>;
-type UploadBody = Parameters<S3Client["write"]>[1];
-type FileStat = Awaited<ReturnType<S3Client["stat"]>>;
+type UploadBody = Parameters<S3Client['write']>[1];
+type FileStat = Awaited<ReturnType<S3Client['stat']>>;
 
 class S3HelperError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "S3HelperError";
+    this.name = 'S3HelperError';
   }
 }
 
@@ -49,9 +49,9 @@ class S3Helper {
 
     const resolved: ResolvedS3Config = {
       endpoint: S3Helper.normalizeEndpoint(merged.endpoint),
-      region: (merged.region ?? "").trim(),
-      accessKeyId: (merged.accessKeyId ?? "").trim(),
-      secretAccessKey: (merged.secretAccessKey ?? "").trim(),
+      region: (merged.region ?? '').trim(),
+      accessKeyId: (merged.accessKeyId ?? '').trim(),
+      secretAccessKey: (merged.secretAccessKey ?? '').trim(),
       bucketName: S3Helper.normalizeBucketName(merged.bucketName),
     };
 
@@ -60,24 +60,24 @@ class S3Helper {
       .map(([key]) => key);
 
     if (missing.length > 0) {
-      throw new S3HelperError(`S3 configuration is incomplete: missing ${missing.join(", ")}`);
+      throw new S3HelperError(`S3 configuration is incomplete: missing ${missing.join(', ')}`);
     }
 
     return resolved;
   }
 
   private static normalizeEndpoint(endpoint?: string): string {
-    return (endpoint ?? "").trim().replace(/\/+$/, "");
+    return (endpoint ?? '').trim().replace(/\/+$/, '');
   }
 
   private static normalizeBucketName(bucketName?: string): string {
-    return (bucketName ?? "").trim().replace(/^\/+|\/+$/g, "");
+    return (bucketName ?? '').trim().replace(/^\/+|\/+$/g, '');
   }
 
   private normalizeKey(key: string): string {
-    const normalizedKey = key.trim().replace(/^\/+/, "");
+    const normalizedKey = key.trim().replace(/^\/+/, '');
     if (!normalizedKey) {
-      throw new S3HelperError("S3 object key is required.");
+      throw new S3HelperError('S3 object key is required.');
     }
     return normalizedKey;
   }
@@ -104,10 +104,9 @@ class S3Helper {
       await this.client.write(fullPath, body);
       return key;
     } catch (error) {
-      return this.handleError("upload", key, error);
+      return this.handleError('upload', key, error);
     }
   }
-
 
   /**
    * Download a file from S3
@@ -121,7 +120,7 @@ class S3Helper {
       const file = await this.client.file(fullPath);
       return await file.arrayBuffer();
     } catch (error) {
-      return this.handleError("download", key, error);
+      return this.handleError('download', key, error);
     }
   }
 
@@ -137,7 +136,7 @@ class S3Helper {
       await this.client.delete(fullPath);
       return true;
     } catch (error) {
-      return this.handleError("delete", key, error);
+      return this.handleError('delete', key, error);
     }
   }
 
@@ -152,7 +151,7 @@ class S3Helper {
     try {
       return await this.client.exists(fullPath);
     } catch (error) {
-      return this.handleError("check existence of", key, error);
+      return this.handleError('check existence of', key, error);
     }
   }
 
@@ -167,7 +166,7 @@ class S3Helper {
     try {
       return await this.client.size(fullPath);
     } catch (error) {
-      return this.handleError("get size for", key, error);
+      return this.handleError('get size for', key, error);
     }
   }
 
@@ -182,7 +181,7 @@ class S3Helper {
     try {
       return await this.client.stat(fullPath);
     } catch (error) {
-      return this.handleError("get stats for", key, error);
+      return this.handleError('get stats for', key, error);
     }
   }
 
@@ -199,7 +198,7 @@ class S3Helper {
     try {
       return await this.client.presign(fullPath, { expiresIn: safeExpiresIn });
     } catch (error) {
-      return this.handleError("generate presigned URL for", key, error);
+      return this.handleError('generate presigned URL for', key, error);
     }
   }
 

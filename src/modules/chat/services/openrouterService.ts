@@ -1,4 +1,4 @@
-import getConfig from "../../../config";
+import getConfig from '../../../config';
 
 interface OpenRouterResponse {
   choices: Array<{
@@ -28,18 +28,15 @@ export class OpenRouterService {
     signal?: AbortSignal
   ) {
     const config = getConfig;
-    const url = `${config.openrouter.baseUrl.replace(
-      /\/$/,
-      ""
-    )}/chat/completions`;
+    const url = `${config.openrouter.baseUrl.replace(/\/$/, '')}/chat/completions`;
 
     const response = await fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${config.openrouter.apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://pilput.net", // Optional, for OpenRouter rankings
-        "X-Title": "pilput", // Optional
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://pilput.net', // Optional, for OpenRouter rankings
+        'X-Title': 'pilput', // Optional
       },
       body: JSON.stringify({
         model,
@@ -51,19 +48,14 @@ export class OpenRouterService {
     });
 
     if (!response.ok) {
-      let errorText = "";
+      let errorText = '';
       try {
         errorText = await response.text();
       } catch {
-        errorText = "Unable to read error response";
+        errorText = 'Unable to read error response';
       }
-      console.error(
-        `OpenRouter API Error (${response.status} ${response.statusText}):`,
-        errorText
-      );
-      throw new Error(
-        `OpenRouter API error: ${response.statusText} ${errorText}`
-      );
+      console.error(`OpenRouter API Error (${response.status} ${response.statusText}):`, errorText);
+      throw new Error(`OpenRouter API error: ${response.statusText} ${errorText}`);
     }
 
     return response;
@@ -77,13 +69,7 @@ export class OpenRouterService {
   ): Promise<OpenRouterResponse> {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(
-      messages,
-      finalModel,
-      false,
-      temperature,
-      signal
-    );
+    const response = await this.callAPI(messages, finalModel, false, temperature, signal);
     const data = (await response.json()) as OpenRouterResponse;
     return data;
   }
@@ -96,21 +82,15 @@ export class OpenRouterService {
   ) {
     const config = getConfig;
     const finalModel = model || config.openrouter.defaultModel;
-    const response = await this.callAPI(
-      messages,
-      finalModel,
-      true,
-      temperature,
-      signal
-    );
+    const response = await this.callAPI(messages, finalModel, true, temperature, signal);
 
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error("No response body");
+      throw new Error('No response body');
     }
 
     const decoder = new TextDecoder();
-    let buffer = "";
+    let buffer = '';
     let usage: {
       prompt_tokens: number;
       completion_tokens: number;
@@ -123,13 +103,13 @@ export class OpenRouterService {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
+          if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            if (data === "[DONE]") {
+            if (data === '[DONE]') {
               return usage;
             }
             try {

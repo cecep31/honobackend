@@ -28,7 +28,7 @@ export const createHoldingController = (holdingService: HoldingService) =>
         month,
         year,
         sortBy,
-        order,
+        order
       );
       return sendSuccess(c, holdings, 'Holdings fetched successfully');
     })
@@ -52,7 +52,7 @@ export const createHoldingController = (holdingService: HoldingService) =>
         fromMonth,
         fromYear,
         toMonth,
-        toYear,
+        toYear
       );
       return sendSuccess(c, comparison, 'Month comparison fetched successfully');
     })
@@ -64,7 +64,7 @@ export const createHoldingController = (holdingService: HoldingService) =>
         startMonth,
         startYear,
         endMonth,
-        endYear,
+        endYear
       );
       return sendSuccess(c, data, 'Holdings monthly data fetched successfully');
     })
@@ -104,7 +104,7 @@ export const createHoldingController = (holdingService: HoldingService) =>
         const body = c.req.valid('json');
         const holding = await holdingService.updateHolding(Number(params.id), body);
         return sendSuccess(c, holding, 'Holding updated successfully');
-      },
+      }
     )
     .delete('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
       const params = c.req.valid('param');

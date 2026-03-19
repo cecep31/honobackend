@@ -47,7 +47,11 @@ export const createChatController = (chatService: ChatService) =>
         const abortController = new AbortController();
 
         const { user_message, stream_generator, conversation_id, user_id, model } =
-          await chatService.createConversationStream(authUser.user_id, body, abortController.signal);
+          await chatService.createConversationStream(
+            authUser.user_id,
+            body,
+            abortController.signal
+          );
 
         const config = getConfig;
         const actualModel = model || config.openrouter.defaultModel;
@@ -64,7 +68,7 @@ export const createChatController = (chatService: ChatService) =>
                 `data: ${JSON.stringify({
                   type: 'conversation_created',
                   data: { conversation_id, user_message },
-                })}\n\n`,
+                })}\n\n`
               );
 
               let usage: {
@@ -76,7 +80,9 @@ export const createChatController = (chatService: ChatService) =>
               for await (const chunk of stream_generator) {
                 if (typeof chunk === 'string') {
                   fullContent += chunk;
-                  controller.enqueue(`data: ${JSON.stringify({ type: 'ai_chunk', data: chunk })}\n\n`);
+                  controller.enqueue(
+                    `data: ${JSON.stringify({ type: 'ai_chunk', data: chunk })}\n\n`
+                  );
                 } else {
                   usage = chunk;
                 }
@@ -87,10 +93,12 @@ export const createChatController = (chatService: ChatService) =>
                 user_id,
                 fullContent,
                 actualModel,
-                usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
               );
 
-              controller.enqueue(`data: ${JSON.stringify({ type: 'ai_complete', data: aiMessage })}\n\n`);
+              controller.enqueue(
+                `data: ${JSON.stringify({ type: 'ai_complete', data: aiMessage })}\n\n`
+              );
               controller.enqueue('data: [DONE]\n\n');
               controller.close();
             } catch (error) {
@@ -103,7 +111,7 @@ export const createChatController = (chatService: ChatService) =>
               console.error('Streaming error:', error);
               try {
                 controller.enqueue(
-                  `data: ${JSON.stringify({ type: 'error', data: 'Failed to generate AI response' })}\n\n`,
+                  `data: ${JSON.stringify({ type: 'error', data: 'Failed to generate AI response' })}\n\n`
                 );
                 controller.close();
               } catch {}
@@ -121,33 +129,46 @@ export const createChatController = (chatService: ChatService) =>
             Connection: 'keep-alive',
           },
         });
-      },
+      }
     )
-    .get('/conversations', auth, validateRequest('query', listConversationsQuerySchema), async (c) => {
-      const authUser = c.get('user');
-      const q = c.req.valid('query');
-      const params = {
-        offset: q.offset,
-        limit: q.limit,
-        search: q.search ?? q.q,
-        orderBy: q.orderBy,
-        orderDirection: q.orderDirection,
-      };
-      const { data: conversations, meta } = await chatService.getConversations(authUser.user_id, params);
-      return sendSuccess(c, conversations, 'Conversations fetched successfully', 200, meta);
-    })
+    .get(
+      '/conversations',
+      auth,
+      validateRequest('query', listConversationsQuerySchema),
+      async (c) => {
+        const authUser = c.get('user');
+        const q = c.req.valid('query');
+        const params = {
+          offset: q.offset,
+          limit: q.limit,
+          search: q.search ?? q.q,
+          orderBy: q.orderBy,
+          orderDirection: q.orderDirection,
+        };
+        const { data: conversations, meta } = await chatService.getConversations(
+          authUser.user_id,
+          params
+        );
+        return sendSuccess(c, conversations, 'Conversations fetched successfully', 200, meta);
+      }
+    )
     .get('/conversations/:id', auth, validateRequest('param', conversationIdSchema), async (c) => {
       const authUser = c.get('user');
       const params = c.req.valid('param');
       const conversation = await chatService.getConversation(params.id, authUser.user_id);
       return sendSuccess(c, conversation, 'Conversation fetched successfully');
     })
-    .delete('/conversations/:id', auth, validateRequest('param', conversationIdSchema), async (c) => {
-      const authUser = c.get('user');
-      const params = c.req.valid('param');
-      const conversation = await chatService.deleteConversation(params.id, authUser.user_id);
-      return sendSuccess(c, conversation, 'Conversation deleted successfully');
-    })
+    .delete(
+      '/conversations/:id',
+      auth,
+      validateRequest('param', conversationIdSchema),
+      async (c) => {
+        const authUser = c.get('user');
+        const params = c.req.valid('param');
+        const conversation = await chatService.deleteConversation(params.id, authUser.user_id);
+        return sendSuccess(c, conversation, 'Conversation deleted successfully');
+      }
+    )
     .post(
       '/conversations/:conversationId/messages',
       auth,
@@ -164,7 +185,7 @@ export const createChatController = (chatService: ChatService) =>
           conversation_id: params.conversationId,
         });
         return sendSuccess(c, messages, 'Messages created successfully', 201);
-      },
+      }
     )
     .post(
       '/conversations/:conversationId/messages/stream',
@@ -186,7 +207,7 @@ export const createChatController = (chatService: ChatService) =>
               role: body.role || 'user',
               conversation_id: params.conversationId,
             },
-            abortController.signal,
+            abortController.signal
           );
 
         const config = getConfig;
@@ -204,7 +225,7 @@ export const createChatController = (chatService: ChatService) =>
                 `data: ${JSON.stringify({
                   type: 'user_message',
                   data: user_message,
-                })}\n\n`,
+                })}\n\n`
               );
 
               let usage: {
@@ -216,7 +237,9 @@ export const createChatController = (chatService: ChatService) =>
               for await (const chunk of stream_generator) {
                 if (typeof chunk === 'string') {
                   fullContent += chunk;
-                  controller.enqueue(`data: ${JSON.stringify({ type: 'ai_chunk', data: chunk })}\n\n`);
+                  controller.enqueue(
+                    `data: ${JSON.stringify({ type: 'ai_chunk', data: chunk })}\n\n`
+                  );
                 } else {
                   usage = chunk;
                 }
@@ -227,10 +250,12 @@ export const createChatController = (chatService: ChatService) =>
                 user_id,
                 fullContent,
                 actualModel,
-                usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+                usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
               );
 
-              controller.enqueue(`data: ${JSON.stringify({ type: 'ai_complete', data: aiMessage })}\n\n`);
+              controller.enqueue(
+                `data: ${JSON.stringify({ type: 'ai_complete', data: aiMessage })}\n\n`
+              );
               controller.enqueue('data: [DONE]\n\n');
               controller.close();
             } catch (error) {
@@ -243,7 +268,7 @@ export const createChatController = (chatService: ChatService) =>
               console.error('Streaming error:', error);
               try {
                 controller.enqueue(
-                  `data: ${JSON.stringify({ type: 'error', data: 'Failed to generate AI response' })}\n\n`,
+                  `data: ${JSON.stringify({ type: 'error', data: 'Failed to generate AI response' })}\n\n`
                 );
                 controller.close();
               } catch {}
@@ -261,14 +286,19 @@ export const createChatController = (chatService: ChatService) =>
             Connection: 'keep-alive',
           },
         });
-      },
+      }
     )
-    .get('/conversations/:conversationId/messages', auth, validateRequest('param', conversationParamSchema), async (c) => {
-      const authUser = c.get('user');
-      const params = c.req.valid('param');
-      const messages = await chatService.getMessages(params.conversationId, authUser.user_id);
-      return sendSuccess(c, messages, 'Messages fetched successfully');
-    })
+    .get(
+      '/conversations/:conversationId/messages',
+      auth,
+      validateRequest('param', conversationParamSchema),
+      async (c) => {
+        const authUser = c.get('user');
+        const params = c.req.valid('param');
+        const messages = await chatService.getMessages(params.conversationId, authUser.user_id);
+        return sendSuccess(c, messages, 'Messages fetched successfully');
+      }
+    )
     .get('/messages/:id', auth, validateRequest('param', conversationIdSchema), async (c) => {
       const authUser = c.get('user');
       const params = c.req.valid('param');

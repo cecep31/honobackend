@@ -1,23 +1,31 @@
-import { HTTPException } from "hono/http-exception";
-import type { ContentfulStatusCode as StatusCode } from "hono/utils/http-status";
+import { HTTPException } from 'hono/http-exception';
+import type { ContentfulStatusCode as StatusCode } from 'hono/utils/http-status';
 
 /**
  * Error classification codes
  * 1xxx: Authentication/Authorization errors
- * 2xxx: Validation errors  
+ * 2xxx: Validation errors
  * 3xxx: Database errors
  * 4xxx: External service errors
  * 5xxx: Business logic errors
  * 6xxx: System/Infrastructure errors
  */
 export type ErrorCode =
-  | "AUTH_001" | "AUTH_002" | "AUTH_003" // Authentication errors
-  | "VALID_001" | "VALID_002" // Validation errors
-  | "DB_001" | "DB_002" | "DB_003" // Database errors
-  | "EXT_001" | "EXT_002" // External service errors
-  | "BIZ_001" | "BIZ_002" // Business logic errors
-  | "SYS_001" | "SYS_002" // System errors
-  | "RATE_001"; // Rate limit errors
+  | 'AUTH_001'
+  | 'AUTH_002'
+  | 'AUTH_003' // Authentication errors
+  | 'VALID_001'
+  | 'VALID_002' // Validation errors
+  | 'DB_001'
+  | 'DB_002'
+  | 'DB_003' // Database errors
+  | 'EXT_001'
+  | 'EXT_002' // External service errors
+  | 'BIZ_001'
+  | 'BIZ_002' // Business logic errors
+  | 'SYS_001'
+  | 'SYS_002' // System errors
+  | 'RATE_001'; // Rate limit errors
 
 /**
  * Custom API error class for consistent error handling
@@ -31,7 +39,7 @@ export class ApiError extends Error {
     public isOperational = true
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.cause = details;
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -100,10 +108,7 @@ export function errorHttp(
 /**
  * Create standardized error response
  */
-export function createErrorResponse(
-  error: unknown,
-  requestId: string
-): ApiErrorResponse {
+export function createErrorResponse(error: unknown, requestId: string): ApiErrorResponse {
   const timestamp = new Date().toISOString();
   // Never send stack traces to clients (security); stack is logged server-side only.
 
@@ -116,7 +121,7 @@ export function createErrorResponse(
         details: error.details,
       },
       request_id: requestId,
-      timestamp
+      timestamp,
     };
   }
 
@@ -128,7 +133,7 @@ export function createErrorResponse(
       message: safeMessage,
       error: {},
       request_id: requestId,
-      timestamp
+      timestamp,
     };
   }
 
@@ -142,7 +147,7 @@ export function createErrorResponse(
     message: getSafeMessage(500, errorMessage),
     error: {},
     request_id: requestId,
-    timestamp
+    timestamp,
   };
 }
 
@@ -154,25 +159,28 @@ export const Errors = {
   Unauthorized: () => errorHttp('Unauthorized', 401, 'AUTH_001'),
   Forbidden: () => errorHttp('Forbidden', 403, 'AUTH_002'),
   InvalidCredentials: () => errorHttp('Invalid credentials', 401, 'AUTH_003'),
-  
+
   // Validation errors
   ValidationFailed: (details: any) => errorHttp('Validation failed', 400, 'VALID_001', details),
-  InvalidInput: (field: string, message: string) => errorHttp(`Invalid ${field}: ${message}`, 400, 'VALID_002'),
-  
+  InvalidInput: (field: string, message: string) =>
+    errorHttp(`Invalid ${field}: ${message}`, 400, 'VALID_002'),
+
   // Database errors
   NotFound: (entity: string) => errorHttp(`${entity} not found`, 404, 'DB_001'),
   DatabaseError: (details: any) => errorHttp('Database operation failed', 500, 'DB_002', details),
-  
+
   // External service errors
   ExternalServiceError: (service: string) => errorHttp(`${service} service error`, 503, 'EXT_001'),
-  
+
   // Business logic errors
-  BusinessRuleViolation: (rule: string) => errorHttp(`Business rule violation: ${rule}`, 409, 'BIZ_001'),
+  BusinessRuleViolation: (rule: string) =>
+    errorHttp(`Business rule violation: ${rule}`, 409, 'BIZ_001'),
 
   // Rate limiting
-  TooManyRequests: (retryAfter = 60) => errorHttp('Too many requests', 429, 'RATE_001', { retry_after: retryAfter }),
+  TooManyRequests: (retryAfter = 60) =>
+    errorHttp('Too many requests', 429, 'RATE_001', { retry_after: retryAfter }),
 
   // System errors
   InternalServerError: () => errorHttp('Internal server error', 500, 'SYS_001'),
-  ServiceUnavailable: () => errorHttp('Service unavailable', 503, 'SYS_002')
+  ServiceUnavailable: () => errorHttp('Service unavailable', 503, 'SYS_002'),
 };

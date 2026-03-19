@@ -23,18 +23,24 @@ export const createUserController = (userService: UserService) => {
   const superAdminMiddleware = createSuperAdminMiddleware(userService);
 
   return new Hono<{ Variables: Variables }>()
-    .get('/', auth, superAdminMiddleware, validateRequest('query', listUsersQuerySchema), async (c) => {
-      const q = c.req.valid('query');
-      const params = {
-        offset: q.offset,
-        limit: q.limit,
-        search: q.search ?? q.q,
-        orderBy: q.orderBy,
-        orderDirection: q.orderDirection,
-      };
-      const { data, meta } = await userService.getUsers(params);
-      return sendSuccess(c, data, 'Users fetched successfully', 200, meta);
-    })
+    .get(
+      '/',
+      auth,
+      superAdminMiddleware,
+      validateRequest('query', listUsersQuerySchema),
+      async (c) => {
+        const q = c.req.valid('query');
+        const params = {
+          offset: q.offset,
+          limit: q.limit,
+          search: q.search ?? q.q,
+          orderBy: q.orderBy,
+          orderDirection: q.orderDirection,
+        };
+        const { data, meta } = await userService.getUsers(params);
+        return sendSuccess(c, data, 'Users fetched successfully', 200, meta);
+      }
+    )
     .get('/me', auth, validateRequest('query', meQuerySchema), async (c) => {
       const authUser = c.get('user');
       const { profile } = c.req.valid('query');
@@ -100,13 +106,19 @@ export const createUserController = (userService: UserService) => {
         const body = c.req.valid('json');
         const user = await userService.updateUser(id, body);
         return sendSuccess(c, user, 'User updated successfully');
-      },
+      }
     )
-    .delete('/:id', auth, superAdminMiddleware, validateRequest('param', userIdSchema), async (c) => {
-      const { id } = c.req.valid('param');
-      const user = await userService.deleteUser(id);
-      return sendSuccess(c, user, 'User deleted successfully');
-    })
+    .delete(
+      '/:id',
+      auth,
+      superAdminMiddleware,
+      validateRequest('param', userIdSchema),
+      async (c) => {
+        const { id } = c.req.valid('param');
+        const user = await userService.deleteUser(id);
+        return sendSuccess(c, user, 'User deleted successfully');
+      }
+    )
     .post('/:id/follow', auth, validateRequest('param', userIdSchema), async (c) => {
       const authUser = c.get('user');
       const { id: following_id } = c.req.valid('param');
@@ -141,7 +153,7 @@ export const createUserController = (userService: UserService) => {
         };
         const { data, meta } = await userService.getFollowers(id, params);
         return sendSuccess(c, data, 'Followers fetched successfully', 200, meta);
-      },
+      }
     )
     .get(
       '/:id/following',
@@ -160,7 +172,7 @@ export const createUserController = (userService: UserService) => {
         };
         const { data, meta } = await userService.getFollowing(id, params);
         return sendSuccess(c, data, 'Following fetched successfully', 200, meta);
-      },
+      }
     )
     .get('/:id/is-following', auth, validateRequest('param', userIdSchema), async (c) => {
       const authUser = c.get('user');

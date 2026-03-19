@@ -9,10 +9,7 @@ import { writerPostsQuerySchema } from '../validation';
 type WriterService = AppServices['writerService'];
 type PostService = AppServices['postService'];
 
-export const createWriterController = (
-  writerService: WriterService,
-  postService: PostService,
-) =>
+export const createWriterController = (writerService: WriterService, postService: PostService) =>
   new Hono<{ Variables: Variables }>()
     .get('/:username', async (c) => {
       const username = c.req.param('username');

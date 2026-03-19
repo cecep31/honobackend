@@ -1,5 +1,5 @@
-import { z } from "zod";
-import sanitizeHtml from "sanitize-html";
+import { z } from 'zod';
+import sanitizeHtml from 'sanitize-html';
 
 /** Max length for WYSIWYG/HTML body (tags add ~30–50% overhead vs plain text). */
 const BODY_MAX_LENGTH = 500_000;
@@ -7,54 +7,47 @@ const BODY_MAX_LENGTH = 500_000;
 const sanitizeOptions: sanitizeHtml.IOptions = {
   allowedTags: [
     ...sanitizeHtml.defaults.allowedTags,
-    "img",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "span",
-    "u",
-    "s",
-    "sub",
-    "sup",
-    "mark",
-    "hr",
-    "code",
-    "pre",
-    "iframe", // Allow iframes for YouTube/Video embeds
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
+    'img',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'span',
+    'u',
+    's',
+    'sub',
+    'sup',
+    'mark',
+    'hr',
+    'code',
+    'pre',
+    'iframe', // Allow iframes for YouTube/Video embeds
+    'table',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
   ],
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
-    "*": ["class", "style", "data-*"], // Allow data attributes for TipTap extensions
-    a: ["href", "name", "target", "rel"],
-    img: ["src", "alt", "title", "width", "height", "loading"],
-    iframe: [
-      "src",
-      "width",
-      "height",
-      "frameborder",
-      "allow",
-      "allowfullscreen",
-    ],
+    '*': ['class', 'style', 'data-*'], // Allow data attributes for TipTap extensions
+    a: ['href', 'name', 'target', 'rel'],
+    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+    iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen'],
   },
   allowedStyles: {
-    "*": {
-      "color": [/^#(0x)?[0-9a-f]+$/i, /^rgb\(/],
-      "background-color": [/^#(0x)?[0-9a-f]+$/i, /^rgb\(/],
-      "text-align": [/^left$/, /^right$/, /^center$/, /^justify$/],
-      "font-size": [/^\d+(?:px|em|rem|%)$/],
-      "padding-left": [/^\d+(?:px|em|rem|%)$/], // Useful for task lists/indentation
+    '*': {
+      color: [/^#(0x)?[0-9a-f]+$/i, /^rgb\(/],
+      'background-color': [/^#(0x)?[0-9a-f]+$/i, /^rgb\(/],
+      'text-align': [/^left$/, /^right$/, /^center$/, /^justify$/],
+      'font-size': [/^\d+(?:px|em|rem|%)$/],
+      'padding-left': [/^\d+(?:px|em|rem|%)$/], // Useful for task lists/indentation
     },
   },
-  allowedIframeHostnames: ["www.youtube.com", "player.vimeo.com"], // Security: restrict where iframes can come from
+  allowedIframeHostnames: ['www.youtube.com', 'player.vimeo.com'], // Security: restrict where iframes can come from
 };
 
 export const createPostSchema = z.object({

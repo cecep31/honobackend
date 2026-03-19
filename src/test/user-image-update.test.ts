@@ -92,6 +92,8 @@ describe('User Image Update Endpoint', () => {
     const jsonResponse = await res.json();
     expect(jsonResponse.success).toBe(false);
     expect(jsonResponse.message).toBe('Validation failed');
-    expect(jsonResponse.error.details[0].message).toContain('.jpg, .jpeg, .png and .webp files are accepted.');
+    expect(jsonResponse.error.details[0].message).toContain(
+      '.jpg, .jpeg, .png and .webp files are accepted.'
+    );
   });
 });

@@ -1,6 +1,6 @@
-import { createMiddleware } from "hono/factory";
+import { createMiddleware } from 'hono/factory';
 
-export type LogLevel = "error" | "warn" | "info" | "http" | "debug";
+export type LogLevel = 'error' | 'warn' | 'info' | 'http' | 'debug';
 
 export interface LogContext {
   requestId?: string;
@@ -30,17 +30,17 @@ const LEVELS: Record<LogLevel, number> = {
   debug: 4,
 };
 
-let currentLevel: LogLevel = (process.env['LOG_LEVEL'] as LogLevel) || "info";
+let currentLevel: LogLevel = (process.env['LOG_LEVEL'] as LogLevel) || 'info';
 
 export const setLogLevel = (level: LogLevel) => {
   currentLevel = level;
 };
 
 const getStatusLevel = (status: number): LogLevel => {
-  if (status >= 500) return "error";
-  if (status >= 400) return "warn";
-  if (status >= 300) return "http";
-  return "info";
+  if (status >= 500) return 'error';
+  if (status >= 400) return 'warn';
+  if (status >= 300) return 'http';
+  return 'info';
 };
 
 interface Logger {
@@ -81,28 +81,28 @@ class StandardLogger implements Logger {
     };
 
     const formattedLog = this.formatLog(entry);
-    const logFn = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
+    const logFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
     logFn(formattedLog);
   }
 
   error(message: string, context?: LogContext, error?: Error): void {
-    this.log("error", message, context, error);
+    this.log('error', message, context, error);
   }
 
   warn(message: string, context?: LogContext): void {
-    this.log("warn", message, context);
+    this.log('warn', message, context);
   }
 
   info(message: string, context?: LogContext): void {
-    this.log("info", message, context);
+    this.log('info', message, context);
   }
 
   http(message: string, context?: LogContext): void {
-    this.log("http", message, context);
+    this.log('http', message, context);
   }
 
   debug(message: string, context?: LogContext): void {
-    this.log("debug", message, context);
+    this.log('debug', message, context);
   }
 
   withContext(context: LogContext): Logger {
@@ -117,27 +117,28 @@ export const getLogger = (context?: LogContext): Logger => {
 
 export const loggingMiddleware = createMiddleware(async (c, next) => {
   const start = Date.now();
-  const requestId = c.get("requestId") || `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  c.set("requestId", requestId);
+  const requestId =
+    c.get('requestId') || `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  c.set('requestId', requestId);
 
   const path = c.req.path;
   const method = c.req.method;
-  const userAgent = c.req.header("user-agent");
+  const userAgent = c.req.header('user-agent');
 
   const requestContext: LogContext = {
     requestId,
     method,
     path,
     userAgent,
-    ip: c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "unknown"
+    ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown',
   };
 
   const requestLogger = getLogger(requestContext);
 
-  requestLogger.debug("Request started", {
+  requestLogger.debug('Request started', {
     method,
     path,
-    userAgent
+    userAgent,
   });
 
   try {
@@ -146,7 +147,7 @@ export const loggingMiddleware = createMiddleware(async (c, next) => {
     const latency = Date.now() - start;
     const errorContext: LogContext = {
       ...requestContext,
-      statusCode: 500
+      statusCode: 500,
     };
 
     requestLogger.error(`Request failed - ${latency}ms`, errorContext, error as Error);
@@ -157,20 +158,20 @@ export const loggingMiddleware = createMiddleware(async (c, next) => {
   const status = c.res.status;
   const responseContext: LogContext = {
     ...requestContext,
-    statusCode: status
+    statusCode: status,
   };
 
   const statusLevel = getStatusLevel(status);
   const message = `${method} ${path} ${status} - ${latency}ms`;
-  
+
   switch (statusLevel) {
-    case "error":
+    case 'error':
       requestLogger.error(message, responseContext);
       break;
-    case "warn":
+    case 'warn':
       requestLogger.warn(message, responseContext);
       break;
-    case "http":
+    case 'http':
       requestLogger.http(message, responseContext);
       break;
     default:

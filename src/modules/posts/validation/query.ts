@@ -1,14 +1,20 @@
-import { z } from "zod";
-import { safeLimit, safeOffset } from "../../../utils/request";
+import { z } from 'zod';
+import { safeLimit, safeOffset } from '../../../utils/request';
 
 /** Query untuk list posts (paginate): GET /, GET /me, GET /author/:username */
 export const listPostsQuerySchema = z.object({
-  offset: z.string().optional().transform((v) => safeOffset(v, 0)),
-  limit: z.string().optional().transform((v) => safeLimit(v, 10)),
+  offset: z
+    .string()
+    .optional()
+    .transform((v) => safeOffset(v, 0)),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => safeLimit(v, 10)),
   search: z.string().optional(),
   q: z.string().optional(),
   orderBy: z.string().optional(),
-  orderDirection: z.enum(["asc", "desc"]).optional().default("desc"),
+  orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
 /** Query untuk chart posts-over-time */
@@ -16,13 +22,11 @@ export const postsOverTimeQuerySchema = z.object({
   days: z
     .string()
     .optional()
-    .default("30")
+    .default('30')
     .transform((v) =>
-      Number.isFinite(Number(v))
-        ? Math.min(365, Math.max(1, Math.floor(Number(v))))
-        : 30
+      Number.isFinite(Number(v)) ? Math.min(365, Math.max(1, Math.floor(Number(v)))) : 30
     ),
-  groupBy: z.enum(["day", "week", "month"]).optional().default("day"),
+  groupBy: z.enum(['day', 'week', 'month']).optional().default('day'),
 });
 
 /** Query untuk chart endpoints yang pakai limit (posts-by-tag, top-by-views, dll) */
@@ -30,7 +34,7 @@ export const chartLimitQuerySchema = z.object({
   limit: z
     .string()
     .optional()
-    .default("10")
+    .default('10')
     .transform((v) => safeLimit(v, 10)),
 });
 

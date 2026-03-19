@@ -300,9 +300,9 @@ describe('UserService', () => {
       mockUserFindFirst.mockResolvedValue(existingUser);
       mockCountResult.mockResolvedValue([{ count: 1 }]);
 
-      await expect(
-        userService.updateUser('user1', { username: 'existinguser' })
-      ).rejects.toThrow('already exists');
+      await expect(userService.updateUser('user1', { username: 'existinguser' })).rejects.toThrow(
+        'already exists'
+      );
     });
 
     it('throws error when updating to existing email', async () => {
@@ -353,9 +353,9 @@ describe('UserService', () => {
     it('throws error when user not found', async () => {
       mockUserFindFirst.mockResolvedValue(null);
 
-      await expect(
-        userService.updateProfile('nonexistent', { bio: 'New bio' })
-      ).rejects.toThrow('not found');
+      await expect(userService.updateProfile('nonexistent', { bio: 'New bio' })).rejects.toThrow(
+        'not found'
+      );
     });
   });
 
@@ -420,7 +420,9 @@ describe('UserService', () => {
         password: 'hashedpassword',
       };
 
-      mockReturning.mockResolvedValueOnce([{ id: 'new-user-id', ...signupData }]).mockResolvedValueOnce([]);
+      mockReturning
+        .mockResolvedValueOnce([{ id: 'new-user-id', ...signupData }])
+        .mockResolvedValueOnce([]);
 
       const result = await userService.createUser(signupData);
 
@@ -579,9 +581,7 @@ describe('UserService', () => {
       const followerUser = { id: 'user1', username: 'user1' };
       const followingUser = { id: 'user2', username: 'user2' };
 
-      mockUserFindFirst
-        .mockResolvedValueOnce(followerUser)
-        .mockResolvedValueOnce(followingUser);
+      mockUserFindFirst.mockResolvedValueOnce(followerUser).mockResolvedValueOnce(followingUser);
       mockUserFollowsFindFirst.mockResolvedValue(null);
       mockReturning.mockResolvedValue([
         { id: 'follow-id', follower_id: 'user1', following_id: 'user2' },
@@ -600,14 +600,10 @@ describe('UserService', () => {
       const followingUser = { id: 'user2', username: 'user2' };
       const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
 
-      mockUserFindFirst
-        .mockResolvedValueOnce(followerUser)
-        .mockResolvedValueOnce(followingUser);
+      mockUserFindFirst.mockResolvedValueOnce(followerUser).mockResolvedValueOnce(followingUser);
       mockUserFollowsFindFirst.mockResolvedValue(existingFollow);
 
-      await expect(userService.followUser('user1', 'user2')).rejects.toThrow(
-        'Already following'
-      );
+      await expect(userService.followUser('user1', 'user2')).rejects.toThrow('Already following');
     });
 
     it('throws error when follower user not found', async () => {
@@ -630,7 +626,9 @@ describe('UserService', () => {
       const existingFollow = { id: 'follow-id', follower_id: 'user1', following_id: 'user2' };
 
       mockUserFollowsFindFirst.mockResolvedValue(existingFollow);
-      mockReturning.mockResolvedValue([{ ...existingFollow, deleted_at: new Date().toISOString() }]);
+      mockReturning.mockResolvedValue([
+        { ...existingFollow, deleted_at: new Date().toISOString() },
+      ]);
 
       const result = await userService.unfollowUser('user1', 'user2');
 
@@ -664,12 +662,12 @@ describe('UserService', () => {
       const mockWhereClause = mock(() => ({ orderBy: mockOrderBy }));
       const mockInnerJoin = mock(() => ({ where: mockWhereClause }));
       const mockFromFollows = mock(() => ({ innerJoin: mockInnerJoin }));
-      
+
       // Mock for count query (without orderBy, limit, offset)
       const mockCountWhere = mock(() => Promise.resolve([{ count: 1 }]));
       const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
       const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
-      
+
       // First call returns data query chain, second call returns count query chain
       mockSelect
         .mockReturnValueOnce({ from: mockFromFollows })
@@ -702,12 +700,12 @@ describe('UserService', () => {
       const mockWhereClause = mock(() => ({ orderBy: mockOrderBy }));
       const mockInnerJoin = mock(() => ({ where: mockWhereClause }));
       const mockFromFollows = mock(() => ({ innerJoin: mockInnerJoin }));
-      
+
       // Mock for count query (without orderBy, limit, offset)
       const mockCountWhere = mock(() => Promise.resolve([{ count: 1 }]));
       const mockCountInnerJoin = mock(() => ({ where: mockCountWhere }));
       const mockCountFrom = mock(() => ({ innerJoin: mockCountInnerJoin }));
-      
+
       // First call returns data query chain, second call returns count query chain
       mockSelect
         .mockReturnValueOnce({ from: mockFromFollows })

@@ -137,14 +137,10 @@ describe('CommentService', () => {
       const updateData = { text: 'Updated comment' };
 
       // Mock comment exists and belongs to user
-      mockWhereSelect.mockResolvedValue([
-        { id: commentId, created_by: userId },
-      ]);
+      mockWhereSelect.mockResolvedValue([{ id: commentId, created_by: userId }]);
 
       // Mock update
-      mocks.mockReturning.mockResolvedValue([
-        { id: commentId, text: 'Updated comment' },
-      ]);
+      mocks.mockReturning.mockResolvedValue([{ id: commentId, text: 'Updated comment' }]);
 
       // Mock findFirst
       mockFindFirst.mockResolvedValue({
@@ -153,11 +149,7 @@ describe('CommentService', () => {
         user: { id: userId, username: 'testuser' },
       });
 
-      const result = await commentService.updateComment(
-        commentId,
-        updateData,
-        userId
-      );
+      const result = await commentService.updateComment(commentId, updateData, userId);
 
       expect(result.text).toBe('Updated comment');
       expect(mocks.mockUpdate).toHaveBeenCalled();
@@ -169,9 +161,7 @@ describe('CommentService', () => {
       const updateData = { text: 'Updated comment' };
 
       // Mock comment exists but belongs to different user
-      mockWhereSelect.mockResolvedValue([
-        { id: commentId, created_by: 'different-user' },
-      ]);
+      mockWhereSelect.mockResolvedValue([{ id: commentId, created_by: 'different-user' }]);
 
       try {
         await commentService.updateComment(commentId, updateData, userId);
@@ -188,9 +178,7 @@ describe('CommentService', () => {
       const userId = 'user-1';
 
       // Mock comment exists and belongs to user
-      mockWhereSelect.mockResolvedValue([
-        { id: commentId, created_by: userId },
-      ]);
+      mockWhereSelect.mockResolvedValue([{ id: commentId, created_by: userId }]);
 
       // Mock soft delete
       mocks.mockReturning.mockResolvedValue([
@@ -209,9 +197,7 @@ describe('CommentService', () => {
       const userId = 'user-1';
 
       // Mock comment exists but belongs to different user
-      mockWhereSelect.mockResolvedValue([
-        { id: commentId, created_by: 'different-user' },
-      ]);
+      mockWhereSelect.mockResolvedValue([{ id: commentId, created_by: 'different-user' }]);
 
       try {
         await commentService.deleteComment(commentId, userId);

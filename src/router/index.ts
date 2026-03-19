@@ -17,7 +17,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
   const authController = createAuthController(
     services.authService,
     services.userService,
-    services.activityService,
+    services.activityService
   );
   const userController = createUserController(services.userService);
   const postController = createPostController(services.postService, services.userService);

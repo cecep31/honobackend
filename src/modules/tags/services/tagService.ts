@@ -1,9 +1,6 @@
-import { eq, inArray } from "drizzle-orm";
-import { db } from "../../../database/drizzle";
-import {
-  posts_to_tags,
-  tags as tagsModel,
-} from "../../../database/schemas/postgre/schema";
+import { eq, inArray } from 'drizzle-orm';
+import { db } from '../../../database/drizzle';
+import { posts_to_tags, tags as tagsModel } from '../../../database/schemas/postgre/schema';
 
 export class TagService {
   async getTags() {
@@ -23,10 +20,7 @@ export class TagService {
   }
 
   async addTag(name: string) {
-    return await db
-      .insert(tagsModel)
-      .values({ name: name })
-      .onConflictDoNothing();
+    return await db.insert(tagsModel).values({ name: name }).onConflictDoNothing();
   }
 
   async addTagsBatch(names: string[]) {

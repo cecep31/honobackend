@@ -1,5 +1,5 @@
-import type { Context } from "hono";
-import type { ContentfulStatusCode as StatusCode } from "hono/utils/http-status";
+import type { Context } from 'hono';
+import type { ContentfulStatusCode as StatusCode } from 'hono/utils/http-status';
 
 export interface PaginationMeta {
   total: number;
@@ -24,11 +24,11 @@ interface SuccessResponse<T> {
 export function sendSuccess<T>(
   c: Context,
   data: T,
-  message = "Success",
+  message = 'Success',
   status: StatusCode = 200,
   meta?: PaginationMeta | Record<string, unknown>
 ) {
-  const requestId = c.get("requestId") || "unknown";
+  const requestId = c.get('requestId') || 'unknown';
   const response: SuccessResponse<T> = {
     success: true,
     data,

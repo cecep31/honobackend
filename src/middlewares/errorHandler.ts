@@ -1,7 +1,7 @@
-import type { Context, Next } from "hono";
-import { HTTPException } from "hono/http-exception";
-import { ApiError, createErrorResponse } from "../utils/error";
-import { getLogger } from "./logger";
+import type { Context, Next } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { ApiError, createErrorResponse } from '../utils/error';
+import { getLogger } from './logger';
 
 /**
  * Global error handling middleware
@@ -9,7 +9,7 @@ import { getLogger } from "./logger";
  */
 export const errorHandler = () => {
   return async (err: unknown, c: Context) => {
-    const requestId = c.get("requestId") || "unknown";
+    const requestId = c.get('requestId') || 'unknown';
 
     // Log the error with context
     logError(err, c, requestId, getLogger());
@@ -39,13 +39,13 @@ function logError(err: unknown, c: Context, requestId: string, logger: any) {
     method: c.req.method,
     path: c.req.path,
     timestamp: new Date().toISOString(),
-    userAgent: c.req.header("User-Agent") || "unknown",
+    userAgent: c.req.header('User-Agent') || 'unknown',
   };
 
   if (err instanceof ApiError) {
     logger.log({
       ...errorContext,
-      errorType: "ApiError",
+      errorType: 'ApiError',
       errorCode: err.errorCode,
       message: err.message,
       details: err.details,
@@ -54,21 +54,21 @@ function logError(err: unknown, c: Context, requestId: string, logger: any) {
   } else if (err instanceof HTTPException) {
     logger.log({
       ...errorContext,
-      errorType: "HTTPException",
+      errorType: 'HTTPException',
       statusCode: err.status,
       message: err.message,
     });
   } else if (err instanceof Error) {
     logger.log({
       ...errorContext,
-      errorType: "Error",
+      errorType: 'Error',
       message: err.message,
       stack: err.stack,
     });
   } else {
     logger.log({
       ...errorContext,
-      errorType: "Unknown",
+      errorType: 'Unknown',
       error: err,
     });
   }
@@ -88,4 +88,3 @@ export function withErrorHandling(handler: (c: Context) => Promise<Response>) {
     }
   };
 }
-

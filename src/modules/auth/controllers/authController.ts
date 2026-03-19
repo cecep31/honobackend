@@ -46,7 +46,7 @@ function createRateLimiter(windowMs: number, limit: number) {
 export const createAuthController = (
   authService: AuthService,
   userService: UserService,
-  activityService: ActivityService,
+  activityService: ActivityService
 ) => {
   const authController = new Hono<{ Variables: Variables }>();
 
@@ -66,11 +66,14 @@ export const createAuthController = (
       const token = await authService.getGithubToken(code);
 
       try {
-        const userResponse = await externalApiClient.get<GithubUser>('https://api.github.com/user', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const userResponse = await externalApiClient.get<GithubUser>(
+          'https://api.github.com/user',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         const githubUserData = userResponse.data;
         if (!githubUserData.email) {
@@ -111,18 +114,23 @@ export const createAuthController = (
         }
         throw Errors.Unauthorized();
       }
-    },
+    }
   );
 
-  authController.post('/login', createRateLimiter(15 * 60 * 1000, 7), validateRequest('json', loginSchema), async (c) => {
-    const body = c.req.valid('json');
-    const { identifier, email, password } = body;
-    const loginIdentifier = identifier ?? email ?? '';
-    const ipAddress = getClientIp(c);
-    const userAgent = c.req.header('User-Agent');
-    const token = await authService.signIn(loginIdentifier, password, userAgent ?? '', ipAddress);
-    return sendSuccess(c, token, 'Login successful');
-  });
+  authController.post(
+    '/login',
+    createRateLimiter(15 * 60 * 1000, 7),
+    validateRequest('json', loginSchema),
+    async (c) => {
+      const body = c.req.valid('json');
+      const { identifier, email, password } = body;
+      const loginIdentifier = identifier ?? email ?? '';
+      const ipAddress = getClientIp(c);
+      const userAgent = c.req.header('User-Agent');
+      const token = await authService.signIn(loginIdentifier, password, userAgent ?? '', ipAddress);
+      return sendSuccess(c, token, 'Login successful');
+    }
+  );
 
   authController.post(
     '/register',
@@ -134,7 +142,7 @@ export const createAuthController = (
       const userAgent = c.req.header('User-Agent');
       const token = await authService.signUp(body, ipAddress, userAgent);
       return sendSuccess(c, token, 'User registered successfully', 201);
-    },
+    }
   );
 
   authController.post(
@@ -145,7 +153,7 @@ export const createAuthController = (
       const { username } = c.req.valid('json');
       const exists = await authService.checkUsername(username);
       return sendSuccess(c, { exists }, 'Username check completed');
-    },
+    }
   );
 
   authController.get(
@@ -156,7 +164,7 @@ export const createAuthController = (
       const email = c.req.valid('param').email;
       const exists = await authService.checkEmail(email);
       return sendSuccess(c, { exists }, 'Email check completed');
-    },
+    }
   );
 
   authController.post(
@@ -169,7 +177,7 @@ export const createAuthController = (
       const userAgent = c.req.header('User-Agent');
       const result = await authService.refreshToken(refreshToken, ipAddress, userAgent);
       return sendSuccess(c, result, 'Token refreshed successfully');
-    },
+    }
   );
 
   authController.post(
@@ -184,7 +192,7 @@ export const createAuthController = (
       const message = 'If the email exists, a password reset link has been sent';
       const data = Object.keys(result).length > 0 ? { message, ...result } : { message };
       return sendSuccess(c, data, message);
-    },
+    }
   );
 
   authController.post(
@@ -195,9 +203,14 @@ export const createAuthController = (
       const body = c.req.valid('json');
       const ipAddress = getClientIp(c);
       const userAgent = c.req.header('User-Agent');
-      const result = await authService.resetPassword(body.token, body.new_password, ipAddress, userAgent);
+      const result = await authService.resetPassword(
+        body.token,
+        body.new_password,
+        ipAddress,
+        userAgent
+      );
       return sendSuccess(c, result, result.message);
-    },
+    }
   );
 
   authController.post('/logout', auth, async (c) => {
@@ -217,47 +230,57 @@ export const createAuthController = (
     return sendSuccess(c, userProfile, 'User profile retrieved successfully');
   });
 
-  authController.patch('/password', auth, validateRequest('json', updatePasswordSchema), async (c) => {
-    const body = c.req.valid('json');
-    const user = c.get('user');
-    const ipAddress = getClientIp(c);
-    const userAgent = c.req.header('User-Agent');
-    const result = await authService.updatePassword(
-      body.old_password,
-      body.new_password,
-      user.user_id,
-      ipAddress,
-      userAgent,
-    );
-    return sendSuccess(c, result, 'Password updated successfully');
-  });
+  authController.patch(
+    '/password',
+    auth,
+    validateRequest('json', updatePasswordSchema),
+    async (c) => {
+      const body = c.req.valid('json');
+      const user = c.get('user');
+      const ipAddress = getClientIp(c);
+      const userAgent = c.req.header('User-Agent');
+      const result = await authService.updatePassword(
+        body.old_password,
+        body.new_password,
+        user.user_id,
+        ipAddress,
+        userAgent
+      );
+      return sendSuccess(c, result, 'Password updated successfully');
+    }
+  );
 
-  authController.get('/activity-logs', auth, validateRequest('query', activityLogsQuerySchema), async (c) => {
-    const user = c.get('user');
-    const { limit, offset, activity_type, status } = c.req.valid('query');
+  authController.get(
+    '/activity-logs',
+    auth,
+    validateRequest('query', activityLogsQuerySchema),
+    async (c) => {
+      const user = c.get('user');
+      const { limit, offset, activity_type, status } = c.req.valid('query');
 
-    const logs = await activityService.getActivityLogs({
-      userId: user.user_id,
-      activityType: activity_type,
-      status: status ?? undefined,
-      limit,
-      offset,
-    });
+      const logs = await activityService.getActivityLogs({
+        userId: user.user_id,
+        activityType: activity_type,
+        status: status ?? undefined,
+        limit,
+        offset,
+      });
 
-    const total = await activityService.getActivityLogsCount({
-      userId: user.user_id,
-      activityType: activity_type,
-      status: status ?? undefined,
-    });
+      const total = await activityService.getActivityLogsCount({
+        userId: user.user_id,
+        activityType: activity_type,
+        status: status ?? undefined,
+      });
 
-    return sendSuccess(
-      c,
-      logs,
-      'Activity logs retrieved successfully',
-      200,
-      getPaginationMetadata(total, offset, limit),
-    );
-  });
+      return sendSuccess(
+        c,
+        logs,
+        'Activity logs retrieved successfully',
+        200,
+        getPaginationMetadata(total, offset, limit)
+      );
+    }
+  );
 
   authController.get(
     '/activity-logs/recent',
@@ -268,7 +291,7 @@ export const createAuthController = (
       const { limit } = c.req.valid('query');
       const logs = await activityService.getUserRecentActivity(user.user_id, limit);
       return sendSuccess(c, logs, 'Recent activity retrieved successfully');
-    },
+    }
   );
 
   authController.get(
@@ -279,8 +302,12 @@ export const createAuthController = (
       const user = c.get('user');
       const { since } = c.req.valid('query');
       const logs = await activityService.getFailedLoginAttempts(user.user_id, since);
-      return sendSuccess(c, { logs, count: logs.length }, 'Failed login attempts retrieved successfully');
-    },
+      return sendSuccess(
+        c,
+        { logs, count: logs.length },
+        'Failed login attempts retrieved successfully'
+      );
+    }
   );
 
   return authController;

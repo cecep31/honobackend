@@ -24,9 +24,7 @@ function validateDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
-    throw new Error(
-      'DATABASE_URL is not set. Please configure a valid PostgreSQL connection URL.'
-    );
+    throw new Error('DATABASE_URL is not set. Please configure a valid PostgreSQL connection URL.');
   }
 
   return databaseUrl;
@@ -102,10 +100,7 @@ const config = {
   openrouter: {
     apiKey: getStringEnv('OPENROUTER_API_KEY'),
     baseUrl: getStringEnv('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),
-    defaultModel: getStringEnv(
-      'OPENROUTER_DEFAULT_MODEL',
-      'google/gemma-2-9b-it:free'
-    ),
+    defaultModel: getStringEnv('OPENROUTER_DEFAULT_MODEL', 'google/gemma-2-9b-it:free'),
   },
   email: {
     host: getStringEnv('EMAIL_HOST'),
