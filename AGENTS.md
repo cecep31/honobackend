@@ -99,7 +99,7 @@ c.json(data, 200) # JSON response
 ### Database (Drizzle)
 ```typescript
 import { db } from '../../../database/drizzle';
-import { users } from '../../../database/schemas/postgre/schema';
+import { users } from '../../../database/schemas/postgres/schema';
 import { eq } from 'drizzle-orm';
 
 const user = await db.query.users.findFirst({

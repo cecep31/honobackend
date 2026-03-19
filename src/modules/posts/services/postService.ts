@@ -5,7 +5,7 @@ import {
   posts as postsModel,
   posts_to_tags,
   tags as tagsModel,
-} from '../../../database/schemas/postgre/schema';
+} from '../../../database/schemas/postgres/schema';
 import { PostQueryHelpers } from './postQueryHelpers';
 import { PostTagManager } from './postTagManager';
 import type { PostCreateBody } from '../validation';

@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/bun-sql';
-import * as schema from './schemas/postgre/schema';
+import * as schema from './schemas/postgres/schema';
 import config from '../config';
 
 export const db = drizzle({

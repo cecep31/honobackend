@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
-import { posts_to_tags, tags as tagsModel } from '../../../database/schemas/postgre/schema';
+import { posts_to_tags, tags as tagsModel } from '../../../database/schemas/postgres/schema';
 
 export class PostTagManager {
   static async linkTagsToPost(postId: string, tagNames: string[], tx: any) {

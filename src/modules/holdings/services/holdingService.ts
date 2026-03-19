@@ -1,6 +1,6 @@
 import { db } from '../../../database/drizzle';
 import { and, asc, desc, eq, inArray, sql, count, isNotNull } from 'drizzle-orm';
-import { holdings, holding_types } from '../../../database/schemas/postgre/schema';
+import { holdings, holding_types } from '../../../database/schemas/postgres/schema';
 import type { DuplicateHoldingPayload, HoldingCreate, HoldingUpdate } from '../validation';
 import { Errors } from '../../../utils/error';
 import { stockPriceService } from './stockPriceService';

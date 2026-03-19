@@ -70,7 +70,7 @@ src/
 ├── config/           # Configuration files (database, server settings)
 ├── database/         # Database schemas and connection setup
 │   ├── schemas/
-│   │   └── postgre/
+│   │   └── postgres/
 │   │       └── schema.ts    # Drizzle ORM schema definitions
 │   └── drizzle.ts           # Database connection initialization
 ├── middlewares/      # Application middleware
@@ -314,7 +314,7 @@ throw Errors.TooManyRequests(60); // retry after 60 seconds
 
 ```typescript
 import { db } from '../../../database/drizzle';
-import { users } from '../../../database/schemas/postgre/schema';
+import { users } from '../../../database/schemas/postgres/schema';
 import { eq, and } from 'drizzle-orm';
 
 // Query single record

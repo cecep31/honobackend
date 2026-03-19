@@ -6,7 +6,7 @@ import {
   profiles,
   users as usersModel,
   user_follows,
-} from '../../../database/schemas/postgre/schema';
+} from '../../../database/schemas/postgres/schema';
 import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from '../validation';
 import type { UserSignup } from '../../auth/validation';
 import type { GetPaginationParams } from '../../../types/paginate';

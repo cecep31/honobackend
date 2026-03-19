@@ -1,4 +1,4 @@
-import { post_comments, posts } from '../../../database/schemas/postgre/schema';
+import { post_comments, posts } from '../../../database/schemas/postgres/schema';
 import { db } from '../../../database/drizzle';
 import { and, eq, isNull, desc, count } from 'drizzle-orm';
 import { Errors } from '../../../utils/error';

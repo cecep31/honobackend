@@ -1,5 +1,5 @@
 import { db } from '../../../database/drizzle';
-import { auth_activity_logs } from '../../../database/schemas/postgre/schema';
+import { auth_activity_logs } from '../../../database/schemas/postgres/schema';
 import { eq, desc, and, gte, lte, count } from 'drizzle-orm';
 import { randomUUIDv7 } from 'bun';
 

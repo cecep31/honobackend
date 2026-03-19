@@ -1,4 +1,4 @@
-import { post_bookmarks } from '../../../database/schemas/postgre/schema';
+import { post_bookmarks } from '../../../database/schemas/postgres/schema';
 import { db } from '../../../database/drizzle';
 import { and, eq } from 'drizzle-orm';
 import { Errors } from '../../../utils/error';

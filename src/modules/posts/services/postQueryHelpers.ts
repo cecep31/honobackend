@@ -1,6 +1,6 @@
 import { and, eq, isNull, desc, asc, ilike, or, count, sql } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
-import { posts as postsModel } from '../../../database/schemas/postgre/schema';
+import { posts as postsModel } from '../../../database/schemas/postgres/schema';
 
 export class PostQueryHelpers {
   static getBasePostQuery() {

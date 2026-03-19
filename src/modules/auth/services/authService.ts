@@ -1,6 +1,6 @@
 import { sign } from 'hono/jwt';
 import { eq } from 'drizzle-orm';
-import { users } from '../../../database/schemas/postgre/schema';
+import { users } from '../../../database/schemas/postgres/schema';
 import type { UserService } from '../../users/services/userService';
 import type { UserSignup } from '../validation';
 import type { GithubUser } from '../../../types/auth';
@@ -12,7 +12,7 @@ import { db } from '../../../database/drizzle';
 import {
   sessions as sessionModel,
   password_reset_tokens as passwordResetTokensModel,
-} from '../../../database/schemas/postgre/schema';
+} from '../../../database/schemas/postgres/schema';
 import { AuthActivityService } from './authActivityService';
 import { isEmailConfigured, sendPasswordResetEmail } from '../../../utils/email';
 

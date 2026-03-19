@@ -62,7 +62,7 @@ A centralized error handling system is used:
 - `src/middlewares/errorHandler.ts`: Global middleware to catch and format errors into a consistent JSON response.
 
 ### Database Patterns
-- **Schema:** The single source of truth for the DB schema is `src/database/schemas/postgre/schema.ts`.
+- **Schema:** The single source of truth for the DB schema is `src/database/schemas/postgres/schema.ts`.
 - **Instance:** The database instance is exported from `src/database/drizzle.ts`.
 - **BigInt:** Custom JSON serialization for BigInt is handled in `src/server/app.ts` to prevent serialization errors.
 - **Transactions:** Prefer using Drizzle's `tx` (transaction) for multi-step operations to ensure data integrity.
@@ -76,7 +76,7 @@ A centralized error handling system is used:
 - `index.ts`: Application entry point.
 - `src/server/app.ts`: Hono app initialization, global middleware, and health checks.
 - `src/router/index.ts`: Centralized route registration.
-- `src/database/schemas/postgre/schema.ts`: Drizzle schema definitions.
+- `src/database/schemas/postgres/schema.ts`: Drizzle schema definitions.
 - `src/services/index.ts`: Central service registry.
 - `src/utils/error.ts`: Standardized error response utilities.
 - `src/middlewares/`: Shared middlewares (auth, logger, validation, etc.).

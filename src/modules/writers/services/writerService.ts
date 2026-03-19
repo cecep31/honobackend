@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { Errors } from '../../../utils/error';
 import { db } from '../../../database/drizzle';
-import { users as usersModel } from '../../../database/schemas/postgre/schema';
+import { users as usersModel } from '../../../database/schemas/postgres/schema';
 
 const usernameRegex = /^[a-zA-Z0-9_]{3,16}$/;
 
