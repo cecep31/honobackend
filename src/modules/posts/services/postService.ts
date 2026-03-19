@@ -84,23 +84,22 @@ export class PostService {
   }
 
   async getAllPosts(limit = 100, offset = 0) {
-    const posts = await db.query.posts.findMany({
-      where: isNull(postsModel.deleted_at),
-      orderBy: desc(postsModel.created_at),
-      with: {
-        user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+    const [posts, totalRows] = await Promise.all([
+      db.query.posts.findMany({
+        where: isNull(postsModel.deleted_at),
+        orderBy: desc(postsModel.created_at),
+        with: {
+          user: {
+            columns: { password: false, github_id: false, last_logged_at: false },
+          },
+          posts_to_tags: { columns: {}, with: { tag: true } },
         },
-        posts_to_tags: { columns: {}, with: { tag: true } },
-      },
-      limit: limit,
-      offset: offset,
-    });
-    const total = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .where(isNull(postsModel.deleted_at));
-    return { data: posts, total: total[0].count };
+        limit: limit,
+        offset: offset,
+      }),
+      db.select({ count: count() }).from(postsModel).where(isNull(postsModel.deleted_at)),
+    ]);
+    return { data: posts, total: totalRows[0].count };
   }
 
   async addPost(auth_id: string, body: PostCreateBody) {
@@ -185,26 +184,29 @@ export class PostService {
     const whereClause = PostQueryHelpers.buildSearchClause(search);
     const orderByClause = PostQueryHelpers.buildOrderByClause(orderBy, orderDirection);
 
-    const posts = await db.query.posts.findMany({
-      where: whereClause,
-      orderBy: orderByClause,
-      columns: {
-        body: false,
-      },
-      extras: {
-        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body_snippet'),
-      },
-      with: {
-        user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+    const [posts, total] = await Promise.all([
+      db.query.posts.findMany({
+        where: whereClause,
+        orderBy: orderByClause,
+        columns: {
+          body: false,
         },
-        posts_to_tags: { columns: {}, with: { tag: true } },
-      },
-      limit: limit,
-      offset: offset,
-    });
-
-    const total = await PostQueryHelpers.getTotalCount(whereClause);
+        extras: {
+          body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as(
+            'body_snippet'
+          ),
+        },
+        with: {
+          user: {
+            columns: { password: false, github_id: false, last_logged_at: false },
+          },
+          posts_to_tags: { columns: {}, with: { tag: true } },
+        },
+        limit: limit,
+        offset: offset,
+      }),
+      PostQueryHelpers.getTotalCount(whereClause),
+    ]);
     const response = posts.map((post: any) => ({
       id: post.id,
       title: post.title,
@@ -232,41 +234,42 @@ export class PostService {
       isNull(postsModel.deleted_at)
     );
 
-    const data = await db
-      .select({
-        id: postsModel.id,
-        title: postsModel.title,
-        slug: postsModel.slug,
-        body: sql<string>`substring(${postsModel.body} from 1 for 200)`,
-        created_at: postsModel.created_at,
-        view_count: postsModel.view_count,
-        like_count: postsModel.like_count,
-        user: {
-          id: usersModel.id,
-          username: usersModel.username,
-          email: usersModel.email,
-          first_name: usersModel.first_name,
-          last_name: usersModel.last_name,
-          image: usersModel.image,
-        },
-      })
-      .from(postsModel)
-      .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
-      .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
-      .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(whereByTag)
-      .orderBy(desc(postsModel.created_at))
-      .limit(limit)
-      .offset(offset);
+    const [data, totalRow] = await Promise.all([
+      db
+        .select({
+          id: postsModel.id,
+          title: postsModel.title,
+          slug: postsModel.slug,
+          body: sql<string>`substring(${postsModel.body} from 1 for 200)`,
+          created_at: postsModel.created_at,
+          view_count: postsModel.view_count,
+          like_count: postsModel.like_count,
+          user: {
+            id: usersModel.id,
+            username: usersModel.username,
+            email: usersModel.email,
+            first_name: usersModel.first_name,
+            last_name: usersModel.last_name,
+            image: usersModel.image,
+          },
+        })
+        .from(postsModel)
+        .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+        .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
+        .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+        .where(whereByTag)
+        .orderBy(desc(postsModel.created_at))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(postsModel)
+        .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
+        .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
+        .where(whereByTag),
+    ]);
 
-    const [totalResult] = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))
-      .innerJoin(tagsModel, eq(posts_to_tags.tag_id, tagsModel.id))
-      .where(whereByTag);
-
-    const total = totalResult?.count ?? 0;
+    const total = totalRow[0]?.count ?? 0;
     const meta = getPaginationMetadata(total, offset, limit);
     return { data, meta };
   }
@@ -366,83 +369,82 @@ export class PostService {
 
   async getPostsByUser(user_id: string, params: GetPaginationParams) {
     const { offset, limit } = params;
-    const posts = await db.query.posts.findMany({
-      where: and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)),
-      columns: {
-        body: false,
-      },
-      extras: {
-        body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body_snippet'),
-      },
-      with: {
-        user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+    const [posts, totalRows] = await Promise.all([
+      db.query.posts.findMany({
+        where: and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)),
+        columns: {
+          body: false,
         },
-        posts_to_tags: { columns: {}, with: { tag: true } },
-      },
-      limit: limit,
-      offset: offset,
-      orderBy: desc(postsModel.created_at),
-    });
-    const total = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .where(and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at)));
+        extras: {
+          body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as(
+            'body_snippet'
+          ),
+        },
+        with: {
+          user: {
+            columns: { password: false, github_id: false, last_logged_at: false },
+          },
+          posts_to_tags: { columns: {}, with: { tag: true } },
+        },
+        limit: limit,
+        offset: offset,
+        orderBy: desc(postsModel.created_at),
+      }),
+      db
+        .select({ count: count() })
+        .from(postsModel)
+        .where(and(eq(postsModel.created_by, user_id), isNull(postsModel.deleted_at))),
+    ]);
 
     const data = posts.map((post) => ({
       ...post,
       body: post.body_snippet ? post.body_snippet + '...' : '',
     }));
 
-    const meta = getPaginationMetadata(total[0].count, params.offset, params.limit);
+    const meta = getPaginationMetadata(totalRows[0].count, params.offset, params.limit);
     return { data, meta };
   }
 
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
-    const posts = await db
-      .select({
-        id: postsModel.id,
-        title: postsModel.title,
-        slug: postsModel.slug,
-        body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
-        created_at: postsModel.created_at,
-        view_count: postsModel.view_count,
-        like_count: postsModel.like_count,
-        user: {
-          id: usersModel.id,
-          username: usersModel.username,
-          email: usersModel.email,
-          first_name: usersModel.first_name,
-          last_name: usersModel.last_name,
-          image: usersModel.image,
-        },
-      })
-      .from(postsModel)
-      .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(
-        and(
-          eq(usersModel.username, username),
-          eq(postsModel.published, true),
-          isNull(postsModel.deleted_at)
-        )
-      )
-      .orderBy(desc(postsModel.created_at))
-      .limit(limit)
-      .offset(offset);
+    const usernamePublishedWhere = and(
+      eq(usersModel.username, username),
+      eq(postsModel.published, true),
+      isNull(postsModel.deleted_at)
+    );
 
-    const total = await db
-      .select({ count: count() })
-      .from(postsModel)
-      .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(
-        and(
-          eq(usersModel.username, username),
-          eq(postsModel.published, true),
-          isNull(postsModel.deleted_at)
-        )
-      );
+    const [posts, totalRows] = await Promise.all([
+      db
+        .select({
+          id: postsModel.id,
+          title: postsModel.title,
+          slug: postsModel.slug,
+          body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
+          created_at: postsModel.created_at,
+          view_count: postsModel.view_count,
+          like_count: postsModel.like_count,
+          user: {
+            id: usersModel.id,
+            username: usersModel.username,
+            email: usersModel.email,
+            first_name: usersModel.first_name,
+            last_name: usersModel.last_name,
+            image: usersModel.image,
+          },
+        })
+        .from(postsModel)
+        .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+        .where(usernamePublishedWhere)
+        .orderBy(desc(postsModel.created_at))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(postsModel)
+        .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
+        .where(usernamePublishedWhere),
+    ]);
 
-    const meta = getPaginationMetadata(total[0].count, offset, limit);
+    const meta = getPaginationMetadata(totalRows[0].count, offset, limit);
     return { data: posts, meta };
   }
 

@@ -27,20 +27,18 @@ export class UserService {
   async getUsers(params: GetPaginationParams = { offset: 0, limit: 10 }) {
     try {
       const { limit, offset } = params;
-      const data = await db.query.users.findMany({
-        columns: { password: false, github_id: false },
-        orderBy: [desc(usersModel.created_at)],
-        where: isNull(usersModel.deleted_at),
-        limit,
-        offset,
-      });
+      const [data, totalRows] = await Promise.all([
+        db.query.users.findMany({
+          columns: { password: false, github_id: false },
+          orderBy: [desc(usersModel.created_at)],
+          where: isNull(usersModel.deleted_at),
+          limit,
+          offset,
+        }),
+        db.select({ count: count() }).from(usersModel).where(isNull(usersModel.deleted_at)),
+      ]);
 
-      const total = await db
-        .select({ count: count() })
-        .from(usersModel)
-        .where(isNull(usersModel.deleted_at));
-
-      const meta = getPaginationMetadata(total[0].count, offset, limit);
+      const meta = getPaginationMetadata(totalRows[0].count, offset, limit);
       return { data, meta };
     } catch (error) {
       console.error('Error fetching users:', error);
