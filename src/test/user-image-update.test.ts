@@ -26,13 +26,13 @@ mock.module('../services/index', () => ({
   },
 }));
 
-const { userController } = await import('../modules/users/controllers/userController');
+const { createUserController } = await import('../modules/users/controllers/userController');
 const { userService } = await import('../services');
 
 describe('User Image Update Endpoint', () => {
   const app = new Hono();
   app.onError(errorHandler());
-  app.route('/users', userController); // Use the userController directly
+  app.route('/users', createUserController(userService as any));
   const client = testClient(app);
 
   it('should update user image successfully', async () => {

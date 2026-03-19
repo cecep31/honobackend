@@ -1,9 +1,9 @@
-import { Hono } from "hono";
-import { holdingService } from "../../../services/index";
-import { auth } from "../../../middlewares/auth";
-import { validateRequest } from "../../../middlewares/validateRequest";
-import type { Variables } from "../../../types/context";
-import { sendSuccess } from "../../../utils/response";
+import { Hono } from 'hono';
+import { auth } from '../../../middlewares/auth';
+import { validateRequest } from '../../../middlewares/validateRequest';
+import type { AppServices } from '../../../services';
+import type { Variables } from '../../../types/context';
+import { sendSuccess } from '../../../utils/response';
 import {
   createHoldingSchema,
   duplicateHoldingSchema,
@@ -14,142 +14,100 @@ import {
   getTrendsQuerySchema,
   holdingIdSchema,
   updateHoldingSchema,
-} from "../validation";
+} from '../validation';
 
-export const holdingController = new Hono<{ Variables: Variables }>()
-  .get(
-    "/",
-    auth,
-    validateRequest("query", getHoldingsQuerySchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const { month, year, sortBy, order } = c.req.valid("query");
+type HoldingService = AppServices['holdingService'];
+
+export const createHoldingController = (holdingService: HoldingService) =>
+  new Hono<{ Variables: Variables }>()
+    .get('/', auth, validateRequest('query', getHoldingsQuerySchema), async (c) => {
+      const authUser = c.get('user');
+      const { month, year, sortBy, order } = c.req.valid('query');
       const holdings = await holdingService.getHoldingsByUserId(
         authUser.user_id,
         month,
         year,
         sortBy,
-        order
+        order,
       );
-      return sendSuccess(c, holdings, "Holdings fetched successfully");
-    }
-  )
-  .get(
-    "/summary",
-    auth,
-    validateRequest("query", getSummaryQuerySchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const { month, year } = c.req.valid("query");
-      const summary = await holdingService.getSummary(
-        authUser.user_id,
-        month,
-        year
-      );
-      return sendSuccess(c, summary, "Holdings summary fetched successfully");
-    }
-  )
-  .get(
-    "/trends",
-    auth,
-    validateRequest("query", getTrendsQuerySchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const { years } = c.req.valid("query");
+      return sendSuccess(c, holdings, 'Holdings fetched successfully');
+    })
+    .get('/summary', auth, validateRequest('query', getSummaryQuerySchema), async (c) => {
+      const authUser = c.get('user');
+      const { month, year } = c.req.valid('query');
+      const summary = await holdingService.getSummary(authUser.user_id, month, year);
+      return sendSuccess(c, summary, 'Holdings summary fetched successfully');
+    })
+    .get('/trends', auth, validateRequest('query', getTrendsQuerySchema), async (c) => {
+      const authUser = c.get('user');
+      const { years } = c.req.valid('query');
       const trends = await holdingService.getTrends(authUser.user_id, years);
-      return sendSuccess(c, trends, "Holdings trends fetched successfully");
-    }
-  )
-  .get(
-    "/compare",
-    auth,
-    validateRequest("query", getCompareMonthsSchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const { fromMonth, fromYear, toMonth, toYear } = c.req.valid("query");
+      return sendSuccess(c, trends, 'Holdings trends fetched successfully');
+    })
+    .get('/compare', auth, validateRequest('query', getCompareMonthsSchema), async (c) => {
+      const authUser = c.get('user');
+      const { fromMonth, fromYear, toMonth, toYear } = c.req.valid('query');
       const comparison = await holdingService.compareMonths(
         authUser.user_id,
         fromMonth,
         fromYear,
         toMonth,
-        toYear
+        toYear,
       );
-      return sendSuccess(c, comparison, "Month comparison fetched successfully");
-    }
-  )
-  .get(
-    "/monthly",
-    auth,
-    validateRequest("query", getMonthlyQuerySchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const { startMonth, startYear, endMonth, endYear } = c.req.valid("query");
+      return sendSuccess(c, comparison, 'Month comparison fetched successfully');
+    })
+    .get('/monthly', auth, validateRequest('query', getMonthlyQuerySchema), async (c) => {
+      const authUser = c.get('user');
+      const { startMonth, startYear, endMonth, endYear } = c.req.valid('query');
       const data = await holdingService.getMonthly(
         authUser.user_id,
         startMonth,
         startYear,
         endMonth,
-        endYear
+        endYear,
       );
-      return sendSuccess(c, data, "Holdings monthly data fetched successfully");
-    }
-  )
-  .get("/types", auth, async (c) => {
-    const types = await holdingService.getHoldingTypes();
-    return sendSuccess(c, types, "Holding types fetched successfully");
-  })
-  .get("/:id", auth, validateRequest("param", holdingIdSchema), async (c) => {
-    const params = c.req.valid("param");
-    const holding = await holdingService.getHoldingById(Number(params.id));
-    return sendSuccess(c, holding, "Holding fetched successfully");
-  })
-  .post("/", auth, validateRequest("json", createHoldingSchema), async (c) => {
-    const authUser = c.get("user");
-    const body = c.req.valid("json");
-    const holding = await holdingService.createHolding(authUser.user_id, body);
-    return sendSuccess(c, holding, "Holding created successfully", 201);
-  })
-  .post("/sync", auth, async (c) => {
-    const authUser = c.get("user");
-    const result = await holdingService.syncCurrentMonthPrices(authUser.user_id);
-    return sendSuccess(c, result, "Prices synced successfully for current month");
-  })
-  .post(
-    "/duplicate",
-    auth,
-    validateRequest("json", duplicateHoldingSchema),
-    async (c) => {
-      const authUser = c.get("user");
-      const body = c.req.valid("json");
-      const holdings = await holdingService.duplicateHoldingsByMonth(
-        authUser.user_id,
-        body
-      );
-      return sendSuccess(c, holdings, "Holdings duplicated successfully", 201);
-    }
-  )
-  .put(
-    "/:id",
-    auth,
-    validateRequest("param", holdingIdSchema),
-    validateRequest("json", updateHoldingSchema),
-    async (c) => {
-      const params = c.req.valid("param");
-      const body = c.req.valid("json");
-      const holding = await holdingService.updateHolding(
-        Number(params.id),
-        body
-      );
-      return sendSuccess(c, holding, "Holding updated successfully");
-    }
-  )
-  .delete(
-    "/:id",
-    auth,
-    validateRequest("param", holdingIdSchema),
-    async (c) => {
-      const params = c.req.valid("param");
+      return sendSuccess(c, data, 'Holdings monthly data fetched successfully');
+    })
+    .get('/types', auth, async (c) => {
+      const types = await holdingService.getHoldingTypes();
+      return sendSuccess(c, types, 'Holding types fetched successfully');
+    })
+    .get('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
+      const params = c.req.valid('param');
+      const holding = await holdingService.getHoldingById(Number(params.id));
+      return sendSuccess(c, holding, 'Holding fetched successfully');
+    })
+    .post('/', auth, validateRequest('json', createHoldingSchema), async (c) => {
+      const authUser = c.get('user');
+      const body = c.req.valid('json');
+      const holding = await holdingService.createHolding(authUser.user_id, body);
+      return sendSuccess(c, holding, 'Holding created successfully', 201);
+    })
+    .post('/sync', auth, async (c) => {
+      const authUser = c.get('user');
+      const result = await holdingService.syncCurrentMonthPrices(authUser.user_id);
+      return sendSuccess(c, result, 'Prices synced successfully for current month');
+    })
+    .post('/duplicate', auth, validateRequest('json', duplicateHoldingSchema), async (c) => {
+      const authUser = c.get('user');
+      const body = c.req.valid('json');
+      const holdings = await holdingService.duplicateHoldingsByMonth(authUser.user_id, body);
+      return sendSuccess(c, holdings, 'Holdings duplicated successfully', 201);
+    })
+    .put(
+      '/:id',
+      auth,
+      validateRequest('param', holdingIdSchema),
+      validateRequest('json', updateHoldingSchema),
+      async (c) => {
+        const params = c.req.valid('param');
+        const body = c.req.valid('json');
+        const holding = await holdingService.updateHolding(Number(params.id), body);
+        return sendSuccess(c, holding, 'Holding updated successfully');
+      },
+    )
+    .delete('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
+      const params = c.req.valid('param');
       const holding = await holdingService.deleteHolding(Number(params.id));
-      return sendSuccess(c, holding, "Holding deleted successfully");
-    }
-  );
+      return sendSuccess(c, holding, 'Holding deleted successfully');
+    });
