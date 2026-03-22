@@ -1,10 +1,24 @@
-import { and, count, desc, eq, isNull, sql, gte } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  isNull,
+  or,
+  sql,
+  gte,
+} from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
 import {
   users as usersModel,
   posts as postsModel,
   posts_to_tags,
   tags as tagsModel,
+  user_follows,
+  user_tag_follows,
 } from '../../../database/schemas/postgres/schema';
 import { PostQueryHelpers } from './postQueryHelpers';
 import { PostTagManager } from './postTagManager';
@@ -223,6 +237,115 @@ export class PostService {
     }));
 
     const meta = getPaginationMetadata(total, params.offset, params.limit);
+    return { data: response, meta };
+  }
+
+  /**
+   * Published posts from users you follow (`user_follows`) and from tags you follow
+   * (`user_tag_follows` + `posts_to_tags`). Newest first by default; each post once.
+   */
+  async getFollowingFeed(followerId: string, params: GetPaginationParams) {
+    const { offset, limit, search, orderBy, orderDirection } = params;
+
+    const followingRows = await db
+      .select({ id: user_follows.following_id })
+      .from(user_follows)
+      .where(
+        and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at))
+      );
+
+    const tagFollowRows = await db
+      .select({ id: user_tag_follows.tag_id })
+      .from(user_tag_follows)
+      .where(
+        and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at))
+      );
+
+    const authorIds = followingRows.map((r) => r.id);
+    const tagIds = tagFollowRows.map((r) => r.id);
+
+    if (authorIds.length === 0 && tagIds.length === 0) {
+      const meta = getPaginationMetadata(0, offset, limit);
+      return { data: [], meta };
+    }
+
+    const searchFilter = search
+      ? or(ilike(postsModel.title, `%${search}%`), ilike(postsModel.body, `%${search}%`))
+      : undefined;
+
+    const fromFollowedAuthors =
+      authorIds.length > 0 ? inArray(postsModel.created_by, authorIds) : undefined;
+    const fromFollowedTags =
+      tagIds.length > 0
+        ? exists(
+            db
+              .select({ one: sql`1` })
+              .from(posts_to_tags)
+              .where(
+                and(
+                  eq(posts_to_tags.post_id, postsModel.id),
+                  inArray(posts_to_tags.tag_id, tagIds)
+                )
+              )
+          )
+        : undefined;
+
+    let feedMatch;
+    if (fromFollowedAuthors && fromFollowedTags) {
+      feedMatch = or(fromFollowedAuthors, fromFollowedTags);
+    } else {
+      feedMatch = fromFollowedAuthors ?? fromFollowedTags;
+    }
+
+    const whereClause = and(
+      isNull(postsModel.deleted_at),
+      eq(postsModel.published, true),
+      feedMatch,
+      searchFilter
+    );
+
+    const orderByClause = PostQueryHelpers.buildOrderByClause(orderBy, orderDirection);
+
+    const [posts, total] = await Promise.all([
+      db.query.posts.findMany({
+        where: whereClause,
+        orderBy: orderByClause,
+        columns: {
+          body: false,
+        },
+        extras: {
+          body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as(
+            'body_snippet'
+          ),
+        },
+        with: {
+          user: {
+            columns: { password: false, github_id: false, last_logged_at: false },
+          },
+          posts_to_tags: { columns: {}, with: { tag: true } },
+        },
+        limit: limit,
+        offset: offset,
+      }),
+      PostQueryHelpers.getTotalCount(whereClause),
+    ]);
+
+    const response = posts.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      body: post.body_snippet ? post.body_snippet + '...' : '',
+      slug: post.slug,
+      photo_url: post.photo_url,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      published: post.published,
+      view_count: post.view_count ?? 0,
+      like_count: post.like_count ?? 0,
+      user: post.user,
+      tags: post.posts_to_tags.map((tag: any) => tag.tag),
+    }));
+
+    const meta = getPaginationMetadata(total, offset, limit);
     return { data: response, meta };
   }
 

@@ -682,6 +682,58 @@ export const posts_to_tags = pgTable(
   ]
 );
 
+export const user_tag_follows = pgTable(
+  'user_tag_follows',
+  {
+    id: uuid()
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey()
+      .notNull(),
+    user_id: uuid('user_id').notNull(),
+    tag_id: integer('tag_id').notNull(),
+    created_at: timestamp('created_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).defaultNow(),
+    updated_at: timestamp('updated_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).defaultNow(),
+    deleted_at: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    index('idx_user_tag_follows_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
+    ),
+    index('idx_user_tag_follows_tag_id').using(
+      'btree',
+      table.tag_id.asc().nullsLast().op('int4_ops')
+    ),
+    index('idx_user_tag_follows_deleted_at').using(
+      'btree',
+      table.deleted_at.asc().nullsLast().op('timestamptz_ops')
+    ),
+    uniqueIndex('idx_user_tag_follows_unique')
+      .using(
+        'btree',
+        table.user_id.asc().nullsLast().op('uuid_ops'),
+        table.tag_id.asc().nullsLast().op('int4_ops')
+      )
+      .where(sql`(deleted_at IS NULL)`),
+    foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+      name: 'fk_user_tag_follows_user_id',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tag_id],
+      foreignColumns: [tags.id],
+      name: 'fk_user_tag_follows_tag_id',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const holding_types = pgTable(
   'holding_types',
   {
@@ -844,6 +896,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   password_reset_tokens: many(password_reset_tokens),
   notifications: many(notifications),
   auth_activity_logs: many(auth_activity_logs),
+  user_tag_follows: many(user_tag_follows),
 }));
 
 export const post_comments_relations = relations(post_comments, ({ one }) => ({
@@ -967,6 +1020,18 @@ export const posts_to_tags_relations = relations(posts_to_tags, ({ one }) => ({
 
 export const tagsRelations = relations(tags, ({ many }) => ({
   posts_to_tags: many(posts_to_tags),
+  user_tag_follows: many(user_tag_follows),
+}));
+
+export const user_tag_follows_relations = relations(user_tag_follows, ({ one }) => ({
+  user: one(users, {
+    fields: [user_tag_follows.user_id],
+    references: [users.id],
+  }),
+  tag: one(tags, {
+    fields: [user_tag_follows.tag_id],
+    references: [tags.id],
+  }),
 }));
 
 export const holdingsRelations = relations(holdings, ({ one }) => ({

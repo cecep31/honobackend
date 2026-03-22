@@ -7,6 +7,8 @@ const mocks = createDrizzleMocks();
 
 const mockFindMany = mock();
 const mockFindFirst = mock();
+const mockUtfFindFirst = mock();
+const mockUtfFindMany = mock();
 
 // Setup onConflictDoNothing implementation
 mocks.mockOnConflictDoNothing.mockImplementation(() => ({ returning: mocks.mockReturning }));
@@ -23,8 +25,13 @@ mock.module('../database/drizzle', () => {
           findMany: mockFindMany,
           findFirst: mockFindFirst,
         },
+        user_tag_follows: {
+          findFirst: mockUtfFindFirst,
+          findMany: mockUtfFindMany,
+        },
       },
       insert: mocks.mockInsert,
+      update: mocks.mockUpdate,
     },
   };
 });
@@ -33,6 +40,8 @@ describe('TagService', () => {
   beforeEach(() => {
     mockFindMany.mockReset();
     mockFindFirst.mockReset();
+    mockUtfFindFirst.mockReset();
+    mockUtfFindMany.mockReset();
     mocks.reset();
     // Re-establish mock implementations
     mocks.mockOnConflictDoNothing.mockImplementation(() => ({ returning: mocks.mockReturning }));
@@ -254,6 +263,80 @@ describe('TagService', () => {
 
       expect(mocks.mockInsert).toHaveBeenCalled();
       expect(mocks.mockValues).toHaveBeenCalledWith([{ post_id: 'post-1', tag_id: 42 }]);
+    });
+  });
+
+  describe('followTag', () => {
+    it('creates follow when tag exists and not already following', async () => {
+      mockFindFirst.mockResolvedValue({ id: 5, name: 'go' });
+      mockUtfFindFirst.mockResolvedValue(null);
+      mocks.mockReturning.mockResolvedValue([
+        { id: 'follow-1', user_id: 'u1', tag_id: 5, created_at: '2025-01-01T00:00:00.000Z' },
+      ]);
+
+      const row = await tagService.followTag('u1', 5);
+
+      expect(row).toMatchObject({ user_id: 'u1', tag_id: 5 });
+      expect(mocks.mockInsert).toHaveBeenCalled();
+    });
+
+    it('throws when tag does not exist', async () => {
+      mockFindFirst.mockResolvedValue(null);
+
+      await expect(tagService.followTag('u1', 999)).rejects.toThrow();
+    });
+
+    it('throws when already following', async () => {
+      mockFindFirst.mockResolvedValue({ id: 5, name: 'go' });
+      mockUtfFindFirst.mockResolvedValue({ id: 'existing' });
+
+      await expect(tagService.followTag('u1', 5)).rejects.toThrow();
+    });
+  });
+
+  describe('unfollowTag', () => {
+    it('soft-deletes active follow row', async () => {
+      mockUtfFindFirst.mockResolvedValue({ id: 'row-1', user_id: 'u1', tag_id: 3 });
+      mocks.mockReturning.mockResolvedValue([
+        { id: 'row-1', user_id: 'u1', tag_id: 3, deleted_at: '2025-01-02T00:00:00.000Z' },
+      ]);
+
+      const row = await tagService.unfollowTag('u1', 3);
+
+      expect(row).toMatchObject({ tag_id: 3 });
+      expect(mocks.mockUpdate).toHaveBeenCalled();
+    });
+
+    it('throws when not following', async () => {
+      mockUtfFindFirst.mockResolvedValue(null);
+
+      await expect(tagService.unfollowTag('u1', 3)).rejects.toThrow();
+    });
+  });
+
+  describe('getFollowedTags', () => {
+    it('returns tag rows from active follows', async () => {
+      mockUtfFindMany.mockResolvedValue([
+        { tag: { id: 1, name: 'a', created_at: '2025-01-01T00:00:00.000Z' } },
+        { tag: { id: 2, name: 'b', created_at: '2025-01-01T00:00:00.000Z' } },
+      ]);
+
+      const tags = await tagService.getFollowedTags('u1');
+
+      expect(tags).toHaveLength(2);
+      expect(tags[0]).toMatchObject({ name: 'a' });
+    });
+  });
+
+  describe('isFollowingTag', () => {
+    it('returns true when follow exists', async () => {
+      mockUtfFindFirst.mockResolvedValue({ id: 'f1' });
+      await expect(tagService.isFollowingTag('u1', 1)).resolves.toBe(true);
+    });
+
+    it('returns false when not following', async () => {
+      mockUtfFindFirst.mockResolvedValue(null);
+      await expect(tagService.isFollowingTag('u1', 1)).resolves.toBe(false);
     });
   });
 });

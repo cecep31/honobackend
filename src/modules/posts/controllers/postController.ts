@@ -63,6 +63,25 @@ export const createPostController = (postService: PostService, userService: User
     return sendSuccess(c, data, 'My posts fetched successfully', 200, meta);
   });
 
+  postController.get(
+    '/feed/following',
+    auth,
+    validateRequest('query', listPostsQuerySchema),
+    async (c) => {
+      const q = c.req.valid('query');
+      const params = {
+        offset: q.offset,
+        limit: q.limit,
+        search: q.search ?? q.q,
+        orderBy: q.orderBy,
+        orderDirection: q.orderDirection,
+      };
+      const authUser = c.get('user');
+      const { data, meta } = await postService.getFollowingFeed(authUser.user_id, params);
+      return sendSuccess(c, data, 'Following feed fetched successfully', 200, meta);
+    }
+  );
+
   postController.get('/tag/:tag', validateRequest('query', listPostsQuerySchema), async (c) => {
     const tag = c.req.param('tag');
     const q = c.req.valid('query');

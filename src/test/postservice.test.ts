@@ -458,6 +458,113 @@ describe('PostService', () => {
     });
   });
 
+  describe('getFollowingFeed', () => {
+    it('returns empty feed when user follows no users and no tags', async () => {
+      const emptyChain = {
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([])),
+        })),
+      };
+      mockSelect.mockReturnValueOnce(emptyChain);
+      mockSelect.mockReturnValueOnce(emptyChain);
+
+      const result = await postService.getFollowingFeed('user1', { limit: 10, offset: 0 });
+
+      expect(result.data).toEqual([]);
+      expect(result.meta.total_items).toBe(0);
+      expect(mockFindMany).not.toHaveBeenCalled();
+    });
+
+    it('returns published posts from followed users', async () => {
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ id: 'author1' }])),
+        })),
+      });
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([])),
+        })),
+      });
+      mockSelect.mockReturnValue({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ count: 1 }])),
+        })),
+      });
+
+      mockFindMany.mockResolvedValue([
+        {
+          id: 'p1',
+          title: 'Feed Post',
+          body_snippet: 'Hello',
+          slug: 'feed-post',
+          photo_url: null,
+          created_at: '2025-01-01T00:00:00.000Z',
+          updated_at: '2025-01-01T00:00:00.000Z',
+          published: true,
+          view_count: 0,
+          like_count: 0,
+          posts_to_tags: [],
+          user: { id: 'author1', username: 'author' },
+        },
+      ]);
+
+      const result = await postService.getFollowingFeed('user1', { limit: 10, offset: 0 });
+
+      expect(result.meta.total_items).toBe(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toMatchObject({
+        id: 'p1',
+        title: 'Feed Post',
+        body: 'Hello...',
+        slug: 'feed-post',
+      });
+      expect(mockFindMany).toHaveBeenCalled();
+    });
+
+    it('returns published posts from followed tags only', async () => {
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([])),
+        })),
+      });
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ id: 2 }])),
+        })),
+      });
+      mockSelect.mockReturnValue({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ count: 1 }])),
+        })),
+      });
+
+      mockFindMany.mockResolvedValue([
+        {
+          id: 'p2',
+          title: 'Tagged Post',
+          body_snippet: 'Tag body',
+          slug: 'tagged-post',
+          photo_url: null,
+          created_at: '2025-01-02T00:00:00.000Z',
+          updated_at: '2025-01-02T00:00:00.000Z',
+          published: true,
+          view_count: 1,
+          like_count: 0,
+          posts_to_tags: [{ tag: { id: 2, name: 'rust' } }],
+          user: { id: 'u9', username: 'someone' },
+        },
+      ]);
+
+      const result = await postService.getFollowingFeed('user1', { limit: 10, offset: 0 });
+
+      expect(result.meta.total_items).toBe(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]?.title).toBe('Tagged Post');
+      expect(mockFindMany).toHaveBeenCalled();
+    });
+  });
+
   describe('getPostsForSitemap', () => {
     it('returns minimal data for sitemap with correct limit', async () => {
       const mockSitemapPosts = [
