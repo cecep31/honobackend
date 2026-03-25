@@ -14,7 +14,7 @@ import {
   password_reset_tokens as passwordResetTokensModel,
 } from '../../../database/schemas/postgres/schema';
 import { AuthActivityService } from './authActivityService';
-import { isEmailConfigured, sendPasswordResetEmail } from '../../../utils/email';
+import { isEmailConfigured, sendPasswordResetEmail } from '../../../email';
 
 export class AuthService {
   private activityService: AuthActivityService;

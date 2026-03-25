@@ -1,16 +1,4 @@
-import {
-  and,
-  count,
-  desc,
-  eq,
-  exists,
-  ilike,
-  inArray,
-  isNull,
-  or,
-  sql,
-  gte,
-} from 'drizzle-orm';
+import { and, count, desc, eq, exists, ilike, inArray, isNull, or, sql, gte } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
 import {
   users as usersModel,
@@ -250,16 +238,12 @@ export class PostService {
     const followingRows = await db
       .select({ id: user_follows.following_id })
       .from(user_follows)
-      .where(
-        and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at))
-      );
+      .where(and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at)));
 
     const tagFollowRows = await db
       .select({ id: user_tag_follows.tag_id })
       .from(user_tag_follows)
-      .where(
-        and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at))
-      );
+      .where(and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at)));
 
     const authorIds = followingRows.map((r) => r.id);
     const tagIds = tagFollowRows.map((r) => r.id);
@@ -282,10 +266,7 @@ export class PostService {
               .select({ one: sql`1` })
               .from(posts_to_tags)
               .where(
-                and(
-                  eq(posts_to_tags.post_id, postsModel.id),
-                  inArray(posts_to_tags.tag_id, tagIds)
-                )
+                and(eq(posts_to_tags.post_id, postsModel.id), inArray(posts_to_tags.tag_id, tagIds))
               )
           )
         : undefined;
