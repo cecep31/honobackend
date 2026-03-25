@@ -1,5 +1,5 @@
 import { sign } from 'hono/jwt';
-import { eq } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { users } from '../../../database/schemas/postgres/schema';
 import type { UserService } from '../../users/services/userService';
 import type { UserSignup } from '../validation';
@@ -348,6 +348,19 @@ export class AuthService {
       const result: { token?: string; resetLink?: string } = {};
 
       if (user) {
+        // Check if user has existing token created within last 60 seconds
+        const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
+        const existingToken = await tx.query.password_reset_tokens.findFirst({
+          where: and(
+            eq(passwordResetTokensModel.user_id, user.id),
+            gte(passwordResetTokensModel.created_at, sixtySecondsAgo.toISOString())
+          ),
+        });
+
+        if (existingToken) {
+          throw Errors.TooManyRequests(60);
+        }
+
         const token = randomUUIDv7().toString();
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
