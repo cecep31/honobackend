@@ -361,7 +361,7 @@ export class AuthService {
           expires_at: expiresAt.toISOString(),
         });
 
-        const resetLink = `${config.frontend.url}?token=${token}`;
+        const resetLink = `${config.frontend.url}/reset-password?token=${token}`;
 
         if (isEmailConfigured()) {
           const sent = await sendPasswordResetEmail(email, resetLink);
