@@ -752,7 +752,7 @@ export class PostService {
         )
       )
       .orderBy(desc(postsModel.created_at))
-      .limit(250);
+      .limit(5000);
 
     return posts;
   }
