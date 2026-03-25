@@ -103,11 +103,7 @@ const config = {
     defaultModel: getStringEnv('OPENROUTER_DEFAULT_MODEL', 'google/gemma-2-9b-it:free'),
   },
   email: {
-    host: getStringEnv('EMAIL_HOST'),
-    port: getNumberEnv('EMAIL_PORT', 587),
-    secure: process.env.EMAIL_SECURE === 'true',
-    user: getStringEnv('EMAIL_USER'),
-    password: getStringEnv('EMAIL_PASSWORD'),
+    resendApiKey: getStringEnv('RESEND_API_KEY'),
     from: getStringEnv('EMAIL_FROM', 'noreply@pilput.net'),
   },
   frontend: {

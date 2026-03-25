@@ -1,36 +1,25 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import config from '../config';
 
-const TRANSPORTER =
-  config.email.host && config.email.user
-    ? nodemailer.createTransport({
-        host: config.email.host,
-        port: config.email.port,
-        secure: config.email.secure,
-        auth: {
-          user: config.email.user,
-          pass: config.email.password,
-        },
-      })
-    : null;
+const resend = config.email.resendApiKey ? new Resend(config.email.resendApiKey) : null;
 
 /**
  * Check if email is configured and can send
  */
 export function isEmailConfigured(): boolean {
-  return Boolean(TRANSPORTER);
+  return Boolean(resend);
 }
 
 /**
  * Send password reset email
  */
 export async function sendPasswordResetEmail(to: string, resetLink: string): Promise<boolean> {
-  if (!TRANSPORTER) {
+  if (!resend) {
     return false;
   }
 
   try {
-    await TRANSPORTER.sendMail({
+    const { error } = await resend.emails.send({
       from: config.email.from,
       to,
       subject: 'Reset your password',
@@ -41,6 +30,12 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
         <p>This link expires in 1 hour. If you didn't request this, please ignore this email.</p>
       `,
     });
+
+    if (error) {
+      console.error('Failed to send password reset email:', error);
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error('Failed to send password reset email:', error);
