@@ -18,6 +18,84 @@ import { Errors } from '../../../utils/error';
 export class PostService {
   constructor() {}
 
+  /** User ids and tag ids the viewer follows (for feeds). */
+  private async getFollowGraphIds(followerId: string): Promise<{
+    authorIds: string[];
+    tagIds: number[];
+  }> {
+    const followingRows = await db
+      .select({ id: user_follows.following_id })
+      .from(user_follows)
+      .where(and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at)));
+
+    const tagFollowRows = await db
+      .select({ id: user_tag_follows.tag_id })
+      .from(user_tag_follows)
+      .where(and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at)));
+
+    return {
+      authorIds: followingRows.map((r) => r.id),
+      tagIds: tagFollowRows.map((r) => r.id),
+    };
+  }
+
+  /**
+   * Ranking score: recency decay + log engagement + boosts for followed authors/tags.
+   * Weights are tuned for a simple "For You" MVP (no ML).
+   */
+  private buildForYouScoreSql(authorIds: string[], tagIds: number[]) {
+    const ageDays = sql`GREATEST(0::double precision, EXTRACT(EPOCH FROM (NOW() - ${postsModel.created_at}::timestamptz)) / 86400.0)`;
+    const recency = sql`(2.0 / (1.0 + ${ageDays}))`;
+    const engagement = sql`(
+      0.5 * LN(GREATEST(COALESCE(${postsModel.like_count}, 0)::double precision, 0) + 1)
+      + 0.15 * LN(GREATEST(COALESCE(${postsModel.view_count}, 0)::double precision, 0) + 1)
+    )`;
+
+    const authorBoost =
+      authorIds.length > 0
+        ? sql`(CASE WHEN ${postsModel.created_by} IN (${sql.join(
+            authorIds.map((id) => sql`${id}`),
+            sql`, `
+          )}) THEN 1.5::double precision ELSE 0::double precision END)`
+        : sql`0::double precision`;
+
+    const followedTagMatch =
+      tagIds.length > 0
+        ? exists(
+            db
+              .select({ one: sql`1` })
+              .from(posts_to_tags)
+              .where(
+                and(eq(posts_to_tags.post_id, postsModel.id), inArray(posts_to_tags.tag_id, tagIds))
+              )
+          )
+        : undefined;
+
+    const tagBoost =
+      tagIds.length > 0 && followedTagMatch
+        ? sql`(CASE WHEN ${followedTagMatch} THEN 1.0::double precision ELSE 0::double precision END)`
+        : sql`0::double precision`;
+
+    return sql`(${recency} + ${engagement} + ${authorBoost} + ${tagBoost})`;
+  }
+
+  private mapPostRowToFeedItem(post: any) {
+    return {
+      id: post.id,
+      title: post.title,
+      body: post.body_snippet ? post.body_snippet + '...' : '',
+      slug: post.slug,
+      photo_url: post.photo_url,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+      published: post.published,
+      view_count: post.view_count ?? 0,
+      like_count: post.like_count ?? 0,
+      user: post.user,
+      tags: post.posts_to_tags.map((tag: any) => tag.tag),
+    };
+  }
+
   async updatePost(post_id: string, auth_id: string, body: Partial<PostCreateBody>) {
     return await db.transaction(async (tx) => {
       const existingPost = await tx.query.posts.findFirst({
@@ -235,18 +313,7 @@ export class PostService {
   async getFollowingFeed(followerId: string, params: GetPaginationParams) {
     const { offset, limit, search, orderBy, orderDirection } = params;
 
-    const followingRows = await db
-      .select({ id: user_follows.following_id })
-      .from(user_follows)
-      .where(and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at)));
-
-    const tagFollowRows = await db
-      .select({ id: user_tag_follows.tag_id })
-      .from(user_tag_follows)
-      .where(and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at)));
-
-    const authorIds = followingRows.map((r) => r.id);
-    const tagIds = tagFollowRows.map((r) => r.id);
+    const { authorIds, tagIds } = await this.getFollowGraphIds(followerId);
 
     if (authorIds.length === 0 && tagIds.length === 0) {
       const meta = getPaginationMetadata(0, offset, limit);
@@ -311,21 +378,59 @@ export class PostService {
       PostQueryHelpers.getTotalCount(whereClause),
     ]);
 
-    const response = posts.map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      body: post.body_snippet ? post.body_snippet + '...' : '',
-      slug: post.slug,
-      photo_url: post.photo_url,
-      created_at: post.created_at,
-      updated_at: post.updated_at,
-      published: post.published,
-      view_count: post.view_count ?? 0,
-      like_count: post.like_count ?? 0,
-      user: post.user,
-      tags: post.posts_to_tags.map((tag: any) => tag.tag),
-    }));
+    const response = posts.map((post: any) => this.mapPostRowToFeedItem(post));
 
+    const meta = getPaginationMetadata(total, offset, limit);
+    return { data: response, meta };
+  }
+
+  /**
+   * All published posts, ranked by recency + engagement + light personalization
+   * (followed authors / followed tags). Unlike `getFollowingFeed`, empty follow graph
+   * still returns global discovery (cold start).
+   */
+  async getForYouFeed(followerId: string, params: GetPaginationParams) {
+    const { offset, limit, search } = params;
+
+    const { authorIds, tagIds } = await this.getFollowGraphIds(followerId);
+
+    const searchFilter = search
+      ? or(ilike(postsModel.title, `%${search}%`), ilike(postsModel.body, `%${search}%`))
+      : undefined;
+
+    const whereClause = and(
+      isNull(postsModel.deleted_at),
+      eq(postsModel.published, true),
+      searchFilter
+    );
+
+    const scoreSql = this.buildForYouScoreSql(authorIds, tagIds);
+
+    const [posts, total] = await Promise.all([
+      db.query.posts.findMany({
+        where: whereClause,
+        orderBy: [desc(scoreSql), desc(postsModel.created_at), desc(postsModel.id)],
+        columns: {
+          body: false,
+        },
+        extras: {
+          body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as(
+            'body_snippet'
+          ),
+        },
+        with: {
+          user: {
+            columns: { password: false, github_id: false, last_logged_at: false },
+          },
+          posts_to_tags: { columns: {}, with: { tag: true } },
+        },
+        limit: limit,
+        offset: offset,
+      }),
+      PostQueryHelpers.getTotalCount(whereClause),
+    ]);
+
+    const response = posts.map((post: any) => this.mapPostRowToFeedItem(post));
     const meta = getPaginationMetadata(total, offset, limit);
     return { data: response, meta };
   }

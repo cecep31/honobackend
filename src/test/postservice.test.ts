@@ -565,6 +565,92 @@ describe('PostService', () => {
     });
   });
 
+  describe('getForYouFeed', () => {
+    it('returns ranked global posts when user follows nobody (cold start)', async () => {
+      const emptyChain = {
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([])),
+        })),
+      };
+      mockSelect.mockReturnValueOnce(emptyChain);
+      mockSelect.mockReturnValueOnce(emptyChain);
+      mockSelect.mockReturnValue({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ count: 1 }])),
+        })),
+      });
+
+      mockFindMany.mockResolvedValue([
+        {
+          id: 'p1',
+          title: 'Discovery Post',
+          body_snippet: 'Body',
+          slug: 'discovery',
+          photo_url: null,
+          created_at: '2025-01-03T00:00:00.000Z',
+          updated_at: '2025-01-03T00:00:00.000Z',
+          published: true,
+          view_count: 10,
+          like_count: 2,
+          posts_to_tags: [],
+          user: { id: 'u1', username: 'writer' },
+        },
+      ]);
+
+      const result = await postService.getForYouFeed('user1', { limit: 10, offset: 0 });
+
+      expect(result.meta.total_items).toBe(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]?.title).toBe('Discovery Post');
+      expect(mockFindMany).toHaveBeenCalled();
+      const findArgs = mockFindMany.mock.calls[0]?.[0];
+      expect(findArgs?.orderBy).toBeDefined();
+      expect(Array.isArray(findArgs?.orderBy)).toBe(true);
+      expect(findArgs?.orderBy?.length).toBe(3);
+    });
+
+    it('applies personalized ranking (orderBy) when user follows authors', async () => {
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ id: 'author1' }])),
+        })),
+      });
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([])),
+        })),
+      });
+      mockSelect.mockReturnValue({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ count: 1 }])),
+        })),
+      });
+
+      mockFindMany.mockResolvedValue([
+        {
+          id: 'p-boosted',
+          title: 'From followed',
+          body_snippet: 'Hi',
+          slug: 'from-followed',
+          photo_url: null,
+          created_at: '2025-01-01T00:00:00.000Z',
+          updated_at: '2025-01-01T00:00:00.000Z',
+          published: true,
+          view_count: 0,
+          like_count: 0,
+          posts_to_tags: [],
+          user: { id: 'author1', username: 'author' },
+        },
+      ]);
+
+      await postService.getForYouFeed('user1', { limit: 5, offset: 0 });
+
+      const findArgs = mockFindMany.mock.calls[0]?.[0];
+      expect(findArgs?.where).toBeDefined();
+      expect(findArgs?.orderBy?.length).toBe(3);
+    });
+  });
+
   describe('getPostsForSitemap', () => {
     it('returns minimal data for sitemap with correct limit', async () => {
       const mockSitemapPosts = [
@@ -593,7 +679,7 @@ describe('PostService', () => {
       expect(mockInnerJoin).toHaveBeenCalled();
       expect(mockWhere).toHaveBeenCalled();
       expect(mockOrderBy).toHaveBeenCalled();
-      expect(mockLimit).toHaveBeenCalledWith(250);
+      expect(mockLimit).toHaveBeenCalledWith(5000);
     });
   });
 });

@@ -35,8 +35,12 @@ Retrieve a paginated list of all published posts.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| page | number | No | 1 | Page number |
+| offset | number | No | 0 | Pagination offset |
 | limit | number | No | 10 | Items per page |
+| search | string | No | - | Search in title and body |
+| q | string | No | - | Alias for search |
+| orderBy | string | No | - | Field to order by |
+| orderDirection | string | No | desc | Order direction (asc/desc) |
 
 **Example Request:**
 ```bash
@@ -169,8 +173,12 @@ Retrieve posts created by the authenticated user.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| page | number | No | 1 | Page number |
+| offset | number | No | 0 | Pagination offset |
 | limit | number | No | 10 | Items per page |
+| search | string | No | - | Search in title and body |
+| q | string | No | - | Alias for search |
+| orderBy | string | No | - | Field to order by |
+| orderDirection | string | No | desc | Order direction (asc/desc) |
 
 **Example Request:**
 ```bash
@@ -201,6 +209,12 @@ Retrieve all posts with a specific tag.
 - **URL:** `/tag/:tag`
 - **Method:** `GET`
 - **Authentication:** Not required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| offset | number | No | 0 | Pagination offset |
+| limit | number | No | 10 | Items per page |
 
 **Example Request:**
 ```bash
@@ -238,8 +252,12 @@ Retrieve all posts by a specific user.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| page | number | No | 1 | Page number |
+| offset | number | No | 0 | Pagination offset |
 | limit | number | No | 10 | Items per page |
+| search | string | No | - | Search in title and body |
+| q | string | No | - | Alias for search |
+| orderBy | string | No | - | Field to order by |
+| orderDirection | string | No | desc | Order direction (asc/desc) |
 
 **Example Request:**
 ```bash
@@ -333,6 +351,7 @@ Retrieve all posts including unpublished ones. Super admin only.
 - **Method:** `GET`
 - **Authentication:** Required
 - **Requires:** Super Admin role
+- **Query Parameters:** None
 
 **Example Request:**
 ```bash
@@ -367,6 +386,7 @@ Retrieve a single post by its ID.
 - **URL:** `/:id`
 - **Method:** `GET`
 - **Authentication:** Not required
+- **Query Parameters:** None
 
 **Example Request:**
 ```bash
@@ -384,6 +404,7 @@ Create a new post.
 - **Method:** `POST`
 - **Authentication:** Required
 - **Content-Type:** `application/json`
+- **Query Parameters:** None
 
 **Request Body:**
 ```json
@@ -401,7 +422,7 @@ Create a new post.
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | title | string | Yes | 5-255 characters |
-| body | string | Yes | 20-10000 characters |
+| body | string | Yes | 20-500000 characters (HTML sanitized) |
 | slug | string | Yes | 5-255 characters, URL-friendly |
 | tags | array | No | Array of tag strings |
 | photo_url | string | No | Default: "/images/default.jpg" |
@@ -438,6 +459,7 @@ Update an existing post.
 - **Method:** `PATCH`
 - **Authentication:** Required
 - **Content-Type:** `application/json`
+- **Query Parameters:** None
 
 **Request Body:**
 ```json
@@ -453,7 +475,7 @@ Update an existing post.
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | title | string | No | 5-255 characters |
-| body | string | No | 20-10000 characters |
+| body | string | No | 20-500000 characters (HTML sanitized) |
 | slug | string | No | 5-255 characters |
 | tags | array | No | Array of tag strings |
 | photo_url | string | No | - |
@@ -488,6 +510,7 @@ Increment the view count of a post.
 - **URL:** `/:id/view`
 - **Method:** `POST`
 - **Authentication:** Not required
+- **Query Parameters:** None
 
 **Example Request:**
 ```bash
@@ -513,6 +536,7 @@ Delete a post.
 - **URL:** `/:id`
 - **Method:** `DELETE`
 - **Authentication:** Required
+- **Query Parameters:** None
 
 **Example Request:**
 ```bash
@@ -538,6 +562,7 @@ Upload an image for a post to S3.
 - **Method:** `POST`
 - **Authentication:** Required
 - **Content-Type:** `multipart/form-data`
+- **Query Parameters:** None
 
 **Form Data:**
 | Field | Type | Required | Description |
@@ -565,6 +590,94 @@ curl -X POST /v1/posts/upload/image \
   "message": "Image uploaded successfully"
 }
 ```
+
+---
+
+### 16. Get Following Feed
+Retrieve posts from users and tags the authenticated user follows.
+
+- **URL:** `/feed/following`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| offset | number | No | 0 | Pagination offset |
+| limit | number | No | 10 | Items per page |
+| search | string | No | - | Search in title and body |
+| q | string | No | - | Alias for search |
+| orderBy | string | No | - | Field to order by |
+| orderDirection | string | No | desc | Order direction (asc/desc) |
+
+**Example Request:**
+```bash
+curl -X GET "/v1/posts/feed/following?page=1&limit=10" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "total": 25,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 3
+  },
+  "message": "Following feed fetched successfully"
+}
+```
+
+---
+
+### 17. Get Sitemap Posts
+Retrieve minimal post data for sitemap generation. Rate limited.
+
+- **URL:** `/sitemap`
+- **Method:** `GET`
+- **Authentication:** Not required
+- **Rate Limit:** 10 requests per 5 minutes
+
+**Example Request:**
+```bash
+curl -X GET /v1/posts/sitemap
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "slug": "getting-started-typescript",
+      "username": "johndoe",
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-01-05T00:00:00Z"
+    }
+  ],
+  "message": "Sitemap posts fetched successfully"
+}
+```
+
+---
+
+### 18. Get Post by ID (Owner)
+Retrieve a single post by its ID. Only the post owner can access this endpoint (includes drafts).
+
+- **URL:** `/me/:id`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X GET /v1/posts/me/550e8400-e29b-41d4-a716-446655440000 \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):** Same as Get Post by Slug
 
 ---
 
@@ -841,22 +954,19 @@ GET /posts/charts/engagement-comparison?limit=30
 | id | UUID | Unique post identifier |
 | title | string | Post title |
 | slug | string | URL-friendly identifier |
-| excerpt | string | Short preview of content |
-| body | string | Full post content |
+| body | string | Full post content (HTML sanitized) |
 | photo_url | string | Featured image URL |
 | published | boolean | Publication status |
 | view_count | number | Number of views |
 | like_count | number | Number of likes |
 | is_liked | boolean | Whether current user liked |
 | is_bookmarked | boolean | Whether current user bookmarked |
-| creator | object | Post author information |
-| creator.id | UUID | Author's user ID |
-| creator.username | string | Author's username |
-| creator.first_name | string | Author's first name |
-| creator.last_name | string | Author's last name |
-| creator.avatar_url | string | Author's avatar URL |
-| creator.bio | string | Author's bio |
-| creator.website | string | Author's website |
+| user | object | Post author information |
+| user.id | UUID | Author's user ID |
+| user.username | string | Author's username |
+| user.first_name | string | Author's first name |
+| user.last_name | string | Author's last name |
+| user.image | string | Author's avatar URL |
 | tags | array | Array of tag strings |
 | created_at | ISO 8601 | Creation timestamp |
 | updated_at | ISO 8601 | Last update timestamp |
@@ -905,8 +1015,8 @@ GET /posts/charts/engagement-comparison?limit=30
 
 ```typescript
 // Fetch posts with pagination
-async function getPosts(page = 1, limit = 10): Promise<{ data: Post[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/posts?page=${page}&limit=${limit}`);
+async function getPosts(offset = 0, limit = 10): Promise<{ data: Post[]; meta: PaginationMeta }> {
+  const response = await fetch(`/v1/posts?offset=${offset}&limit=${limit}`);
   const result = await response.json();
   return result;
 }
