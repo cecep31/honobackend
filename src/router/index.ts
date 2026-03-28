@@ -8,6 +8,7 @@ import { createLikeController } from '../modules/likes/controllers/likeControlle
 import { createPostController } from '../modules/posts/controllers/postController';
 import { createTagController } from '../modules/tags/controllers/tagController';
 import { createUserController } from '../modules/users/controllers/userController';
+import { createReportController } from '../modules/reports/controllers/reportController';
 import { createWriterController } from '../modules/writers/controllers/writerController';
 import { createServices } from '../services';
 import type { Variables } from '../types/context';
@@ -28,6 +29,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
   const holdingController = createHoldingController(services.holdingService);
   const bookmarkController = createBookmarkController(services.bookmarkService);
   const commentController = createCommentController(services.commentService);
+  const reportController = createReportController(services.userService);
 
   const v1 = new Hono<{ Variables: Variables }>()
     .route('/auth', authController)
@@ -39,7 +41,8 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
     .route('/chat', chatController)
     .route('/holdings', holdingController)
     .route('/bookmarks', bookmarkController)
-    .route('/comments', commentController);
+    .route('/comments', commentController)
+    .route('/reports', reportController);
 
   app.route('/v1', v1);
 };
