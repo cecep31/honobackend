@@ -602,6 +602,47 @@ export const post_likes = pgTable(
   ]
 );
 
+export const bookmark_folders = pgTable(
+  'bookmark_folders',
+  {
+    id: uuid()
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey()
+      .notNull(),
+    user_id: uuid('user_id').notNull(),
+    name: varchar({ length: 100 }).notNull(),
+    description: text(),
+    created_at: timestamp('created_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).defaultNow(),
+    updated_at: timestamp('updated_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).defaultNow(),
+  },
+  (table) => [
+    index('idx_bookmark_folders_user_id').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops')
+    ),
+    index('idx_bookmark_folders_created_at').using(
+      'btree',
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
+    ),
+    uniqueIndex('idx_bookmark_folders_user_name').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.name.asc().nullsLast().op('text_ops')
+    ),
+    foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+      name: 'fk_bookmark_folders_user_id',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const post_bookmarks = pgTable(
   'post_bookmarks',
   {
@@ -611,7 +652,14 @@ export const post_bookmarks = pgTable(
       .notNull(),
     post_id: uuid('post_id').notNull(),
     user_id: uuid('user_id').notNull(),
+    folder_id: uuid('folder_id'),
+    name: varchar({ length: 255 }),
+    notes: text(),
     created_at: timestamp('created_at', {
+      withTimezone: true,
+      mode: 'string',
+    }).defaultNow(),
+    updated_at: timestamp('updated_at', {
       withTimezone: true,
       mode: 'string',
     }).defaultNow(),
@@ -634,10 +682,20 @@ export const post_bookmarks = pgTable(
       'btree',
       table.user_id.asc().nullsLast().op('uuid_ops')
     ),
+    index('idx_post_bookmarks_folder_id').using(
+      'btree',
+      table.folder_id.asc().nullsLast().op('uuid_ops')
+    ),
     // Indeks komposit untuk query bookmark berdasarkan user dan waktu
     index('idx_post_bookmarks_user_created_at').using(
       'btree',
       table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.created_at.desc().nullsLast().op('timestamptz_ops')
+    ),
+    // Indeks komposit untuk query bookmark berdasarkan folder
+    index('idx_post_bookmarks_folder_created_at').using(
+      'btree',
+      table.folder_id.asc().nullsLast().op('uuid_ops'),
       table.created_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
@@ -650,6 +708,11 @@ export const post_bookmarks = pgTable(
       foreignColumns: [users.id],
       name: 'fk_post_bookmarks_user_id',
     }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.folder_id],
+      foreignColumns: [bookmark_folders.id],
+      name: 'fk_post_bookmarks_folder_id',
+    }).onDelete('set null'),
   ]
 );
 
@@ -893,6 +956,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   }),
   post_likes: many(post_likes),
   post_bookmarks: many(post_bookmarks),
+  bookmark_folders: many(bookmark_folders),
   password_reset_tokens: many(password_reset_tokens),
   notifications: many(notifications),
   auth_activity_logs: many(auth_activity_logs),
@@ -1005,6 +1069,18 @@ export const post_bookmarks_relations = relations(post_bookmarks, ({ one }) => (
     fields: [post_bookmarks.user_id],
     references: [users.id],
   }),
+  folder: one(bookmark_folders, {
+    fields: [post_bookmarks.folder_id],
+    references: [bookmark_folders.id],
+  }),
+}));
+
+export const bookmarkFoldersRelations = relations(bookmark_folders, ({ one, many }) => ({
+  user: one(users, {
+    fields: [bookmark_folders.user_id],
+    references: [users.id],
+  }),
+  post_bookmarks: many(post_bookmarks),
 }));
 
 export const posts_to_tags_relations = relations(posts_to_tags, ({ one }) => ({
