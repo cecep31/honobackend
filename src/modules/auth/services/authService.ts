@@ -40,6 +40,39 @@ export class AuthService {
     };
   }
 
+  private createRefreshToken(): string {
+    return randomUUIDv7().toString();
+  }
+
+  private hashRefreshToken(refreshToken: string): string {
+    return new Bun.CryptoHasher('sha256').update(refreshToken).digest('hex');
+  }
+
+  private getRefreshTokenExpiry(): string {
+    return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  }
+
+  private async createSession(
+    userId: string,
+    userAgent?: string,
+    tx?: any
+  ): Promise<{ refresh_token: string }> {
+    const dbClient = tx || db;
+    const refreshToken = this.createRefreshToken();
+
+    await dbClient
+      .insert(sessionModel)
+      .values({
+        user_id: userId,
+        refresh_token: this.hashRefreshToken(refreshToken),
+        expires_at: this.getRefreshTokenExpiry(),
+        user_agent: userAgent,
+      })
+      .returning({ refresh_token: sessionModel.refresh_token });
+
+    return { refresh_token: refreshToken };
+  }
+
   private async updateLastLoggedAt(userId: string, tx?: any) {
     const dbClient = tx || db;
     await dbClient
@@ -93,15 +126,7 @@ export class AuthService {
 
         const payload = this.createJwtPayload(user);
 
-        const session = await tx
-          .insert(sessionModel)
-          .values({
-            user_id: user.id ?? '',
-            refresh_token: randomUUIDv7().toString(),
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
-            user_agent: user_agent,
-          })
-          .returning({ refresh_token: sessionModel.refresh_token });
+        const session = await this.createSession(user.id ?? '', user_agent, tx);
 
         const token = await sign(payload, config.jwt.secret);
 
@@ -118,7 +143,7 @@ export class AuthService {
 
         await this.updateLastLoggedAt(user.id, tx);
 
-        return { access_token: token, refresh_token: session[0].refresh_token };
+        return { access_token: token, refresh_token: session.refresh_token };
       } catch (error) {
         if (!(error instanceof ApiError)) {
           await this.activityService.logActivity(
@@ -203,15 +228,7 @@ export class AuthService {
         const payload = this.createJwtPayload(user);
         const token = await sign(payload, config.jwt.secret);
 
-        const session = await tx
-          .insert(sessionModel)
-          .values({
-            user_id: user.id ?? '',
-            refresh_token: randomUUIDv7().toString(),
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            user_agent: user_agent,
-          })
-          .returning({ refresh_token: sessionModel.refresh_token });
+        const session = await this.createSession(user.id ?? '', user_agent, tx);
 
         await this.activityService.logActivity(
           {
@@ -224,7 +241,7 @@ export class AuthService {
           tx
         );
 
-        return { access_token: token, refresh_token: session[0].refresh_token };
+        return { access_token: token, refresh_token: session.refresh_token };
       } catch (error) {
         await this.activityService.logActivity(
           {
@@ -277,8 +294,9 @@ export class AuthService {
   async refreshToken(refreshToken: string, ip_address?: string, user_agent?: string) {
     return await db.transaction(async (tx) => {
       try {
+        const hashedRefreshToken = this.hashRefreshToken(refreshToken);
         const session = await tx.query.sessions.findFirst({
-          where: eq(sessionModel.refresh_token, refreshToken),
+          where: eq(sessionModel.refresh_token, hashedRefreshToken),
           with: { user: true },
         });
 
@@ -303,6 +321,9 @@ export class AuthService {
 
         const payload = this.createJwtPayload(session.user);
         const token = await sign(payload, config.jwt.secret);
+        const rotatedSession = await this.createSession(session.user.id, user_agent, tx);
+
+        await tx.delete(sessionModel).where(eq(sessionModel.refresh_token, hashedRefreshToken));
 
         await this.activityService.logActivity(
           {
@@ -317,7 +338,7 @@ export class AuthService {
 
         await this.updateLastLoggedAt(session.user.id, tx);
 
-        return { access_token: token };
+        return { access_token: token, refresh_token: rotatedSession.refresh_token };
       } catch (error) {
         if (!(error instanceof ApiError)) {
           await this.activityService.logActivity(

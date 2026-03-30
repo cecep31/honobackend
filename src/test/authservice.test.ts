@@ -96,13 +96,16 @@ describe('AuthService', () => {
       };
 
       mockUserFindFirst.mockResolvedValue(mockUser);
-      mocks.mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
 
       const result = await authService.signIn(testEmail, testPassword, 'user-agent');
+      const insertValuesMock = mockTxInsert.mock.results[0]?.value?.values;
+      const insertedSession = insertValuesMock?.mock.calls[0]?.[0];
 
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('refresh_token');
-      expect(result.refresh_token).toBe('refresh-token');
+      expect(typeof result.refresh_token).toBe('string');
+      expect(result.refresh_token.length).toBeGreaterThan(10);
+      expect(insertedSession?.refresh_token).not.toBe(result.refresh_token);
       expect(mockUserFindFirst).toHaveBeenCalled();
       expect(mockTxInsert).toHaveBeenCalled();
     });
@@ -124,12 +127,12 @@ describe('AuthService', () => {
       };
 
       mockUserFindFirst.mockResolvedValue(mockUser);
-      mocks.mockReturning.mockResolvedValue([{ refresh_token: 'refresh-token' }]);
 
       const result = await authService.signIn(testUsername, testPassword, 'user-agent');
 
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('refresh_token');
+      expect(typeof result.refresh_token).toBe('string');
       expect(mockUserFindFirst).toHaveBeenCalled();
     });
 
@@ -223,11 +226,11 @@ describe('AuthService', () => {
 
       // Setup sequence for returning values in transaction
       mocks.mockReturning.mockResolvedValueOnce([mockCreatedUser]);
-      mocks.mockReturning.mockResolvedValueOnce([{ refresh_token: 'refresh-token' }]);
 
       const result = await authService.signUp(signupData);
 
       expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('refresh_token');
       expect(mockTxInsert).toHaveBeenCalled();
     });
   });
@@ -269,9 +272,9 @@ describe('AuthService', () => {
   });
 
   describe('refreshToken', () => {
-    it('returns new access token for valid refresh token', async () => {
+    it('returns new access token and rotates refresh token', async () => {
       const validSession = {
-        refresh_token: 'valid-refresh-token',
+        refresh_token: 'stored-hashed-refresh-token',
         expires_at: new Date(Date.now() + 86400000).toISOString(), // 1 day in future
         user: {
           id: 'user1',
@@ -285,6 +288,8 @@ describe('AuthService', () => {
       const result = await authService.refreshToken('valid-refresh-token');
 
       expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('refresh_token');
+      expect(result.refresh_token).not.toBe('valid-refresh-token');
       expect(mockSessionFindFirst).toHaveBeenCalled();
     });
 
