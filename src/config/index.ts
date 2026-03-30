@@ -3,6 +3,7 @@ export const originList = [
   'http://localhost:5173',
   'https://pilput.me',
   'https://www.pilput.me',
+  'https://www.pilput.net',
   'https://app.pilput.me',
   'https://dash.pilput.me',
   'https://pilput.net',
