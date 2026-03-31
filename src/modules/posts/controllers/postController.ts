@@ -16,6 +16,7 @@ import {
   postByUsernameSlugSchema,
   postIdSchema,
   postsOverTimeQuerySchema,
+  presignedUrlSchema,
   updatePostSchema,
 } from '../validation';
 
@@ -291,6 +292,49 @@ export const createPostController = (postService: PostService, userService: User
     return sendSuccess(c, post, 'Post deleted successfully');
   });
 
+  postController.post(
+    '/upload/presigned-url',
+    auth,
+    validateRequest('json', presignedUrlSchema),
+    async (c) => {
+      const authUser = c.get('user') as jwtPayload;
+      const { contentType, filename, size } = c.req.valid('json');
+
+      const mimeToExtension: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/gif': 'gif',
+        'image/webp': 'webp',
+      };
+
+      const extension = mimeToExtension[contentType];
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const keyName = filename
+        ? filename.replace(/[^a-zA-Z0-9.-]/g, '_')
+        : `${timestamp}-${randomStr}`;
+      const key = `posts/${authUser.user_id}/${keyName}.${extension}`;
+
+      const s3 = getS3Helper();
+      const presignedUrl = await s3.generatePresignedUrl(key, 300); // 5 minutes
+      const publicUrl = s3.getPublicUrl(key);
+
+      return sendSuccess(
+        c,
+        {
+          presignedUrl,
+          key,
+          publicUrl,
+          expiresIn: 300,
+          maxSize: 1 * 1024 * 1024,
+          requestedSize: size,
+        },
+        'Presigned URL generated successfully',
+        201
+      );
+    }
+  );
+
   postController.post('/upload/image', auth, async (c) => {
     const authUser = c.get('user') as jwtPayload;
     const formData = await c.req.formData();
@@ -298,6 +342,14 @@ export const createPostController = (postService: PostService, userService: User
 
     if (!file) {
       throw Errors.InvalidInput('image', 'No image file provided');
+    }
+
+    const MAX_SIZE = 1 * 1024 * 1024; // 1MB
+    if (file.size > MAX_SIZE) {
+      throw Errors.InvalidInput(
+        'image',
+        `File size exceeds 1MB limit. Received: ${(file.size / 1024).toFixed(1)}KB`
+      );
     }
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];

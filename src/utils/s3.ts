@@ -203,6 +203,16 @@ class S3Helper {
   }
 
   /**
+   * Get the public URL for an S3 object
+   * @param key The key/name of the file in S3
+   * @returns Public URL
+   */
+  getPublicUrl(key: string): string {
+    const normalizedKey = this.normalizeKey(key);
+    return `${this.endpointBase}/${this.config.bucketName}/${normalizedKey}`;
+  }
+
+  /**
    * Get the S3 client instance (for advanced usage)
    */
   getClient(): S3Client {

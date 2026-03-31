@@ -77,4 +77,19 @@ export const updatePostSchema = z.object({
   published: z.boolean().optional(),
 });
 
+export const presignedUrlSchema = z.object({
+  contentType: z
+    .string()
+    .refine((type) => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(type), {
+      message: 'Invalid content type. Allowed: JPEG, PNG, GIF, WebP',
+    }),
+  filename: z.string().optional(),
+  size: z
+    .number()
+    .int()
+    .max(1 * 1024 * 1024, 'File size exceeds 1MB limit')
+    .optional(),
+});
+
+export type PresignedUrlBody = z.infer<typeof presignedUrlSchema>;
 export type PostCreateBody = z.infer<typeof createPostSchema>;
