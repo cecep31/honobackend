@@ -6,9 +6,9 @@ This is a high-performance backend API built with **Hono** running on the **Bun*
 
 ### Key Technologies
 - **Runtime**: Bun (v1.x)
-- **Framework**: Hono (v4.12.7)
-- **Database**: PostgreSQL with Drizzle ORM (v0.45.1)
-- **Language**: TypeScript (v5.9.3)
+- **Framework**: Hono (v4.12.9)
+- **Database**: PostgreSQL with Drizzle ORM (v0.45.2)
+- **Language**: TypeScript (v6.0.2)
 - **Validation**: Zod (v4.3.6)
 - **Authentication**: JWT-based with OAuth (GitHub) support
 - **Deployment**: Docker, Fly.io, Docker Hub
@@ -51,15 +51,16 @@ The application uses PostgreSQL with the following major entities:
 | `posts_to_tags` | Many-to-many relationship between posts and tags |
 | `post_likes` | Social engagement tracking (unique user-post pairs) |
 | `post_bookmarks` | User bookmarked posts |
+| `bookmark_folders` | Organized bookmark collections |
 | `post_comments` | Nested comment system for posts |
 | `post_views` | View tracking with unique user-post tracking |
 | `user_follows` | Follower/following relationships |
+| `user_tag_follows` | User tag subscription tracking |
 | `chat_conversations` | AI chat conversation history |
 | `chat_messages` | Individual chat messages with token usage |
 | `holdings` | Financial portfolio tracking with gains/losses |
 | `holding_types` | Classification for holding types |
 | `files` | File upload metadata |
-| `notifications` | User notification system |
 | `sessions` | Authentication session management with refresh tokens |
 | `password_reset_tokens` | Password reset token management |
 
@@ -73,6 +74,7 @@ src/
 │   │   └── postgres/
 │   │       └── schema.ts    # Drizzle ORM schema definitions
 │   └── drizzle.ts           # Database connection initialization
+├── email/            # Email service configuration (Resend)
 ├── middlewares/      # Application middleware
 │   ├── auth.ts              # JWT authentication middleware
 │   ├── errorHandler.ts      # Global error handling
@@ -87,21 +89,25 @@ src/
 │   ├── comments/     # Post comments
 │   ├── holdings/     # Financial portfolio tracking
 │   ├── likes/        # Post likes
+│   ├── notifications/# User notifications
 │   ├── posts/        # Blog post management
+│   ├── reports/      # Content reporting system
 │   ├── tags/         # Tag management
-│   ├── transactions/ # (Future) Transaction tracking
 │   ├── users/        # User profile management
 │   └── writers/      # Public writer profiles
 ├── router/           # Main route definitions
 │   └── index.ts      # v1 API router setup
 ├── server/           # Server initialization
 │   └── app.ts        # Hono app instance and health checks
+├── services/         # Shared service layer
+│   └── index.ts      # Service factory and dependency injection
 ├── test/             # Test files and helpers
 │   └── helpers/
 │       └── drizzleMock.ts   # Drizzle ORM mocking utilities
 ├── types/            # TypeScript type definitions
 │   └── context.ts    # Hono context variable types
 └── utils/            # Utility functions
+    ├── auth.ts       # JWT and token utilities
     ├── error.ts      # Error handling utilities and ApiError class
     └── response.ts   # Standardized response helpers
 ```
@@ -388,7 +394,7 @@ See `docs/TESTING.md` and `src/test/` for detailed examples.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NODE_ENV` | Environment mode | `development` |
-| `PORT` | Server port | `3001` |
+| `PORT` | Server port | `3000` |
 | `DATABASE_URL` | PostgreSQL connection string | Required |
 | `JWT_SECRET` | Secret for JWT signing | Required |
 | `JWT_EXPIRES_IN` | JWT token expiration | `1d` |
@@ -410,11 +416,7 @@ See `docs/TESTING.md` and `src/test/` for detailed examples.
 | `OPENROUTER_API_KEY` | OpenRouter API key | Required for chat |
 | `OPENROUTER_BASE_URL` | OpenRouter API URL | `https://openrouter.ai/api/v1` |
 | `OPENROUTER_DEFAULT_MODEL` | Default AI model | `openai/gpt-oss-20b:free` |
-| `EMAIL_HOST` | SMTP host | Required for emails |
-| `EMAIL_PORT` | SMTP port | `587` |
-| `EMAIL_SECURE` | Use TLS for SMTP | `false` |
-| `EMAIL_USER` | SMTP username | - |
-| `EMAIL_PASSWORD` | SMTP password | - |
+| `RESEND_API_KEY` | Resend API key for emails | Required for password reset |
 | `EMAIL_FROM` | From address for emails | `noreply@pilput.net` |
 | `FRONTEND_URL` | Frontend application URL | `http://localhost:3000` |
 | `FRONTEND_RESET_PASSWORD_URL` | Reset password page URL | `http://localhost:3000/reset-password` |
@@ -423,19 +425,20 @@ See `docs/TESTING.md` and `src/test/` for detailed examples.
 ## Key Dependencies
 
 ### Runtime Dependencies
-- `hono`: Web framework (v4.12.7)
-- `drizzle-orm`: Database ORM (v0.45.1)
+- `hono`: Web framework (v4.12.9)
+- `drizzle-orm`: Database ORM (v0.45.2)
 - `zod`: Validation library (v4.3.6)
 - `@hono/zod-validator`: Hono-Zod integration (v0.7.6)
 - `postgres`: PostgreSQL driver (v3.4.8)
 - `hono-rate-limiter`: Rate limiting middleware (v0.5.3)
-- `axios`: HTTP client (v1.13.6)
-- `sanitize-html`: HTML sanitization (v2.17.1)
+- `axios`: HTTP client (v1.14.1)
+- `sanitize-html`: HTML sanitization (v2.17.2)
+- `resend`: Email service (v6.10.0)
 
 ### Dev Dependencies
-- `@types/bun`: Bun type definitions (v1.3.10)
-- `drizzle-kit`: Database toolkit (v0.31.9)
-- `typescript`: Type checker (v5.9.3)
+- `@types/bun`: Bun type definitions (v1.3.11)
+- `drizzle-kit`: Database toolkit (v0.31.10)
+- `typescript`: Type checker (v6.0.2)
 - `@types/sanitize-html`: Type definitions
 
 ## Special Notes
@@ -484,5 +487,4 @@ Detailed API documentation is available in:
 
 - `README.md` - Quick start guide
 - `AGENTS.md` - Guidelines for agentic coding tools
-- `GEMINI.md` - Additional context for AI assistants
 - `.env.example` - Environment variable template
