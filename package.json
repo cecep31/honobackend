@@ -23,12 +23,12 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
-    "axios": "^1.14.0",
+    "axios": "^1.14.1",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.9",
     "hono-rate-limiter": "^0.5.3",
     "postgres": "^3.4.8",
-    "resend": "^6.9.4",
+    "resend": "^6.10.0",
     "sanitize-html": "^2.17.2",
     "zod": "^4.3.6"
   },
