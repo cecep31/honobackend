@@ -319,8 +319,8 @@ export class HoldingService {
   ) {
     const now = new Date();
     // Default: start = current month/year, end = 11 months before start (12-month window)
-    let sMonth = startMonth ?? now.getMonth() + 1;
-    let sYear = startYear ?? now.getFullYear();
+    const sMonth = startMonth ?? now.getMonth() + 1;
+    const sYear = startYear ?? now.getFullYear();
 
     let eMonth = endMonth;
     let eYear = endYear;
