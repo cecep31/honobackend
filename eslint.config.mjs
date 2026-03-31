@@ -38,6 +38,8 @@ export default tseslint.config(
         },
       ],
       'no-empty': ['warn', { allowEmptyCatch: true }],
+      'no-useless-assignment': 'warn',
+      'preserve-caught-error': 'warn',
       'no-useless-escape': 'warn',
     },
   }
