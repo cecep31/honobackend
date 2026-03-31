@@ -1,5 +1,15 @@
 import { externalApiClient } from '../../../utils/httpClient';
 
+interface YahooFinanceQuoteResponse {
+  quoteResponse?: {
+    result?: Array<{
+      symbol: string;
+      regularMarketPrice: number;
+      currency: string;
+    }>;
+  };
+}
+
 export interface StockPrice {
   symbol: string;
   price: number;
@@ -19,8 +29,8 @@ export class StockPriceService {
       const symbolsStr = symbols.join(',');
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolsStr}`;
 
-      const response = await externalApiClient.get(url);
-      const results = response.data?.quoteResponse?.result || [];
+      const response = await externalApiClient.get<YahooFinanceQuoteResponse>(url);
+      const results = response.data.quoteResponse?.result || [];
 
       return results.map((item: any) => ({
         symbol: item.symbol,

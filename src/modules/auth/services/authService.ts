@@ -261,7 +261,7 @@ export class AuthService {
 
   async getGithubToken(code: string) {
     try {
-      const tokenResponse = await externalApiClient.post(
+      const tokenResponse = await externalApiClient.post<{ access_token?: string }>(
         'https://github.com/login/oauth/access_token',
         {
           client_id: config.github.CLIENT_ID,

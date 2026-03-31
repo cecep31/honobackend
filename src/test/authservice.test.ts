@@ -57,15 +57,6 @@ mock.module('../database/drizzle', () => {
 
 import { authService } from '../services';
 
-// Mock axios for GitHub OAuth
-mock.module('axios', () => {
-  return {
-    default: {
-      post: mock(),
-    },
-  };
-});
-
 describe('AuthService', () => {
   beforeEach(() => {
     mocks.reset();
