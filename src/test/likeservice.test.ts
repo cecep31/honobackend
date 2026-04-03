@@ -15,6 +15,12 @@ mock.module('../database/drizzle', () => {
       insert: mocks.mockInsert,
       delete: mocks.mockDelete,
       select: mocks.mockSelect,
+      transaction: async (cb: any) =>
+        cb({
+          select: mocks.mockSelect,
+          insert: mocks.mockInsert,
+          delete: mocks.mockDelete,
+        }),
     },
   };
 });

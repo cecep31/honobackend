@@ -21,58 +21,43 @@ export class CommentService {
 
   async createComment(data: CreateCommentInput, user_id: string) {
     try {
-      // Verify post exists
-      const postExists = await db
-        .select({ id: posts.id })
-        .from(posts)
-        .where(and(eq(posts.id, data.post_id), isNull(posts.deleted_at)));
+      const [postMeta, parentComment, actor] = await Promise.all([
+        db
+          .select({ id: posts.id, title: posts.title, created_by: posts.created_by })
+          .from(posts)
+          .where(and(eq(posts.id, data.post_id), isNull(posts.deleted_at)))
+          .then((rows) => rows[0]),
+        data.parent_comment_id
+          ? db
+              .select({
+                id: post_comments.id,
+                created_by: post_comments.created_by,
+                text: post_comments.text,
+              })
+              .from(post_comments)
+              .where(
+                and(
+                  eq(post_comments.id, data.parent_comment_id),
+                  isNull(post_comments.deleted_at)
+                )
+              )
+              .then((rows) => rows[0])
+          : Promise.resolve(undefined),
+        this.notificationService
+          ? db
+              .select({ id: users.id, username: users.username })
+              .from(users)
+              .where(and(eq(users.id, user_id), isNull(users.deleted_at)))
+              .then((rows) => rows[0])
+          : Promise.resolve(undefined),
+      ]);
 
-      if (postExists.length === 0) {
-        throw Errors.NotFound('Post not found');
+      if (!postMeta) throw Errors.NotFound('Post not found');
+      if (data.parent_comment_id && !parentComment) {
+        throw Errors.NotFound('Parent comment not found');
       }
 
-      const [postMeta] = await db
-        .select({
-          id: posts.id,
-          title: posts.title,
-          created_by: posts.created_by,
-        })
-        .from(posts)
-        .where(and(eq(posts.id, data.post_id), isNull(posts.deleted_at)));
-
-      // If parent_comment_id is provided, verify it exists
-      let parentComment:
-        | {
-            id: string;
-            created_by: string;
-            text: string;
-          }
-        | undefined;
-      if (data.parent_comment_id) {
-        const parentExists = await db
-          .select({ id: post_comments.id })
-          .from(post_comments)
-          .where(
-            and(eq(post_comments.id, data.parent_comment_id), isNull(post_comments.deleted_at))
-          );
-
-        if (parentExists.length === 0) {
-          throw Errors.NotFound('Parent comment not found');
-        }
-
-        [parentComment] = await db
-          .select({
-            id: post_comments.id,
-            created_by: post_comments.created_by,
-            text: post_comments.text,
-          })
-          .from(post_comments)
-          .where(
-            and(eq(post_comments.id, data.parent_comment_id), isNull(post_comments.deleted_at))
-          );
-      }
-
-      const comment = await db
+      const [comment] = await db
         .insert(post_comments)
         .values({
           id: randomUUIDv7(),
@@ -83,32 +68,19 @@ export class CommentService {
         })
         .returning();
 
-      if (this.notificationService && postMeta) {
-        const [actor] = await db
-          .select({
-            id: users.id,
-            username: users.username,
-          })
-          .from(users)
-          .where(and(eq(users.id, user_id), isNull(users.deleted_at)));
-
-        if (!actor) {
-          throw Errors.NotFound('User');
-        }
-
+      if (this.notificationService && actor) {
         const recipients = new Set<string>();
 
         if (postMeta.created_by !== user_id) {
           recipients.add(postMeta.created_by);
         }
-
         if (parentComment && parentComment.created_by !== user_id) {
           recipients.add(parentComment.created_by);
         }
 
-        for (const recipientId of recipients) {
+        const notifications = [...recipients].map((recipientId) => {
           const isReplyTarget = parentComment?.created_by === recipientId;
-          await this.notificationService.createNotification({
+          return this.notificationService!.createNotification({
             user_id: recipientId,
             type: isReplyTarget ? 'comment_reply' : 'post_comment',
             title: isReplyTarget ? 'New reply on your comment' : 'New comment on your post',
@@ -119,16 +91,16 @@ export class CommentService {
               actor_user_id: actor.id,
               actor_username: actor.username,
               post_id: data.post_id,
-              comment_id: comment[0].id,
+              comment_id: comment.id,
               parent_comment_id: data.parent_comment_id ?? null,
             },
           });
-        }
+        });
+        await Promise.all(notifications);
       }
 
-      // Fetch comment with user details
       const commentWithUser = await db.query.post_comments.findFirst({
-        where: eq(post_comments.id, comment[0].id),
+        where: eq(post_comments.id, comment.id),
         with: { user: { columns: COMMENT_USER_COLUMNS } },
       });
 
@@ -144,36 +116,26 @@ export class CommentService {
 
   async getCommentsByPost(post_id: string, offset: number = 0, limit: number = 20) {
     try {
-      // Get top-level comments (no parent)
-      const comments = await db.query.post_comments.findMany({
-        where: and(
-          eq(post_comments.post_id, post_id),
-          isNull(post_comments.parent_comment_id),
-          isNull(post_comments.deleted_at)
-        ),
-        with: { user: { columns: COMMENT_USER_COLUMNS } },
-        orderBy: [desc(post_comments.created_at)],
-        limit,
-        offset,
-      });
+      const whereClause = and(
+        eq(post_comments.post_id, post_id),
+        isNull(post_comments.parent_comment_id),
+        isNull(post_comments.deleted_at)
+      );
 
-      // Get total count for pagination
-      const [totalResult] = await db
-        .select({ count: count() })
-        .from(post_comments)
-        .where(
-          and(
-            eq(post_comments.post_id, post_id),
-            isNull(post_comments.parent_comment_id),
-            isNull(post_comments.deleted_at)
-          )
-        );
-
-      const total = totalResult?.count ?? 0;
+      const [comments, [totalResult]] = await Promise.all([
+        db.query.post_comments.findMany({
+          where: whereClause,
+          with: { user: { columns: COMMENT_USER_COLUMNS } },
+          orderBy: [desc(post_comments.created_at)],
+          limit,
+          offset,
+        }),
+        db.select({ count: count() }).from(post_comments).where(whereClause),
+      ]);
 
       return {
         data: comments,
-        meta: getPaginationMetadata(total, offset, limit),
+        meta: getPaginationMetadata(totalResult?.count ?? 0, offset, limit),
       };
     } catch (error) {
       console.error('Get comments error:', error);
@@ -310,34 +272,28 @@ export class CommentService {
 
   async getCommentsByUser(user_id: string, offset: number = 0, limit: number = 20) {
     try {
-      const comments = await db.query.post_comments.findMany({
-        where: and(eq(post_comments.created_by, user_id), isNull(post_comments.deleted_at)),
-        with: {
-          user: { columns: COMMENT_USER_COLUMNS },
-          post: {
-            columns: {
-              id: true,
-              title: true,
-              slug: true,
-            },
+      const whereClause = and(
+        eq(post_comments.created_by, user_id),
+        isNull(post_comments.deleted_at)
+      );
+
+      const [comments, [totalResult]] = await Promise.all([
+        db.query.post_comments.findMany({
+          where: whereClause,
+          with: {
+            user: { columns: COMMENT_USER_COLUMNS },
+            post: { columns: { id: true, title: true, slug: true } },
           },
-        },
-        orderBy: [desc(post_comments.created_at)],
-        limit,
-        offset,
-      });
-
-      // Get total count
-      const [totalResult] = await db
-        .select({ count: count() })
-        .from(post_comments)
-        .where(and(eq(post_comments.created_by, user_id), isNull(post_comments.deleted_at)));
-
-      const total = totalResult?.count ?? 0;
+          orderBy: [desc(post_comments.created_at)],
+          limit,
+          offset,
+        }),
+        db.select({ count: count() }).from(post_comments).where(whereClause),
+      ]);
 
       return {
         data: comments,
-        meta: getPaginationMetadata(total, offset, limit),
+        meta: getPaginationMetadata(totalResult?.count ?? 0, offset, limit),
       };
     } catch (error) {
       console.error('Get user comments error:', error);

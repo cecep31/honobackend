@@ -51,12 +51,11 @@ describe('CommentService', () => {
       };
       const userId = 'user-1';
 
-      // Mock post exists check
-      mockWhereSelect
-        .mockResolvedValueOnce([{ id: 'post-1' }])
-        .mockResolvedValueOnce([{ id: 'post-1', title: 'Test Post', created_by: 'post-owner' }]);
+      // Single query fetches post meta (no duplicate exists check)
+      mockWhereSelect.mockResolvedValueOnce([
+        { id: 'post-1', title: 'Test Post', created_by: 'post-owner' },
+      ]);
 
-      // Mock insert returning new comment
       mocks.mockReturning.mockResolvedValue([
         {
           id: 'comment-1',
@@ -66,7 +65,6 @@ describe('CommentService', () => {
         },
       ]);
 
-      // Mock findFirst to return comment with user
       mockFindFirst.mockResolvedValue({
         id: 'comment-1',
         text: 'Test comment',
@@ -95,8 +93,8 @@ describe('CommentService', () => {
         post_id: 'post-1',
       };
 
+      // Promise.all fetches postMeta + actor in parallel (2 calls, no duplicates)
       mockWhereSelect
-        .mockResolvedValueOnce([{ id: 'post-1' }])
         .mockResolvedValueOnce([{ id: 'post-1', title: 'Test Post', created_by: 'post-owner' }])
         .mockResolvedValueOnce([{ id: 'user-1', username: 'tester' }]);
 

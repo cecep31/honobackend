@@ -63,15 +63,16 @@ export class PostService {
     authorIds: string[];
     tagIds: number[];
   }> {
-    const followingRows = await db
-      .select({ id: user_follows.following_id })
-      .from(user_follows)
-      .where(and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at)));
-
-    const tagFollowRows = await db
-      .select({ id: user_tag_follows.tag_id })
-      .from(user_tag_follows)
-      .where(and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at)));
+    const [followingRows, tagFollowRows] = await Promise.all([
+      db
+        .select({ id: user_follows.following_id })
+        .from(user_follows)
+        .where(and(eq(user_follows.follower_id, followerId), isNull(user_follows.deleted_at))),
+      db
+        .select({ id: user_tag_follows.tag_id })
+        .from(user_tag_follows)
+        .where(and(eq(user_tag_follows.user_id, followerId), isNull(user_tag_follows.deleted_at))),
+    ]);
 
     return {
       authorIds: followingRows.map((r) => r.id),

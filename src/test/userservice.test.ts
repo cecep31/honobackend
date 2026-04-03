@@ -35,6 +35,21 @@ mock.module('../database/drizzle', () => {
       insert: mockInsert,
       update: mockUpdate,
       select: mockSelect,
+      transaction: async (cb: any) =>
+        cb({
+          insert: mockInsert,
+          update: mockUpdate,
+          select: mockSelect,
+          query: {
+            users: {
+              findFirst: mockUserFindFirst,
+              findMany: mockUserFindMany,
+            },
+            user_follows: {
+              findFirst: mockUserFollowsFindFirst,
+            },
+          },
+        }),
       query: {
         users: {
           findFirst: mockUserFindFirst,

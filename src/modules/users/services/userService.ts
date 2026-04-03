@@ -123,13 +123,13 @@ export class UserService {
    */
   async addUser(body: UserCreateBody) {
     try {
-      // Check for existing username or email
-      const existingUsername = await this.getUserCountByUsername(body.username);
+      const [existingUsername, existingEmail] = await Promise.all([
+        this.getUserCountByUsername(body.username),
+        this.getUserCountByEmail(body.email),
+      ]);
       if (existingUsername > 0) {
         throw Errors.BusinessRuleViolation('Username already exists');
       }
-
-      const existingEmail = await this.getUserCountByEmail(body.email);
       if (existingEmail > 0) {
         throw Errors.BusinessRuleViolation('Email already exists');
       }
@@ -647,56 +647,52 @@ export class UserService {
    */
   async followUser(follower_id: string, following_id: string) {
     try {
-      // Check if users exist
-      const follower = await this.getUser(follower_id);
-      if (!follower) {
-        throw Errors.NotFound('Follower user');
-      }
+      const [follower, following] = await Promise.all([
+        this.getUser(follower_id),
+        this.getUser(following_id),
+      ]);
 
-      const following = await this.getUser(following_id);
-      if (!following) {
-        throw Errors.NotFound('Following user');
-      }
+      if (!follower) throw Errors.NotFound('Follower user');
+      if (!following) throw Errors.NotFound('Following user');
 
-      // Check if already following
-      const existingFollow = await db.query.user_follows.findFirst({
-        where: and(
-          eq(user_follows.follower_id, follower_id),
-          eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at)
-        ),
+      const follow = await db.transaction(async (tx) => {
+        const existingFollow = await tx.query.user_follows.findFirst({
+          where: and(
+            eq(user_follows.follower_id, follower_id),
+            eq(user_follows.following_id, following_id),
+            isNull(user_follows.deleted_at)
+          ),
+        });
+
+        if (existingFollow) {
+          throw Errors.BusinessRuleViolation('Already following this user');
+        }
+
+        const [follow] = await tx
+          .insert(user_follows)
+          .values({ id: randomUUIDv7(), follower_id, following_id })
+          .returning();
+
+        const now = new Date().toISOString();
+        await Promise.all([
+          tx
+            .update(usersModel)
+            .set({
+              following_count: sql`${usersModel.following_count} + 1`,
+              updated_at: now,
+            })
+            .where(eq(usersModel.id, follower_id)),
+          tx
+            .update(usersModel)
+            .set({
+              followers_count: sql`${usersModel.followers_count} + 1`,
+              updated_at: now,
+            })
+            .where(eq(usersModel.id, following_id)),
+        ]);
+
+        return follow;
       });
-
-      if (existingFollow) {
-        throw Errors.BusinessRuleViolation('Already following this user');
-      }
-
-      // Create follow relationship
-      const [follow] = await db
-        .insert(user_follows)
-        .values({
-          id: randomUUIDv7(),
-          follower_id,
-          following_id,
-        })
-        .returning();
-
-      // Update follower and following counts
-      await db
-        .update(usersModel)
-        .set({
-          following_count: sql`${usersModel.following_count} + 1`,
-          updated_at: new Date().toISOString(),
-        })
-        .where(eq(usersModel.id, follower_id));
-
-      await db
-        .update(usersModel)
-        .set({
-          followers_count: sql`${usersModel.followers_count} + 1`,
-          updated_at: new Date().toISOString(),
-        })
-        .where(eq(usersModel.id, following_id));
 
       if (this.notificationService && follower_id !== following_id) {
         await this.notificationService.createNotification({
@@ -733,44 +729,45 @@ export class UserService {
    */
   async unfollowUser(follower_id: string, following_id: string) {
     try {
-      // Find existing follow relationship
-      const existingFollow = await db.query.user_follows.findFirst({
-        where: and(
-          eq(user_follows.follower_id, follower_id),
-          eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at)
-        ),
+      return await db.transaction(async (tx) => {
+        const existingFollow = await tx.query.user_follows.findFirst({
+          where: and(
+            eq(user_follows.follower_id, follower_id),
+            eq(user_follows.following_id, following_id),
+            isNull(user_follows.deleted_at)
+          ),
+        });
+
+        if (!existingFollow) {
+          throw Errors.NotFound('Follow relationship');
+        }
+
+        const now = new Date().toISOString();
+
+        const [[unfollow]] = await Promise.all([
+          tx
+            .update(user_follows)
+            .set({ deleted_at: now })
+            .where(eq(user_follows.id, existingFollow.id))
+            .returning(),
+          tx
+            .update(usersModel)
+            .set({
+              following_count: sql`GREATEST(${usersModel.following_count} - 1, 0)`,
+              updated_at: now,
+            })
+            .where(eq(usersModel.id, follower_id)),
+          tx
+            .update(usersModel)
+            .set({
+              followers_count: sql`GREATEST(${usersModel.followers_count} - 1, 0)`,
+              updated_at: now,
+            })
+            .where(eq(usersModel.id, following_id)),
+        ]);
+
+        return unfollow;
       });
-
-      if (!existingFollow) {
-        throw Errors.NotFound('Follow relationship');
-      }
-
-      // Soft delete the follow relationship
-      const [unfollow] = await db
-        .update(user_follows)
-        .set({ deleted_at: new Date().toISOString() })
-        .where(eq(user_follows.id, existingFollow.id))
-        .returning();
-
-      // Update follower and following counts
-      await db
-        .update(usersModel)
-        .set({
-          following_count: sql`GREATEST(${usersModel.following_count} - 1, 0)`,
-          updated_at: new Date().toISOString(),
-        })
-        .where(eq(usersModel.id, follower_id));
-
-      await db
-        .update(usersModel)
-        .set({
-          followers_count: sql`GREATEST(${usersModel.followers_count} - 1, 0)`,
-          updated_at: new Date().toISOString(),
-        })
-        .where(eq(usersModel.id, following_id));
-
-      return unfollow;
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
         throw error;
@@ -790,44 +787,37 @@ export class UserService {
     try {
       const { limit, offset } = params;
 
-      // Get followers
-      const followers = await db
-        .select({
-          id: usersModel.id,
-          first_name: usersModel.first_name,
-          last_name: usersModel.last_name,
-          username: usersModel.username,
-          email: usersModel.email,
-          image: usersModel.image,
-          followers_count: usersModel.followers_count,
-          following_count: usersModel.following_count,
-          created_at: user_follows.created_at,
-        })
-        .from(user_follows)
-        .innerJoin(usersModel, eq(user_follows.follower_id, usersModel.id))
-        .where(
-          and(
-            eq(user_follows.following_id, userId),
-            isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
-        )
-        .orderBy(desc(user_follows.created_at))
-        .limit(limit)
-        .offset(offset);
+      const followersWhere = and(
+        eq(user_follows.following_id, userId),
+        isNull(user_follows.deleted_at),
+        isNull(usersModel.deleted_at)
+      );
 
-      // Get total count
-      const totalResult = await db
-        .select({ count: count() })
-        .from(user_follows)
-        .innerJoin(usersModel, eq(user_follows.follower_id, usersModel.id))
-        .where(
-          and(
-            eq(user_follows.following_id, userId),
-            isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
-        );
+      const [followers, totalResult] = await Promise.all([
+        db
+          .select({
+            id: usersModel.id,
+            first_name: usersModel.first_name,
+            last_name: usersModel.last_name,
+            username: usersModel.username,
+            email: usersModel.email,
+            image: usersModel.image,
+            followers_count: usersModel.followers_count,
+            following_count: usersModel.following_count,
+            created_at: user_follows.created_at,
+          })
+          .from(user_follows)
+          .innerJoin(usersModel, eq(user_follows.follower_id, usersModel.id))
+          .where(followersWhere)
+          .orderBy(desc(user_follows.created_at))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: count() })
+          .from(user_follows)
+          .innerJoin(usersModel, eq(user_follows.follower_id, usersModel.id))
+          .where(followersWhere),
+      ]);
 
       const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
       return { data: followers, meta };
@@ -850,44 +840,37 @@ export class UserService {
     try {
       const { limit, offset } = params;
 
-      // Get following
-      const following = await db
-        .select({
-          id: usersModel.id,
-          first_name: usersModel.first_name,
-          last_name: usersModel.last_name,
-          username: usersModel.username,
-          email: usersModel.email,
-          image: usersModel.image,
-          followers_count: usersModel.followers_count,
-          following_count: usersModel.following_count,
-          created_at: user_follows.created_at,
-        })
-        .from(user_follows)
-        .innerJoin(usersModel, eq(user_follows.following_id, usersModel.id))
-        .where(
-          and(
-            eq(user_follows.follower_id, userId),
-            isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
-        )
-        .orderBy(desc(user_follows.created_at))
-        .limit(limit)
-        .offset(offset);
+      const followingWhere = and(
+        eq(user_follows.follower_id, userId),
+        isNull(user_follows.deleted_at),
+        isNull(usersModel.deleted_at)
+      );
 
-      // Get total count
-      const totalResult = await db
-        .select({ count: count() })
-        .from(user_follows)
-        .innerJoin(usersModel, eq(user_follows.following_id, usersModel.id))
-        .where(
-          and(
-            eq(user_follows.follower_id, userId),
-            isNull(user_follows.deleted_at),
-            isNull(usersModel.deleted_at)
-          )
-        );
+      const [following, totalResult] = await Promise.all([
+        db
+          .select({
+            id: usersModel.id,
+            first_name: usersModel.first_name,
+            last_name: usersModel.last_name,
+            username: usersModel.username,
+            email: usersModel.email,
+            image: usersModel.image,
+            followers_count: usersModel.followers_count,
+            following_count: usersModel.following_count,
+            created_at: user_follows.created_at,
+          })
+          .from(user_follows)
+          .innerJoin(usersModel, eq(user_follows.following_id, usersModel.id))
+          .where(followingWhere)
+          .orderBy(desc(user_follows.created_at))
+          .limit(limit)
+          .offset(offset),
+        db
+          .select({ count: count() })
+          .from(user_follows)
+          .innerJoin(usersModel, eq(user_follows.following_id, usersModel.id))
+          .where(followingWhere),
+      ]);
 
       const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
       return { data: following, meta };

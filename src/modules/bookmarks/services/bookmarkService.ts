@@ -12,24 +12,26 @@ export class BookmarkService {
     notes?: string
   ) {
     try {
-      const checkBookmark = await db
-        .select({ id: post_bookmarks.id })
-        .from(post_bookmarks)
-        .where(and(eq(post_bookmarks.user_id, user_id), eq(post_bookmarks.post_id, post_id)));
+      return await db.transaction(async (tx) => {
+        const [existing] = await tx
+          .select({ id: post_bookmarks.id })
+          .from(post_bookmarks)
+          .where(and(eq(post_bookmarks.user_id, user_id), eq(post_bookmarks.post_id, post_id)));
 
-      if (checkBookmark.length > 0) {
-        const deleted = await db
-          .delete(post_bookmarks)
-          .where(and(eq(post_bookmarks.user_id, user_id), eq(post_bookmarks.post_id, post_id)))
-          .returning();
-        return { action: 'removed', ...deleted[0] };
-      } else {
-        const bookmark = await db
+        if (existing) {
+          const [deleted] = await tx
+            .delete(post_bookmarks)
+            .where(eq(post_bookmarks.id, existing.id))
+            .returning();
+          return { action: 'removed' as const, ...deleted };
+        }
+
+        const [bookmark] = await tx
           .insert(post_bookmarks)
           .values({ post_id, user_id, folder_id, name, notes })
           .returning();
-        return { action: 'added', ...bookmark[0] };
-      }
+        return { action: 'added' as const, ...bookmark };
+      });
     } catch (error) {
       console.error('Toggle bookmark error:', error);
       throw Errors.InternalServerError();
