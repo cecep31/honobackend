@@ -289,12 +289,19 @@ describe('PostService', () => {
   describe('updatePost', () => {
     it('updates an existing post', async () => {
       const body = { title: 'Updated Title' };
-      mockFindFirst.mockResolvedValue({ id: 'post1' }); // Adjusted mock return
-      mockReturning.mockResolvedValue([{ id: 'post1', title: 'Updated Title' }]);
+      mockFindFirst.mockResolvedValue({ id: 'post1', published: true, published_at: null });
+      mockReturning.mockResolvedValue([
+        {
+          id: 'post1',
+          title: 'Updated Title',
+          published: true,
+          published_at: new Date().toISOString(),
+        },
+      ]);
 
       const result = await postService.updatePost('post1', 'user1', body);
 
-      expect(result).toEqual({ id: 'post1', title: 'Updated Title' });
+      expect(result).toMatchObject({ id: 'post1', title: 'Updated Title', status: 'published' });
       expect(mockTransaction).toHaveBeenCalled();
     });
 
@@ -302,6 +309,23 @@ describe('PostService', () => {
       mockFindFirst.mockResolvedValue(null);
 
       expect(postService.updatePost('non-existent', 'user1', { title: 'Test' })).rejects.toThrow();
+    });
+
+    it('keeps future published_at as scheduled', async () => {
+      const futurePublishAt = new Date(Date.now() + 60_000).toISOString();
+      mockFindFirst.mockResolvedValue({ id: 'post1', published: true, published_at: futurePublishAt });
+      mockReturning.mockResolvedValue([
+        {
+          id: 'post1',
+          title: 'Updated Title',
+          published: true,
+          published_at: futurePublishAt,
+        },
+      ]);
+
+      const result = await postService.updatePost('post1', 'user1', { title: 'Updated Title' });
+
+      expect(result.status).toBe('scheduled');
     });
   });
 
@@ -378,7 +402,9 @@ describe('PostService', () => {
 
       const result = await postService.getPostsByTag('javascript', { offset: 0, limit: 10 });
 
-      expect(result).toHaveProperty('data', mockPosts);
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0]).toMatchObject({ ...mockPosts[0], status: 'draft' });
+      expect(result.data[1]).toMatchObject({ ...mockPosts[1], status: 'draft' });
       expect(result).toHaveProperty('meta');
       expect(result.meta).toMatchObject({ total_items: 2, offset: 0, limit: 10 });
       expect(mockSelect).toHaveBeenCalled();

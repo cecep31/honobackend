@@ -6,6 +6,7 @@ import { OpenRouterService } from '../modules/chat/services/openrouterService';
 import { CommentService } from '../modules/comments/services/commentService';
 import { HoldingService } from '../modules/holdings/services/holdingService';
 import { LikeService } from '../modules/likes/services/likeService';
+import { NotificationService } from '../modules/notifications/services/notificationService';
 import { PostService } from '../modules/posts/services/postService';
 import { TagService } from '../modules/tags/services/tagService';
 import { UserService } from '../modules/users/services/userService';
@@ -49,12 +50,14 @@ export interface AppServices {
   likeService: LikeService;
   bookmarkService: BookmarkService;
   commentService: CommentService;
+  notificationService: NotificationService;
 }
 
 export function createServices(): AppServices {
+  const notificationService = createLazyService(() => new NotificationService());
   const activityService = createLazyService(() => new AuthActivityService());
   const tagService = createLazyService(() => new TagService());
-  const userService = createLazyService(() => new UserService());
+  const userService = createLazyService(() => new UserService(notificationService));
   const authService = createLazyService(() => new AuthService(userService));
   const postService = createLazyService(() => new PostService());
   const writerService = createLazyService(() => new WriterService());
@@ -63,9 +66,10 @@ export function createServices(): AppServices {
   const holdingService = createLazyService(() => new HoldingService());
   const likeService = createLazyService(() => new LikeService());
   const bookmarkService = createLazyService(() => new BookmarkService());
-  const commentService = createLazyService(() => new CommentService());
+  const commentService = createLazyService(() => new CommentService(notificationService));
 
   return {
+    notificationService,
     activityService,
     tagService,
     userService,
@@ -84,6 +88,7 @@ export function createServices(): AppServices {
 const defaultServices = createServices();
 
 export const {
+  notificationService,
   activityService,
   tagService,
   userService,

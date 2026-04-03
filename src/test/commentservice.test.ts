@@ -11,6 +11,7 @@ const mockFrom = mock(() => ({ where: mockWhereSelect }));
 
 const mockFindFirst = mock();
 const mockFindMany = mock();
+const mockCreateNotification = mock();
 
 mock.module('../database/drizzle', () => {
   return {
@@ -38,6 +39,7 @@ describe('CommentService', () => {
     mockFrom.mockClear();
     mockFindFirst.mockReset();
     mockFindMany.mockReset();
+    mockCreateNotification.mockReset();
     mocks.mockSelect.mockReturnValue({ from: mockFrom });
   });
 
@@ -50,7 +52,9 @@ describe('CommentService', () => {
       const userId = 'user-1';
 
       // Mock post exists check
-      mockWhereSelect.mockResolvedValueOnce([{ id: 'post-1' }]);
+      mockWhereSelect
+        .mockResolvedValueOnce([{ id: 'post-1' }])
+        .mockResolvedValueOnce([{ id: 'post-1', title: 'Test Post', created_by: 'post-owner' }]);
 
       // Mock insert returning new comment
       mocks.mockReturning.mockResolvedValue([
@@ -79,6 +83,56 @@ describe('CommentService', () => {
       expect(result.id).toBe('comment-1');
       expect(result.text).toBe('Test comment');
       expect(mocks.mockInsert).toHaveBeenCalled();
+    });
+
+    it('creates a notification for the post owner', async () => {
+      commentService = new CommentService({
+        createNotification: mockCreateNotification,
+      } as any);
+
+      const commentData = {
+        text: 'Test comment',
+        post_id: 'post-1',
+      };
+
+      mockWhereSelect
+        .mockResolvedValueOnce([{ id: 'post-1' }])
+        .mockResolvedValueOnce([{ id: 'post-1', title: 'Test Post', created_by: 'post-owner' }])
+        .mockResolvedValueOnce([{ id: 'user-1', username: 'tester' }]);
+
+      mocks.mockReturning.mockResolvedValue([
+        {
+          id: 'comment-1',
+          text: 'Test comment',
+          post_id: 'post-1',
+          created_by: 'user-1',
+        },
+      ]);
+
+      mockFindFirst.mockResolvedValue({
+        id: 'comment-1',
+        text: 'Test comment',
+        user: {
+          id: 'user-1',
+          username: 'tester',
+        },
+      });
+
+      await commentService.createComment(commentData, 'user-1');
+
+      expect(mockCreateNotification).toHaveBeenCalledWith({
+        user_id: 'post-owner',
+        type: 'post_comment',
+        title: 'New comment on your post',
+        message: 'tester commented on your post "Test Post".',
+        data: {
+          actor_user_id: 'user-1',
+          actor_username: 'tester',
+          post_id: 'post-1',
+          comment_id: 'comment-1',
+          parent_comment_id: null,
+        },
+      });
     });
 
     it('should throw error if post not found', async () => {

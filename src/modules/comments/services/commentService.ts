@@ -1,10 +1,11 @@
-import { post_comments, posts } from '../../../database/schemas/postgres/schema';
+import { post_comments, posts, users } from '../../../database/schemas/postgres/schema';
 import { db } from '../../../database/drizzle';
 import { and, eq, isNull, desc, count } from 'drizzle-orm';
 import { Errors } from '../../../utils/error';
 import { randomUUIDv7 } from 'bun';
 import { getPaginationMetadata } from '../../../utils/paginate';
 import type { CreateCommentInput, UpdateCommentInput } from '../validation';
+import type { NotificationService } from '../../notifications/services/notificationService';
 
 /** Reusable column selection for public user info on comments */
 const COMMENT_USER_COLUMNS = {
@@ -16,6 +17,8 @@ const COMMENT_USER_COLUMNS = {
 } as const;
 
 export class CommentService {
+  constructor(private notificationService?: NotificationService) {}
+
   async createComment(data: CreateCommentInput, user_id: string) {
     try {
       // Verify post exists
@@ -28,7 +31,23 @@ export class CommentService {
         throw Errors.NotFound('Post not found');
       }
 
+      const [postMeta] = await db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          created_by: posts.created_by,
+        })
+        .from(posts)
+        .where(and(eq(posts.id, data.post_id), isNull(posts.deleted_at)));
+
       // If parent_comment_id is provided, verify it exists
+      let parentComment:
+        | {
+            id: string;
+            created_by: string;
+            text: string;
+          }
+        | undefined;
       if (data.parent_comment_id) {
         const parentExists = await db
           .select({ id: post_comments.id })
@@ -40,6 +59,17 @@ export class CommentService {
         if (parentExists.length === 0) {
           throw Errors.NotFound('Parent comment not found');
         }
+
+        [parentComment] = await db
+          .select({
+            id: post_comments.id,
+            created_by: post_comments.created_by,
+            text: post_comments.text,
+          })
+          .from(post_comments)
+          .where(
+            and(eq(post_comments.id, data.parent_comment_id), isNull(post_comments.deleted_at))
+          );
       }
 
       const comment = await db
@@ -52,6 +82,49 @@ export class CommentService {
           created_by: user_id,
         })
         .returning();
+
+      if (this.notificationService && postMeta) {
+        const [actor] = await db
+          .select({
+            id: users.id,
+            username: users.username,
+          })
+          .from(users)
+          .where(and(eq(users.id, user_id), isNull(users.deleted_at)));
+
+        if (!actor) {
+          throw Errors.NotFound('User');
+        }
+
+        const recipients = new Set<string>();
+
+        if (postMeta.created_by !== user_id) {
+          recipients.add(postMeta.created_by);
+        }
+
+        if (parentComment && parentComment.created_by !== user_id) {
+          recipients.add(parentComment.created_by);
+        }
+
+        for (const recipientId of recipients) {
+          const isReplyTarget = parentComment?.created_by === recipientId;
+          await this.notificationService.createNotification({
+            user_id: recipientId,
+            type: isReplyTarget ? 'comment_reply' : 'post_comment',
+            title: isReplyTarget ? 'New reply on your comment' : 'New comment on your post',
+            message: isReplyTarget
+              ? `${actor.username} replied to your comment on "${postMeta.title}".`
+              : `${actor.username} commented on your post "${postMeta.title}".`,
+            data: {
+              actor_user_id: actor.id,
+              actor_username: actor.username,
+              post_id: data.post_id,
+              comment_id: comment[0].id,
+              parent_comment_id: data.parent_comment_id ?? null,
+            },
+          });
+        }
+      }
 
       // Fetch comment with user details
       const commentWithUser = await db.query.post_comments.findFirst({

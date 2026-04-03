@@ -1,8 +1,27 @@
-import { and, eq, isNull, desc, asc, ilike, or, count, sql } from 'drizzle-orm';
+import { and, eq, isNull, desc, asc, ilike, or, count, lte, sql } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
 import { posts as postsModel } from '../../../database/schemas/postgres/schema';
 
 export class PostQueryHelpers {
+  static buildPublishedVisibilityClause() {
+    return and(
+      eq(postsModel.published, true),
+      or(isNull(postsModel.published_at), lte(postsModel.published_at, new Date().toISOString()))
+    );
+  }
+
+  static getLifecycleStatus(post: { published: boolean | null; published_at?: string | null }) {
+    if (!post.published) {
+      return 'draft';
+    }
+
+    if (post.published_at && new Date(post.published_at).getTime() > Date.now()) {
+      return 'scheduled';
+    }
+
+    return 'published';
+  }
+
   static getBasePostQuery() {
     return {
       where: isNull(postsModel.deleted_at),
@@ -17,7 +36,7 @@ export class PostQueryHelpers {
 
   static getPublishedPostQuery() {
     return {
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
+      where: and(isNull(postsModel.deleted_at), this.buildPublishedVisibilityClause()),
       with: {
         user: {
           columns: { password: false, github_id: false, last_logged_at: false },
@@ -47,7 +66,7 @@ export class PostQueryHelpers {
 
     return and(
       isNull(postsModel.deleted_at),
-      eq(postsModel.published, true),
+      this.buildPublishedVisibilityClause(),
       or(ilike(postsModel.title, `%${search}%`), ilike(postsModel.body, `%${search}%`))
     );
   }
@@ -82,6 +101,7 @@ export class PostQueryHelpers {
     return {
       ...post,
       body: post.body_snippet ? post.body_snippet + '...' : '',
+      status: this.getLifecycleStatus(post),
       user: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     };
@@ -90,6 +110,7 @@ export class PostQueryHelpers {
   static transformPostWithRelations(post: any) {
     return {
       ...post,
+      status: this.getLifecycleStatus(post),
       user: post.user,
       tags: post.posts_to_tags.map((t: any) => t.tag),
     };

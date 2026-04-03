@@ -50,32 +50,55 @@ const sanitizeOptions: sanitizeHtml.IOptions = {
   allowedIframeHostnames: ['www.youtube.com', 'player.vimeo.com'], // Security: restrict where iframes can come from
 };
 
-export const createPostSchema = z.object({
-  title: z.string().min(5).max(255),
-  body: z
-    .string()
-    .min(20)
-    .max(BODY_MAX_LENGTH)
-    .transform((val) => sanitizeHtml(val, sanitizeOptions)),
-  slug: z.string().min(5).max(255),
-  tags: z.array(z.string()).optional().default([]),
-  photo_url: z.string().optional().nullable(),
-  published: z.boolean().optional().default(true),
-});
+const publicationDateSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid published_at datetime');
 
-export const updatePostSchema = z.object({
-  title: z.string().min(5).max(255).optional(),
-  body: z
-    .string()
-    .min(20)
-    .max(BODY_MAX_LENGTH)
-    .optional()
-    .transform((val) => (val ? sanitizeHtml(val, sanitizeOptions) : val)),
-  slug: z.string().min(5).max(255).optional(),
-  tags: z.array(z.string()).optional(),
-  photo_url: z.string().optional(),
-  published: z.boolean().optional(),
-});
+const publicationRefinement = (
+  value: { published?: boolean; published_at?: string | null },
+  ctx: z.RefinementCtx
+) => {
+  if (value.published === false && value.published_at) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['published_at'],
+      message: 'Draft posts cannot have published_at set',
+    });
+  }
+};
+
+export const createPostSchema = z
+  .object({
+    title: z.string().min(5).max(255),
+    body: z
+      .string()
+      .min(20)
+      .max(BODY_MAX_LENGTH)
+      .transform((val) => sanitizeHtml(val, sanitizeOptions)),
+    slug: z.string().min(5).max(255),
+    tags: z.array(z.string()).optional().default([]),
+    photo_url: z.string().optional().nullable(),
+    published: z.boolean().optional().default(true),
+    published_at: publicationDateSchema.optional(),
+  })
+  .superRefine(publicationRefinement);
+
+export const updatePostSchema = z
+  .object({
+    title: z.string().min(5).max(255).optional(),
+    body: z
+      .string()
+      .min(20)
+      .max(BODY_MAX_LENGTH)
+      .optional()
+      .transform((val) => (val ? sanitizeHtml(val, sanitizeOptions) : val)),
+    slug: z.string().min(5).max(255).optional(),
+    tags: z.array(z.string()).optional(),
+    photo_url: z.string().optional(),
+    published: z.boolean().optional(),
+    published_at: publicationDateSchema.nullable().optional(),
+  })
+  .superRefine(publicationRefinement);
 
 export const presignedUrlSchema = z.object({
   contentType: z
@@ -93,3 +116,4 @@ export const presignedUrlSchema = z.object({
 
 export type PresignedUrlBody = z.infer<typeof presignedUrlSchema>;
 export type PostCreateBody = z.infer<typeof createPostSchema>;
+export type PostUpdateBody = z.infer<typeof updatePostSchema>;

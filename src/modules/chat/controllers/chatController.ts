@@ -14,6 +14,7 @@ import {
   createConversationStreamSchema,
   createMessageSchema,
   listConversationsQuerySchema,
+  updateConversationSchema,
 } from '../validation';
 
 type ChatService = AppServices['chatService'];
@@ -158,6 +159,19 @@ export const createChatController = (chatService: ChatService) =>
       const conversation = await chatService.getConversation(params.id, authUser.user_id);
       return sendSuccess(c, conversation, 'Conversation fetched successfully');
     })
+    .patch(
+      '/conversations/:id',
+      auth,
+      validateRequest('param', conversationIdSchema),
+      validateRequest('json', updateConversationSchema),
+      async (c) => {
+        const authUser = c.get('user');
+        const params = c.req.valid('param');
+        const body = c.req.valid('json');
+        const conversation = await chatService.updateConversation(params.id, authUser.user_id, body);
+        return sendSuccess(c, conversation, 'Conversation updated successfully');
+      }
+    )
     .delete(
       '/conversations/:id',
       auth,

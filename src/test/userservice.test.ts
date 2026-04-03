@@ -13,6 +13,7 @@ const mockCountResult = mock();
 const mockFrom = mock(() => ({ where: mockCountResult }));
 const mockSelect = mock(() => ({ from: mockFrom }));
 const mockUserFollowsFindFirst = mock();
+const mockCreateNotification = mock();
 
 // Ensure mockValues always returns the correct structure
 mockValues.mockImplementation(() => ({ returning: mockReturning }));
@@ -64,7 +65,9 @@ describe('UserService', () => {
   let userService: UserService;
 
   beforeEach(() => {
-    userService = new UserService();
+    userService = new UserService({
+      createNotification: mockCreateNotification,
+    } as any);
     mockReturning.mockReset();
     mockValues.mockReset();
     mockValues.mockImplementation(() => ({ returning: mockReturning }));
@@ -80,6 +83,7 @@ describe('UserService', () => {
     mockUserFollowsFindFirst.mockReset();
     mockUploadFile.mockReset();
     mockDeleteFile.mockReset();
+    mockCreateNotification.mockReset();
   });
 
   describe('getUsers', () => {
@@ -593,6 +597,17 @@ describe('UserService', () => {
       expect(result.follower_id).toBe('user1');
       expect(mockInsert).toHaveBeenCalled();
       expect(mockUpdate).toHaveBeenCalled(); // For updating counts
+      expect(mockCreateNotification).toHaveBeenCalledWith({
+        user_id: 'user2',
+        type: 'user_followed',
+        title: 'New follower',
+        message: 'user1 started following you.',
+        data: {
+          actor_user_id: 'user1',
+          actor_username: 'user1',
+          follow_id: 'follow-id',
+        },
+      });
     });
 
     it('throws error when already following', async () => {

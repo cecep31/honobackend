@@ -10,13 +10,53 @@ import {
 } from '../../../database/schemas/postgres/schema';
 import { PostQueryHelpers } from './postQueryHelpers';
 import { PostTagManager } from './postTagManager';
-import type { PostCreateBody } from '../validation';
+import type { PostCreateBody, PostUpdateBody } from '../validation';
 import type { GetPaginationParams } from '../../../types/paginate';
 import { getPaginationMetadata } from '../../../utils/paginate';
 import { Errors } from '../../../utils/error';
 
 export class PostService {
   constructor() {}
+
+  private resolvePublicationState(
+    body: Pick<PostCreateBody | PostUpdateBody, 'published' | 'published_at'>,
+    current?: { published: boolean | null; published_at: string | null }
+  ) {
+    const published = body.published ?? current?.published ?? true;
+
+    if (!published) {
+      return {
+        published: false,
+        published_at: null,
+      };
+    }
+
+    if (body.published_at !== undefined) {
+      return {
+        published: true,
+        published_at: body.published_at ?? new Date().toISOString(),
+      };
+    }
+
+    if (!current) {
+      return {
+        published: true,
+        published_at: new Date().toISOString(),
+      };
+    }
+
+    if (!current.published || !current.published_at) {
+      return {
+        published: true,
+        published_at: new Date().toISOString(),
+      };
+    }
+
+    return {
+      published: true,
+      published_at: current.published_at,
+    };
+  }
 
   /** User ids and tag ids the viewer follows (for feeds). */
   private async getFollowGraphIds(followerId: string): Promise<{
@@ -89,6 +129,8 @@ export class PostService {
       created_at: post.created_at,
       updated_at: post.updated_at,
       published: post.published,
+      published_at: post.published_at,
+      status: PostQueryHelpers.getLifecycleStatus(post),
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
       user: post.user,
@@ -96,7 +138,7 @@ export class PostService {
     };
   }
 
-  async updatePost(post_id: string, auth_id: string, body: Partial<PostCreateBody>) {
+  async updatePost(post_id: string, auth_id: string, body: PostUpdateBody) {
     return await db.transaction(async (tx) => {
       const existingPost = await tx.query.posts.findFirst({
         where: and(
@@ -104,7 +146,7 @@ export class PostService {
           eq(postsModel.created_by, auth_id),
           isNull(postsModel.deleted_at)
         ),
-        columns: { id: true },
+        columns: { id: true, published: true, published_at: true },
       });
 
       if (!existingPost) {
@@ -112,7 +154,12 @@ export class PostService {
       }
 
       const { tags, ...updateFields } = body;
-      const updateData = { ...updateFields, updated_at: new Date().toISOString() };
+      const publicationState = this.resolvePublicationState(updateFields, existingPost);
+      const updateData = {
+        ...Object.fromEntries(Object.entries(updateFields).filter(([, value]) => value !== undefined)),
+        ...publicationState,
+        updated_at: new Date().toISOString(),
+      };
 
       const [updatedPost] = await tx
         .update(postsModel)
@@ -124,7 +171,10 @@ export class PostService {
         await PostTagManager.updatePostTags(post_id, tags, tx);
       }
 
-      return updatedPost;
+      return {
+        ...updatedPost,
+        status: PostQueryHelpers.getLifecycleStatus(updatedPost),
+      };
     });
   }
 
@@ -185,6 +235,7 @@ export class PostService {
   async addPost(auth_id: string, body: PostCreateBody) {
     return await db.transaction(async (tx) => {
       try {
+        const publicationState = this.resolvePublicationState(body);
         const [post] = await tx
           .insert(postsModel)
           .values({
@@ -193,7 +244,7 @@ export class PostService {
             slug: body.slug,
             photo_url: body.photo_url,
             created_by: auth_id,
-            published: body.published,
+            ...publicationState,
           })
           .returning({ id: postsModel.id });
 
@@ -223,7 +274,7 @@ export class PostService {
       where: and(
         eq(postsModel.slug, slug),
         eq(postsModel.created_by, user.id),
-        eq(postsModel.published, true),
+        PostQueryHelpers.buildPublishedVisibilityClause(),
         isNull(postsModel.deleted_at)
       ),
       with: {
@@ -253,6 +304,7 @@ export class PostService {
 
     return {
       ...post,
+      status: PostQueryHelpers.getLifecycleStatus(post),
       user: post.user,
       tags: post.posts_to_tags.map((t) => t.tag),
     };
@@ -296,6 +348,8 @@ export class PostService {
       created_at: post.created_at,
       updated_at: post.updated_at,
       published: post.published,
+      published_at: post.published_at,
+      status: PostQueryHelpers.getLifecycleStatus(post),
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
       user: post.user,
@@ -347,7 +401,7 @@ export class PostService {
 
     const whereClause = and(
       isNull(postsModel.deleted_at),
-      eq(postsModel.published, true),
+      PostQueryHelpers.buildPublishedVisibilityClause(),
       feedMatch,
       searchFilter
     );
@@ -400,7 +454,7 @@ export class PostService {
 
     const whereClause = and(
       isNull(postsModel.deleted_at),
-      eq(postsModel.published, true),
+      PostQueryHelpers.buildPublishedVisibilityClause(),
       searchFilter
     );
 
@@ -439,7 +493,7 @@ export class PostService {
     const { offset, limit } = params;
     const whereByTag = and(
       eq(tagsModel.name, tag),
-      eq(postsModel.published, true),
+      PostQueryHelpers.buildPublishedVisibilityClause(),
       isNull(postsModel.deleted_at)
     );
 
@@ -451,6 +505,8 @@ export class PostService {
           slug: postsModel.slug,
           body: sql<string>`substring(${postsModel.body} from 1 for 200)`,
           created_at: postsModel.created_at,
+          published: postsModel.published,
+          published_at: postsModel.published_at,
           view_count: postsModel.view_count,
           like_count: postsModel.like_count,
           user: {
@@ -480,7 +536,13 @@ export class PostService {
 
     const total = totalRow[0]?.count ?? 0;
     const meta = getPaginationMetadata(total, offset, limit);
-    return { data, meta };
+    return {
+      data: data.map((post) => ({
+        ...post,
+        status: PostQueryHelpers.getLifecycleStatus(post),
+      })),
+      meta,
+    };
   }
 
   async getPostsRandom(limit = 6) {
@@ -491,6 +553,8 @@ export class PostService {
         slug: postsModel.slug,
         body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
         created_at: postsModel.created_at,
+        published: postsModel.published,
+        published_at: postsModel.published_at,
         user: {
           id: usersModel.id,
           username: usersModel.username,
@@ -502,22 +566,23 @@ export class PostService {
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
-      .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
+      .where(and(isNull(postsModel.deleted_at), PostQueryHelpers.buildPublishedVisibilityClause()))
       .orderBy(sql.raw('RANDOM()'))
       .limit(limit);
 
     return data.map((post) => ({
       ...post,
       body: post.body ? post.body + '...' : '',
+      status: PostQueryHelpers.getLifecycleStatus(post),
     }));
   }
 
   async getPost(id_post: string) {
-    return await db.query.posts.findFirst({
+    const post = await db.query.posts.findFirst({
       where: and(
         isNull(postsModel.deleted_at),
         eq(postsModel.id, id_post),
-        eq(postsModel.published, true)
+        PostQueryHelpers.buildPublishedVisibilityClause()
       ),
       with: {
         user: {
@@ -526,13 +591,15 @@ export class PostService {
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
     });
+
+    return post ? PostQueryHelpers.transformPostWithRelations(post) : null;
   }
 
   /**
    * Get post by ID only for the owner (auth required). Returns draft and published.
    */
   async getPostByIdForOwner(post_id: string, user_id: string) {
-    return await db.query.posts.findFirst({
+    const post = await db.query.posts.findFirst({
       where: and(
         isNull(postsModel.deleted_at),
         eq(postsModel.id, post_id),
@@ -545,14 +612,16 @@ export class PostService {
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
     });
+
+    return post ? PostQueryHelpers.transformPostWithRelations(post) : null;
   }
 
   async getPostBySlug(slug: string) {
-    return await db.query.posts.findFirst({
+    const post = await db.query.posts.findFirst({
       where: and(
         isNull(postsModel.deleted_at),
         eq(postsModel.slug, slug),
-        eq(postsModel.published, true)
+        PostQueryHelpers.buildPublishedVisibilityClause()
       ),
       with: {
         user: {
@@ -561,6 +630,8 @@ export class PostService {
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
     });
+
+    return post ? PostQueryHelpers.transformPostWithRelations(post) : null;
   }
 
   async deletePost(post_id: string, auth_id: string) {
@@ -608,6 +679,7 @@ export class PostService {
     const data = posts.map((post) => ({
       ...post,
       body: post.body_snippet ? post.body_snippet + '...' : '',
+      status: PostQueryHelpers.getLifecycleStatus(post),
     }));
 
     const meta = getPaginationMetadata(totalRows[0].count, params.offset, params.limit);
@@ -617,7 +689,7 @@ export class PostService {
   async getPostsByUsername(username: string, limit = 10, offset = 0) {
     const usernamePublishedWhere = and(
       eq(usersModel.username, username),
-      eq(postsModel.published, true),
+      PostQueryHelpers.buildPublishedVisibilityClause(),
       isNull(postsModel.deleted_at)
     );
 
@@ -629,6 +701,8 @@ export class PostService {
           slug: postsModel.slug,
           body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
           created_at: postsModel.created_at,
+          published: postsModel.published,
+          published_at: postsModel.published_at,
           view_count: postsModel.view_count,
           like_count: postsModel.like_count,
           user: {
@@ -654,7 +728,13 @@ export class PostService {
     ]);
 
     const meta = getPaginationMetadata(totalRows[0].count, offset, limit);
-    return { data: posts, meta };
+    return {
+      data: posts.map((post) => ({
+        ...post,
+        status: PostQueryHelpers.getLifecycleStatus(post),
+      })),
+      meta,
+    };
   }
 
   /**
@@ -720,7 +800,7 @@ export class PostService {
   private async getTopPostsBy(orderByField: 'view_count' | 'like_count', limit = 10) {
     const column = orderByField === 'view_count' ? postsModel.view_count : postsModel.like_count;
     const posts = await db.query.posts.findMany({
-      where: and(isNull(postsModel.deleted_at), eq(postsModel.published, true)),
+      where: and(isNull(postsModel.deleted_at), PostQueryHelpers.buildPublishedVisibilityClause()),
       columns: {
         id: true,
         title: true,
@@ -829,7 +909,7 @@ export class PostService {
         created_at: postsModel.created_at,
       })
       .from(postsModel)
-      .where(and(isNull(postsModel.deleted_at), eq(postsModel.published, true)))
+      .where(and(isNull(postsModel.deleted_at), PostQueryHelpers.buildPublishedVisibilityClause()))
       .orderBy(desc(postsModel.view_count))
       .limit(limit);
 
@@ -852,7 +932,7 @@ export class PostService {
       .where(
         and(
           isNull(postsModel.deleted_at),
-          eq(postsModel.published, true),
+          PostQueryHelpers.buildPublishedVisibilityClause(),
           isNull(usersModel.deleted_at)
         )
       )

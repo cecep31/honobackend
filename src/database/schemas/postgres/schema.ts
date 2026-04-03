@@ -117,6 +117,12 @@ export const chat_conversations = pgTable(
       mode: 'string',
     }),
     title: varchar({ length: 255 }).notNull(),
+    is_pinned: boolean('is_pinned').default(false).notNull(),
+    pinned_at: timestamp('pinned_at', {
+      precision: 6,
+      withTimezone: true,
+      mode: 'string',
+    }),
     user_id: uuid('user_id').notNull(),
   },
   (table) => [
@@ -127,6 +133,15 @@ export const chat_conversations = pgTable(
     index('idx_chat_conversations_deleted_at').using(
       'btree',
       table.deleted_at.asc().nullsLast().op('timestamptz_ops')
+    ),
+    index('idx_chat_conversations_user_pinned').using(
+      'btree',
+      table.user_id.asc().nullsLast().op('uuid_ops'),
+      table.is_pinned.desc().nullsLast().op('bool_ops')
+    ),
+    index('idx_chat_conversations_pinned_at').using(
+      'btree',
+      table.pinned_at.desc().nullsLast().op('timestamptz_ops')
     ),
     foreignKey({
       columns: [table.user_id],
@@ -214,6 +229,7 @@ export const posts = pgTable(
     slug: varchar({ length: 255 }).notNull(),
     photo_url: text('photo_url'),
     published: boolean().default(true),
+    published_at: timestamp('published_at', { withTimezone: true, mode: 'string' }),
     view_count: bigint('view_count', { mode: 'number' }).default(0),
     like_count: bigint('like_count', { mode: 'number' }).default(0),
   },
@@ -221,6 +237,15 @@ export const posts = pgTable(
     index('idx_posts_created_by').using('btree', table.created_by.asc().nullsLast().op('uuid_ops')),
     index('idx_posts_slug').using('btree', table.slug.asc().nullsLast().op('text_ops')),
     index('idx_posts_published').using('btree', table.published.asc().nullsLast().op('bool_ops')),
+    index('idx_posts_published_at').using(
+      'btree',
+      table.published_at.desc().nullsLast().op('timestamptz_ops')
+    ),
+    index('idx_posts_published_visibility').using(
+      'btree',
+      table.published.asc().nullsLast().op('bool_ops'),
+      table.published_at.asc().nullsLast().op('timestamptz_ops')
+    ),
     index('idx_posts_deleted_at').using(
       'btree',
       table.deleted_at.asc().nullsLast().op('timestamptz_ops')

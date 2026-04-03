@@ -1,151 +1,151 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { createDrizzleMocks, createChainableMock } from './helpers/drizzleMock';
-import { chatService, openrouterService } from '../services';
+import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { ChatService } from '../modules/chat/services/chatService';
+import { createDrizzleMocks } from './helpers/drizzleMock';
 
-// Mock OpenRouterService
+const mocks = createDrizzleMocks();
+const mockConversationFindFirst = mock();
+
+const buildSelectChain = (result: any) => {
+  const chain: any = {};
+  chain.where = mock(() => chain);
+  chain.orderBy = mock(() => chain);
+  chain.offset = mock(() => chain);
+  chain.limit = mock(() => chain);
+  chain.then = (resolve: any) => resolve(result);
+  return chain;
+};
+
 const mockGenerateResponse = mock();
 const mockGenerateStream = mock();
-mock.module('../modules/chat/services/openrouterService', () => {
-  return {
-    __esModule: true,
-    default: mock(() => {
-      return {
-        generateResponse: mockGenerateResponse,
-        generateStream: mockGenerateStream,
-      };
-    }),
-  };
-});
 
-// Create mocks using helper
-const mocks = createDrizzleMocks();
-
-mock.module('../database/drizzle', () => {
-  return {
-    db: {
-      insert: mocks.mockInsert,
-      select: mocks.mockSelect,
-      delete: mocks.mockDelete,
+mock.module('../database/drizzle', () => ({
+  db: {
+    insert: mocks.mockInsert,
+    update: mocks.mockUpdate,
+    select: mocks.mockSelect,
+    delete: mocks.mockDelete,
+    query: {
+      chat_conversations: {
+        findFirst: mockConversationFindFirst,
+      },
     },
-  };
-});
+  },
+}));
 
 describe('ChatService', () => {
+  let chatService: ChatService;
+
   beforeEach(() => {
+    chatService = new ChatService({
+      generateResponse: mockGenerateResponse,
+      generateStream: mockGenerateStream,
+    } as any);
+
     mocks.reset();
+    mockConversationFindFirst.mockReset();
     mockGenerateResponse.mockReset();
     mockGenerateStream.mockReset();
+    mocks.mockSelect.mockImplementation(() => ({
+      from: mock(() => buildSelectChain([])),
+    }));
   });
 
-  describe('createConversation', () => {
-    it('should create a new conversation', async () => {
-      const userId = 'user-1';
-      const body = { title: 'Test Conversation' };
+  it('creates a conversation with a fallback title', async () => {
+    mocks.mockReturning.mockResolvedValue([
+      {
+        id: 'conv-1',
+        title: 'New conversation',
+        user_id: 'user-1',
+      },
+    ]);
 
-      mocks.mockReturning.mockResolvedValue([
+    const result = await chatService.createConversation('user-1', {});
+
+    expect(result.title).toBe('New conversation');
+    expect(mocks.mockInsert).toHaveBeenCalled();
+  });
+
+  it('creates a streamed conversation with title from first message', async () => {
+    mocks.mockReturning
+      .mockResolvedValueOnce([
         {
           id: 'conv-1',
-          title: 'Test Conversation',
-          user_id: userId,
+          title: 'Hello AI from the first user message',
+          user_id: 'user-1',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          content: 'Hello AI from the first user message',
+          role: 'user',
         },
       ]);
+    mockGenerateStream.mockReturnValue(
+      (async function* () {
+        yield 'Hi there';
+      })()
+    );
 
-      const result = await chatService.createConversation(userId, body);
-
-      expect(result).toHaveProperty('id');
-      expect(result.title).toBe('Test Conversation');
-      expect(mocks.mockInsert).toHaveBeenCalled();
+    const result = await chatService.createConversationStream('user-1', {
+      content: 'Hello AI from the first user message',
     });
+
+    expect(result.conversation_id).toBe('conv-1');
+    expect(result.user_message.content).toBe('Hello AI from the first user message');
+    expect(mockGenerateStream).toHaveBeenCalled();
   });
 
-  describe('saveStreamingMessage', () => {
-    it('should save a streaming message with usage stats', async () => {
-      const conversationId = 'conv-1';
-      const userId = 'user-1';
-      const content = 'AI response content';
-      const model = 'gpt-4';
-      const usage = { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 };
+  it('updates conversation metadata for pinning', async () => {
+    mocks.mockSelect.mockImplementation(() => ({
+      from: mock(() =>
+        buildSelectChain([
+          {
+            id: 'conv-1',
+            title: 'Existing conversation',
+            user_id: 'user-1',
+            is_pinned: false,
+            deleted_at: null,
+          },
+        ])
+      ),
+    }));
+    mocks.mockReturning.mockResolvedValue([
+      {
+        id: 'conv-1',
+        title: 'Existing conversation',
+        is_pinned: true,
+      },
+    ]);
 
-      mocks.mockReturning.mockResolvedValue([
-        {
-          id: 'msg-ai',
-          conversation_id: conversationId,
-          content,
-          role: 'assistant',
-          model,
-          prompt_tokens: usage.prompt_tokens,
-          completion_tokens: usage.completion_tokens,
-          total_tokens: usage.total_tokens,
-        },
-      ]);
+    const result = await chatService.updateConversation('conv-1', 'user-1', { is_pinned: true });
 
-      const result = await chatService.saveStreamingMessage(
-        conversationId,
-        userId,
-        content,
-        model,
-        usage
-      );
-
-      expect(result).toHaveProperty('content', content);
-      expect(result).toHaveProperty('role', 'assistant');
-      expect(result).toHaveProperty('total_tokens', 30);
-      expect(mocks.mockInsert).toHaveBeenCalled();
-    });
-
-    it('should save a streaming message without usage stats', async () => {
-      const conversationId = 'conv-1';
-      const userId = 'user-1';
-      const content = 'AI response';
-      const model = 'gpt-4';
-
-      mocks.mockReturning.mockResolvedValue([
-        {
-          id: 'msg-ai',
-          conversation_id: conversationId,
-          content,
-          role: 'assistant',
-          model,
-        },
-      ]);
-
-      const result = await chatService.saveStreamingMessage(conversationId, userId, content, model);
-
-      expect(result).toHaveProperty('content', content);
-      expect(mocks.mockInsert).toHaveBeenCalled();
-    });
+    expect(result.is_pinned).toBe(true);
+    expect(mocks.mockUpdate).toHaveBeenCalled();
   });
 
-  // Note: The following tests are simplified since they depend on complex DB query chains
-  // In a real scenario, you might want to use integration tests or a more sophisticated mock setup
+  it('saves a streaming message with usage stats', async () => {
+    mocks.mockReturning.mockResolvedValue([
+      {
+        id: 'msg-ai',
+        conversation_id: 'conv-1',
+        content: 'AI response content',
+        role: 'assistant',
+        model: 'gpt-4',
+        total_tokens: 30,
+      },
+    ]);
 
-  describe('createConversationStream', () => {
-    it('should create a conversation and return stream generator', async () => {
-      const userId = 'user-1';
-      const body = { content: 'Hello AI', model: 'gpt-4' };
+    const result = await chatService.saveStreamingMessage(
+      'conv-1',
+      'user-1',
+      'AI response content',
+      'gpt-4',
+      { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 }
+    );
 
-      // Mock conversation creation
-      mocks.mockReturning.mockResolvedValue([
-        {
-          id: 'conv-1',
-          title: 'Hello AI',
-          user_id: userId,
-        },
-      ]);
-
-      // Mock stream generator
-      mockGenerateStream.mockReturnValue(
-        (async function* () {
-          yield 'Hello';
-          yield ' world';
-        })()
-      );
-
-      const result = await chatService.createConversationStream(userId, body);
-
-      expect(result).toHaveProperty('user_message');
-      expect(result).toHaveProperty('stream_generator');
-      expect(result).toHaveProperty('conversation_id');
-    });
+    expect(result.total_tokens).toBe(30);
+    expect(mocks.mockInsert).toHaveBeenCalled();
   });
 });

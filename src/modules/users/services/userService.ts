@@ -7,6 +7,7 @@ import {
   users as usersModel,
   user_follows,
 } from '../../../database/schemas/postgres/schema';
+import type { NotificationService } from '../../notifications/services/notificationService';
 import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from '../validation';
 import type { UserSignup } from '../../auth/validation';
 import type { GetPaginationParams } from '../../../types/paginate';
@@ -19,6 +20,8 @@ import type { GithubUser } from '../../../types/auth';
  * Handles CRUD operations, authentication helpers, and user queries
  */
 export class UserService {
+  constructor(private notificationService?: NotificationService) {}
+
   /**
    * Get paginated list of users (excluding passwords)
    * @param params Pagination parameters (limit, offset)
@@ -694,6 +697,20 @@ export class UserService {
           updated_at: new Date().toISOString(),
         })
         .where(eq(usersModel.id, following_id));
+
+      if (this.notificationService && follower_id !== following_id) {
+        await this.notificationService.createNotification({
+          user_id: following_id,
+          type: 'user_followed',
+          title: 'New follower',
+          message: `${follower.username} started following you.`,
+          data: {
+            actor_user_id: follower_id,
+            actor_username: follower.username,
+            follow_id: follow.id,
+          },
+        });
+      }
 
       return follow;
     } catch (error) {
