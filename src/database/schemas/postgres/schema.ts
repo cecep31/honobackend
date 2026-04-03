@@ -875,7 +875,7 @@ export const holdings = pgTable(
       .defaultNow()
       .notNull(),
     month: integer().default(1).notNull(),
-    year: integer().default(2025).notNull(),
+    year: integer().default(sql`EXTRACT(YEAR FROM CURRENT_DATE)::int`).notNull(),
   },
   (table) => [
     index('idx_holdings_user').using('btree', table.user_id.asc().nullsLast().op('uuid_ops')),
@@ -966,11 +966,11 @@ export const notifications = pgTable(
   ]
 );
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   post_comments: many(post_comments),
   posts: many(posts),
   sessions: many(sessions),
-  profiles: many(profiles),
+  profiles: one(profiles),
   files: many(files),
   post_views: many(post_views),
   user_follows_follower_id: many(user_follows, {

@@ -162,6 +162,13 @@
       "when": 1775232000000,
       "tag": "0022_bold_future",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1775211372434,
+      "tag": "0023_tidy_vampiro",
+      "breakpoints": true
     }
   ]
 }
