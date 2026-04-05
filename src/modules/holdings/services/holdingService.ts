@@ -77,9 +77,9 @@ export class HoldingService {
     };
   }
 
-  async getHoldingById(id: number) {
+  async getHoldingById(userId: string, id: number) {
     const holding = await db.query.holdings.findFirst({
-      where: eq(holdings.id, BigInt(id)),
+      where: and(eq(holdings.id, BigInt(id)), eq(holdings.user_id, userId)),
       with: {
         holding_type: true,
       },
@@ -149,11 +149,8 @@ export class HoldingService {
     }));
   }
 
-  async updateHolding(id: number, data: HoldingUpdate) {
-    const existing = await this.getHoldingById(id);
-    if (!existing) {
-      throw Errors.NotFound('Holding');
-    }
+  async updateHolding(userId: string, id: number, data: HoldingUpdate) {
+    await this.getHoldingById(userId, id);
 
     const updateData: any = { ...data };
     if (data.invested_amount !== undefined)
@@ -171,18 +168,15 @@ export class HoldingService {
     return db
       .update(holdings)
       .set({ ...updateData, updated_at: new Date().toISOString() })
-      .where(eq(holdings.id, BigInt(id)))
+      .where(and(eq(holdings.id, BigInt(id)), eq(holdings.user_id, userId)))
       .returning();
   }
 
-  async deleteHolding(id: number) {
-    const existing = await this.getHoldingById(id);
-    if (!existing) {
-      throw Errors.NotFound('Holding');
-    }
+  async deleteHolding(userId: string, id: number) {
+    await this.getHoldingById(userId, id);
     return db
       .delete(holdings)
-      .where(eq(holdings.id, BigInt(id)))
+      .where(and(eq(holdings.id, BigInt(id)), eq(holdings.user_id, userId)))
       .returning();
   }
 

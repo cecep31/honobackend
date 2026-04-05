@@ -127,7 +127,7 @@ describe('HoldingService', () => {
       };
       mockHoldingsFindFirst.mockResolvedValue(mockHolding);
 
-      const result = await holdingService.getHoldingById(1);
+      const result = await holdingService.getHoldingById('user-1', 1);
 
       expect(result).toEqual(mockHolding);
     });
@@ -135,7 +135,7 @@ describe('HoldingService', () => {
     it('should throw NotFound if holding does not exist', async () => {
       mockHoldingsFindFirst.mockResolvedValue(null);
 
-      await expect(holdingService.getHoldingById(999)).rejects.toThrow();
+      await expect(holdingService.getHoldingById('user-1', 999)).rejects.toThrow();
     });
   });
 
@@ -197,7 +197,7 @@ describe('HoldingService', () => {
       });
       mocks.mockReturning.mockResolvedValue([updatedHolding]);
 
-      const result = await holdingService.updateHolding(1, { invested_amount: 1500 });
+      const result = await holdingService.updateHolding('user-1', 1, { invested_amount: 1500 });
 
       expect(result).toEqual([updatedHolding]);
       expect(mocks.mockUpdate).toHaveBeenCalled();
@@ -206,7 +206,9 @@ describe('HoldingService', () => {
     it('should throw NotFound if holding does not exist', async () => {
       mockHoldingsFindFirst.mockResolvedValue(null);
 
-      await expect(holdingService.updateHolding(999, { invested_amount: 1500 })).rejects.toThrow();
+      await expect(
+        holdingService.updateHolding('user-1', 999, { invested_amount: 1500 })
+      ).rejects.toThrow();
     });
   });
 
@@ -219,7 +221,7 @@ describe('HoldingService', () => {
       });
       mocks.mockReturning.mockResolvedValue([deletedHolding]);
 
-      const result = await holdingService.deleteHolding(1);
+      const result = await holdingService.deleteHolding('user-1', 1);
 
       expect(result).toEqual([deletedHolding]);
       expect(mocks.mockDelete).toHaveBeenCalled();
@@ -228,7 +230,7 @@ describe('HoldingService', () => {
     it('should throw NotFound if holding does not exist', async () => {
       mockHoldingsFindFirst.mockResolvedValue(null);
 
-      await expect(holdingService.deleteHolding(999)).rejects.toThrow();
+      await expect(holdingService.deleteHolding('user-1', 999)).rejects.toThrow();
     });
   });
 

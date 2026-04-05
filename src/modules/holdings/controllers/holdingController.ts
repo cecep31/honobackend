@@ -73,8 +73,9 @@ export const createHoldingController = (holdingService: HoldingService) =>
       return sendSuccess(c, types, 'Holding types fetched successfully');
     })
     .get('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
+      const authUser = c.get('user');
       const params = c.req.valid('param');
-      const holding = await holdingService.getHoldingById(Number(params.id));
+      const holding = await holdingService.getHoldingById(authUser.user_id, Number(params.id));
       return sendSuccess(c, holding, 'Holding fetched successfully');
     })
     .post('/', auth, validateRequest('json', createHoldingSchema), async (c) => {
@@ -100,14 +101,16 @@ export const createHoldingController = (holdingService: HoldingService) =>
       validateRequest('param', holdingIdSchema),
       validateRequest('json', updateHoldingSchema),
       async (c) => {
+        const authUser = c.get('user');
         const params = c.req.valid('param');
         const body = c.req.valid('json');
-        const holding = await holdingService.updateHolding(Number(params.id), body);
+        const holding = await holdingService.updateHolding(authUser.user_id, Number(params.id), body);
         return sendSuccess(c, holding, 'Holding updated successfully');
       }
     )
     .delete('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
+      const authUser = c.get('user');
       const params = c.req.valid('param');
-      const holding = await holdingService.deleteHolding(Number(params.id));
+      const holding = await holdingService.deleteHolding(authUser.user_id, Number(params.id));
       return sendSuccess(c, holding, 'Holding deleted successfully');
     });
