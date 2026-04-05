@@ -5,68 +5,52 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 ## Build/Lint/Test Commands
 
 ```bash
-bun run typecheck          # TypeScript type checking
+bun run typecheck          # TypeScript type checking (tsc --noEmit)
+bun run lint               # ESLint
+bun run lint:fix           # ESLint with auto-fix
 bun run format             # Format with Prettier
 bun test                   # Run all tests
-bun test <file>            # Run single test (e.g., bun test src/test/authservice.test.ts)
-bun test --watch           # Watch mode
+bun test <file>            # Run single test
 bun test --coverage        # Coverage report
 bun run dev                # Dev server with hot reload (localhost:3001)
-bun run build              # Build to dist/
-bun run build:compile      # Build compiled binary to bin/
-bun run start:prod         # Start from dist/
+bun run build              # Typecheck + bundle to dist/
+bun run build:compile      # Typecheck + compile native binary to bin/
+bun run start:prod         # Run from dist/
 bun run db:generate        # Generate Drizzle migrations
-bun run db:push            # Push schema to database
+bun run db:push            # Push schema changes directly (no migration files)
+bun run db:pull            # Pull schema from database
 bun run db:studio          # Open Drizzle Studio
-bun run clean              # Remove build artifacts
+bun run clean              # Remove dist/ and bin/
 ```
+
+Pre-commit order: `bun run typecheck && bun run lint && bun test`.
 
 ## Code Style
 
-### Imports
-- Use ES modules (`import/export`)
-- Group: framework → local → types
-- Avoid wildcards; use named imports
-
-### Formatting (.prettierrc)
-- 2-space indentation, single quotes, semicolons
-- Trailing commas (es5), max 100 chars per line
-- LF line endings
-- Run `bun run format` before committing
-
-### Naming
-- `camelCase`: variables, functions (`getUserById`)
-- `PascalCase`: types, classes, interfaces (`UserService`)
-- `UPPER_CASE`: constants (`JWT_SECRET`)
-- Boolean prefix: `is`, `has`, `can` (`isActive`)
-- Private members: underscore prefix (`_userService`)
-
-### Types
-- Use `interface` for complex objects, `type` for simple aliases
-- Use Zod for request validation schemas
-- Prefer type inference where possible
-- TypeScript strict mode enabled
+- ES modules (`import/export`), `"type": "module"` in package.json
+- Prettier: 2-space, single quotes, semicolons, trailingComma `es5`, 100 char max, LF endings
+- TypeScript strict mode, Zod v4 for validation
+- Naming: `camelCase` vars/functions, `PascalCase` types/classes, `UPPER_CASE` constants, `_` prefix for private members
 
 ## Error Handling
 
-### Error Codes (src/utils/error.ts)
-- `1xxx`: Auth errors (`AUTH_001` Unauthorized, `AUTH_002` Forbidden)
-- `2xxx`: Validation errors (`VALID_001`, `VALID_002`)
-- `3xxx`: Database errors (`DB_001` NotFound, `DB_002` DatabaseError)
-- `4xxx`: External service errors (`EXT_001`)
-- `5xxx`: Business logic errors (`BIZ_001`)
-- `6xxx`: System errors (`SYS_001`, `SYS_002`)
-- `RATE_001`: Rate limiting
+Use `Errors` from `src/utils/error.ts`:
 
-Use the `Errors` utility from `src/utils/error.ts`:
 ```typescript
 import { Errors } from '../../../utils/error';
 throw Errors.NotFound('User');
-throw Errors.ValidationFailed({ field: 'email' });
+throw Errors.ValidationFailed([{ field: 'email', message: 'Required' }]);
 throw Errors.Unauthorized();
 throw Errors.Forbidden();
+throw Errors.InvalidCredentials();
 throw Errors.TooManyRequests(60);
+throw Errors.BusinessRuleViolation('rule');
+throw Errors.InternalServerError();
 ```
+
+Error codes: `AUTH_001`-`003`, `VALID_001`-`002`, `DB_001`-`003`, `EXT_001`-`002`, `BIZ_001`-`002`, `SYS_001`-`002`, `RATE_001`.
+
+For raw HTTP errors use `errorHttp(message, statusCode, errorCode?, details?)` which throws `ApiError`.
 
 ## API Responses
 
@@ -74,37 +58,40 @@ Use `sendSuccess` from `src/utils/response.ts`:
 ```typescript
 import { sendSuccess } from '../../../utils/response';
 return sendSuccess(c, { user }, 'User created', 201);
+// With pagination:
+return sendSuccess(c, items, 'OK', 200, { total, limit, offset, hasMore });
 ```
 
-Response format:
-```json
-{ "success": true, "data": {}, "message": "Success", "request_id": "abc", "timestamp": "..." }
-```
+Response shape: `{ success, data, message, request_id, timestamp, meta? }`.
+Error shape: `{ success: false, message, error: { code?, details? }, request_id, timestamp }`.
 
-For paginated responses, pass `meta` with `total`, `limit`, `offset`, `totalPages`, `hasMore`.
+## Architecture
 
-## Architecture Patterns
+### Entry point
+- `index.ts` — exports default server config for `bun.serve()` (port from `PORT` env, default 3001). Handles graceful shutdown, uncaught exceptions.
+- `src/server/app.ts` — creates Hono app, applies timeout (30s), compression, error handler, middlewares, routes. Exposes `/health` and `/ready` endpoints.
 
-### Module Structure
+### Routing
+- All API routes under `/v1`, wired in `src/router/index.ts` via `setupRouter(app)`.
+- 13 feature modules: auth, users, posts, tags, likes, writers, chat, holdings, bookmarks, comments, notifications, reports.
+
+### Module structure
 ```
 src/modules/<feature>/
-  controllers/     # Route handlers (factory functions)
-  services/        # Business logic (classes)
+  controllers/     # Factory functions returning Hono apps
+  services/        # Business logic classes
   validation/      # Zod schemas (body.ts, query.ts, param.ts)
 ```
 
-### Service Layer (src/services/index.ts)
-Services use a **lazy-loading proxy pattern** via `createLazyService()`. Import singletons:
+### Service layer (`src/services/index.ts`)
+Services use **lazy-loading proxy** via `createLazyService()`. Import pre-created singletons:
 ```typescript
 import { authService, userService } from '../services';
 ```
-Services receive dependencies via constructor:
-```typescript
-const authService = createLazyService(() => new AuthService(userService));
-```
+Services receive dependencies via constructor. Dependency graph is wired in `createServices()`.
 
 ### Controllers
-Controllers are factory functions that receive services and return Hono routes:
+Factory functions that receive services and return Hono route apps:
 ```typescript
 export function createPostController(postService: PostService, userService: UserService) {
   const app = new Hono<{ Variables: Variables }>();
@@ -113,14 +100,11 @@ export function createPostController(postService: PostService, userService: User
 }
 ```
 
-### Routing
-Routes are versioned under `/v1`. Aggregated in `src/router/index.ts`.
-
-### Request Validation
-Use `validateRequest` from `src/middlewares/validateRequest.ts`:
+### Request validation
 ```typescript
 import { validateRequest } from '../../middlewares/validateRequest';
 app.post('/', validateRequest('json', bodySchema), handler);
+// Supports: 'json' | 'query' | 'param' | 'cookie' | 'header' | 'form'
 ```
 
 ### Database (Drizzle ORM)
@@ -133,30 +117,28 @@ const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
 await db.insert(users).values(data).returning();
 await db.update(users).set(data).where(eq(users.id, id)).returning();
 ```
+Schema source of truth: `src/database/schemas/postgres/schema.ts`. Tables use `deleted_at` for soft deletes.
 
-Schema source of truth: `src/database/schemas/postgres/schema.ts`
+### Context variables (`src/types/context.ts`)
+```typescript
+type Variables = { user: jwtPayload; requestId: string };
+```
+JWT payload: `user_id`, `email`, `is_super_admin`, `exp`. Expiration from `JWT_EXPIRES_IN` env (default `1d`).
 
-## JWT Tokens
-
-Payload: `user_id`, `email`, `is_super_admin`, `exp`
-Expiration: 5 hours (`5 * 60 * 60`)
-Use `hono/jwt` for operations. Context variables typed in `src/types/context.ts`.
+## Middlewares (`src/middlewares/index.ts`)
+Applied in order: requestId → logging → bodyLimit (default 10MB) → CORS → rateLimiter (150 req/min, toggleable via `RATE_LIMITER` env). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
 
 ## Testing
 
-Use Bun's test runner. Test files: `src/test/*.test.ts`.
-Use `createDrizzleMocks()` and `setupTransactionMock()` from `src/test/helpers/drizzleMock.ts`:
+Bun test runner, files in `src/test/`. Use helpers from `src/test/helpers/drizzleMock.ts`:
 
 ```typescript
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { createDrizzleMocks, setupTransactionMock } from './helpers/drizzleMock';
+import { createDrizzleMocks, createMockDb, createChainableMock } from './helpers/drizzleMock';
 
-const mocks = createDrizzleMocks();
-setupTransactionMock(mocks, { users: { findFirst: mockUserFindFirst } });
+const { mocks, db: mockDb } = createMockDb({ users: { findFirst: mockFindFirst } });
 
-mock.module('../database/drizzle', () => ({
-  db: { insert: mocks.mockInsert, query: { users: { findFirst: mocks.mockFindFirst } } }
-}));
+mock.module('../database/drizzle', () => ({ db: mockDb }));
 
 describe('Service', () => {
   beforeEach(() => mocks.reset());
@@ -166,19 +148,17 @@ describe('Service', () => {
 });
 ```
 
+For complex queries use `createChainableMock(result)`. For transactions use `setupTransactionMock(mocks, tables)`.
+
+## Environment
+
+Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 chars). Config validated at startup in `src/config/index.ts`.
+
 ## Security & Best Practices
 
 - Validate all input with Zod
-- Never log sensitive data (passwords, tokens, keys)
+- Never log sensitive data
 - Use transactions for multi-step operations
-- Return consistent error responses with `requestId`
-- Server errors return generic message to clients (no stack traces)
-- BigInt serialization handled in `src/server/app.ts`
-- Environment variables: see `.env.example`
-
-## Git
-
-- Use feature branches
-- Keep commits small and focused
-- Run `bun run typecheck` and `bun test` before committing
-- Rebase before merging to main
+- BigInt serialization patched in `src/server/app.ts`
+- Server errors return generic message (no stack traces to clients)
+- `MAIN_DOMAIN` env defaults to `pilput.net`
