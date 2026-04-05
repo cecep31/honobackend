@@ -4,6 +4,8 @@ The Holdings API provides endpoints for managing investment holdings, tracking p
 
 **Base URL:** `/v1/holdings`
 
+**Holding types (global catalog, not under `/holdings`):** `GET /v1/holding-types`
+
 ---
 
 ## Authentication
@@ -227,15 +229,15 @@ curl -X GET "/v1/holdings/compare?fromMonth=1&fromYear=2025&toMonth=12&toYear=20
 ---
 
 ### 5. Get Holding Types
-Retrieve all available holding types.
+Retrieve all available holding types (global catalog, not nested under user holdings).
 
-- **URL:** `/types`
+- **URL:** `/v1/holding-types` (base path `/`, i.e. `GET /v1/holding-types`)
 - **Method:** `GET`
 - **Authentication:** Required
 
 **Example Request:**
 ```bash
-curl -X GET /v1/holdings/types \
+curl -X GET /v1/holding-types \
   -H "Authorization: Bearer <your_token>"
 ```
 

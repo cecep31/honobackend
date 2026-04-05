@@ -3,6 +3,7 @@ import { createAuthController } from '../modules/auth/controllers/authController
 import { createBookmarkController } from '../modules/bookmarks/controllers/bookmarkController';
 import { createChatController } from '../modules/chat/controllers/chatController';
 import { createCommentController } from '../modules/comments/controllers/commentController';
+import { createHoldingTypeController } from '../modules/holding-types/controllers/holdingTypeController';
 import { createHoldingController } from '../modules/holdings/controllers/holdingController';
 import { createLikeController } from '../modules/likes/controllers/likeController';
 import { createNotificationController } from '../modules/notifications/controllers/notificationController';
@@ -28,6 +29,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
   const writerController = createWriterController(services.writerService, services.postService);
   const chatController = createChatController(services.chatService);
   const holdingController = createHoldingController(services.holdingService);
+  const holdingTypeController = createHoldingTypeController(services.holdingService);
   const bookmarkController = createBookmarkController(services.bookmarkService);
   const commentController = createCommentController(services.commentService);
   const notificationController = createNotificationController(services.notificationService);
@@ -41,6 +43,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
     .route('/likes', likeController)
     .route('/writers', writerController)
     .route('/chat', chatController)
+    .route('/holding-types', holdingTypeController)
     .route('/holdings', holdingController)
     .route('/bookmarks', bookmarkController)
     .route('/comments', commentController)

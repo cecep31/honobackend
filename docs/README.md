@@ -170,6 +170,12 @@ Each module has its own README.md with detailed documentation:
 | `/comments/:comment_id` | DELETE | Delete comment | Yes |
 | `/comments/user/:user_id` | GET | Get user's comments | No |
 
+### Reference / catalog
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/holding-types` | GET | List holding types (global catalog) | Yes |
+
 ### Holdings Endpoints
 
 | Endpoint | Method | Description | Auth Required |
@@ -178,7 +184,6 @@ Each module has its own README.md with detailed documentation:
 | `/holdings/summary` | GET | Get holdings summary | Yes |
 | `/holdings/trends` | GET | Get holdings trends | Yes |
 | `/holdings/compare` | GET | Compare months | Yes |
-| `/holdings/types` | GET | Get holding types | Yes |
 | `/holdings/:id` | GET | Get single holding | Yes |
 | `/holdings` | POST | Create holding | Yes |
 | `/holdings/duplicate` | POST | Duplicate holdings | Yes |

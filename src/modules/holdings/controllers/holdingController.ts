@@ -68,10 +68,6 @@ export const createHoldingController = (holdingService: HoldingService) =>
       );
       return sendSuccess(c, data, 'Holdings monthly data fetched successfully');
     })
-    .get('/types', auth, async (c) => {
-      const types = await holdingService.getHoldingTypes();
-      return sendSuccess(c, types, 'Holding types fetched successfully');
-    })
     .get('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
       const authUser = c.get('user');
       const params = c.req.valid('param');
