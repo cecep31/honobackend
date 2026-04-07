@@ -13,6 +13,7 @@ import {
   chartLimitQuerySchema,
   createPostSchema,
   listPostsQuerySchema,
+  myLikesByMonthQuerySchema,
   postByUsernameSlugSchema,
   postIdSchema,
   postsOverTimeQuerySchema,
@@ -228,6 +229,18 @@ export const createPostController = (postService: PostService, userService: User
     const data = await postService.getEngagementMetrics();
     return sendSuccess(c, data, 'Engagement metrics fetched successfully');
   });
+
+  postController.get(
+    '/charts/my-likes-by-month',
+    auth,
+    validateRequest('query', myLikesByMonthQuerySchema),
+    async (c) => {
+      const { months } = c.req.valid('query');
+      const { user_id } = c.get('user');
+      const data = await postService.getMyLikesByMonth(user_id, months);
+      return sendSuccess(c, data, 'Monthly likes on your posts fetched successfully');
+    }
+  );
 
   postController.get(
     '/charts/engagement-comparison',

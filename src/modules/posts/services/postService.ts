@@ -3,6 +3,7 @@ import { db } from '../../../database/drizzle';
 import {
   users as usersModel,
   posts as postsModel,
+  post_likes as postLikesModel,
   posts_to_tags,
   tags as tagsModel,
   user_follows,
@@ -770,6 +771,37 @@ export class PostService {
       )
       .groupBy(sql`TO_CHAR(${postsModel.created_at}, ${dateFormat})`)
       .orderBy(sql`TO_CHAR(${postsModel.created_at}, ${dateFormat})`);
+
+    return result;
+  }
+
+  /**
+   * Like counts per calendar month on the current user's posts (from post_likes timestamps).
+   * @param userId Post author id
+   * @param months How many past months to include (from the 1st of month N months ago)
+   */
+  async getMyLikesByMonth(userId: string, months = 12) {
+    const startDate = new Date();
+    startDate.setUTCDate(1);
+    startDate.setUTCHours(0, 0, 0, 0);
+    startDate.setUTCMonth(startDate.getUTCMonth() - months);
+
+    const result = await db
+      .select({
+        month: sql<string>`TO_CHAR(${postLikesModel.created_at}, 'YYYY-MM')`,
+        count: count(),
+      })
+      .from(postLikesModel)
+      .innerJoin(postsModel, eq(postLikesModel.post_id, postsModel.id))
+      .where(
+        and(
+          eq(postsModel.created_by, userId),
+          isNull(postsModel.deleted_at),
+          gte(postLikesModel.created_at, startDate.toISOString())
+        )
+      )
+      .groupBy(sql`TO_CHAR(${postLikesModel.created_at}, 'YYYY-MM')`)
+      .orderBy(sql`TO_CHAR(${postLikesModel.created_at}, 'YYYY-MM')`);
 
     return result;
   }

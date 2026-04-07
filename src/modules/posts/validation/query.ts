@@ -40,4 +40,18 @@ export const chartLimitQuerySchema = z.object({
 
 export type ListPostsQuery = z.infer<typeof listPostsQuerySchema>;
 export type PostsOverTimeQuery = z.infer<typeof postsOverTimeQuerySchema>;
+/** Query untuk GET /charts/my-likes-by-month (likes pada post milik user, per bulan) */
+export const myLikesByMonthQuerySchema = z.object({
+  months: z
+    .string()
+    .optional()
+    .default('12')
+    .transform((v) => {
+      const n = Number(v);
+      if (!Number.isFinite(n)) return 12;
+      return Math.min(120, Math.max(1, Math.floor(n)));
+    }),
+});
+
 export type ChartLimitQuery = z.infer<typeof chartLimitQuerySchema>;
+export type MyLikesByMonthQuery = z.infer<typeof myLikesByMonthQuerySchema>;

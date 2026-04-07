@@ -945,6 +945,44 @@ GET /posts/charts/engagement-comparison?limit=30
 
 ---
 
+### 8. My Likes by Month
+**GET** `/posts/charts/my-likes-by-month`
+
+Count how many likes your posts received in each calendar month. Uses each like’s `created_at` timestamp; only includes likes on posts you authored (non-deleted posts).
+
+**Authentication:** Required (Bearer token)
+
+**Query Parameters:**
+- `months` (optional, default: 12) - How many past months to include, counting from the first day of the month (minimum 1, maximum 120). Months with zero likes are omitted from `data`.
+
+**Example Request:**
+```bash
+curl -X GET "/v1/posts/charts/my-likes-by-month?months=24" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Monthly likes on your posts fetched successfully",
+  "data": [
+    {
+      "month": "2025-11",
+      "count": 12
+    },
+    {
+      "month": "2025-12",
+      "count": 28
+    }
+  ]
+}
+```
+
+**Use Case:** Line or bar chart of likes over time for the signed-in author’s content.
+
+---
+
 ## Data Models
 
 ### Post Object
