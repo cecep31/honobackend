@@ -164,11 +164,13 @@ export class AuthService {
   }
 
   async signInWithGithub(githubUser: GithubUser, ip_address?: string, user_agent?: string) {
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       try {
         let user = await this.userService.getUserByGithubId(githubUser.id);
+        let isNewUser = false;
 
         if (!user) {
+          isNewUser = true;
           user = await this.userService.createUserFromGithub(githubUser, tx);
         }
 
@@ -193,7 +195,12 @@ export class AuthService {
 
         await this.updateLastLoggedAt(user.id, tx);
 
-        return { access_token: token };
+        return {
+          access_token: token,
+          mirrorAvatar: isNewUser && Boolean(githubUser.avatar_url),
+          userId: user.id,
+          avatarUrl: githubUser.avatar_url ?? '',
+        };
       } catch (error) {
         await this.activityService.logActivity(
           {
@@ -209,6 +216,14 @@ export class AuthService {
         throw error;
       }
     });
+
+    if (result.mirrorAvatar && result.avatarUrl) {
+      void this.userService
+        .mirrorOAuthAvatarToStorage(result.userId, result.avatarUrl)
+        .catch(() => undefined);
+    }
+
+    return { access_token: result.access_token };
   }
 
   async signUp(data: UserSignup, ip_address?: string, user_agent?: string) {

@@ -26,6 +26,8 @@ mock.module('../services/index', () => ({
   },
 }));
 
+const { MAX_PROFILE_IMAGE_BYTES } = await import('../modules/users/validation/body');
+
 const { createUserController } = await import('../modules/users/controllers/userController');
 const { userService } = await import('../services');
 
@@ -95,5 +97,33 @@ describe('User Image Update Endpoint', () => {
     expect(jsonResponse.error.details[0].message).toContain(
       '.jpg, .jpeg, .png and .webp files are accepted.'
     );
+  });
+
+  it('should return a validation error when file exceeds 1MB', async () => {
+    const oversized = new Uint8Array(MAX_PROFILE_IMAGE_BYTES + 1);
+    const mockFile = new File([oversized], 'big.png', { type: 'image/png' });
+
+    const res = await client.users['me'].image.$patch(
+      {
+        form: {
+          image: mockFile,
+        },
+      },
+      {
+        headers: {
+          Authorization: 'Bearer test-token',
+        },
+      }
+    );
+
+    expect(res.status).toBe(400);
+    const jsonResponse = await res.json();
+    expect(jsonResponse.success).toBe(false);
+    expect(jsonResponse.message).toBe('Validation failed');
+    expect(
+      jsonResponse.error.details.some((d: { message?: string }) =>
+        String(d.message).includes('Max file size is 1MB')
+      )
+    ).toBe(true);
   });
 });

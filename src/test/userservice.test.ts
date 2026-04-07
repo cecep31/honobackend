@@ -75,6 +75,7 @@ mock.module('../utils/s3', () => ({
 
 // Import after mocks
 import { UserService } from '../modules/users/services/userService';
+import { MAX_PROFILE_IMAGE_BYTES } from '../modules/users/validation/body';
 
 describe('UserService', () => {
   let userService: UserService;
@@ -592,6 +593,65 @@ describe('UserService', () => {
       await expect(userService.updateUserImage('nonexistent', mockFile)).rejects.toThrow(
         'not found'
       );
+    });
+
+    it('rejects files larger than 1MB before upload', async () => {
+      const oversized = new Uint8Array(MAX_PROFILE_IMAGE_BYTES + 1);
+      const mockFile = new File([oversized], 'big.png', { type: 'image/png' });
+
+      await expect(userService.updateUserImage('user1', mockFile)).rejects.toThrow(
+        'Validation failed'
+      );
+      expect(mockUploadFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('mirrorOAuthAvatarToStorage', () => {
+    it('downloads avatar, uploads to S3, and updates user when DB replace succeeds', async () => {
+      const prevFetch = globalThis.fetch;
+      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      globalThis.fetch = mock(() =>
+        Promise.resolve(
+          new Response(pngBytes, {
+            status: 200,
+            headers: {
+              'content-type': 'image/png',
+              'content-length': String(pngBytes.length),
+            },
+          })
+        )
+      ) as typeof fetch;
+
+      mockReturning.mockResolvedValueOnce([{ id: 'user1' }]);
+
+      const avatarUrl = 'https://avatars.githubusercontent.com/u/1?v=4';
+      await userService.mirrorOAuthAvatarToStorage('user1', avatarUrl);
+
+      expect(mockUploadFile).toHaveBeenCalled();
+      const uploadCall = mockUploadFile.mock.calls[0];
+      expect(uploadCall[0]).toMatch(/^avatars\/user1\/[^/]+\.png$/);
+
+      globalThis.fetch = prevFetch;
+    });
+
+    it('does not upload when Content-Type is not an allowed image', async () => {
+      const prevFetch = globalThis.fetch;
+      globalThis.fetch = mock(() =>
+        Promise.resolve(
+          new Response(new Uint8Array([1, 2, 3]), {
+            status: 200,
+            headers: {
+              'content-type': 'application/octet-stream',
+              'content-length': '3',
+            },
+          })
+        )
+      ) as typeof fetch;
+
+      await userService.mirrorOAuthAvatarToStorage('user1', 'https://example.com/a.png');
+
+      expect(mockUploadFile).not.toHaveBeenCalled();
+      globalThis.fetch = prevFetch;
     });
   });
 

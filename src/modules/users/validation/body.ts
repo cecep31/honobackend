@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+/** Max size for profile / avatar image uploads (single source of truth for API + service). */
+export const MAX_PROFILE_IMAGE_BYTES = 1 * 1024 * 1024; // 1MB
+
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 export const createUserSchema = z.object({
@@ -51,7 +53,7 @@ export const updateProfileSchema = z.object({
 export const updateUserImageSchema = z.object({
   image: z
     .instanceof(File, { message: 'Image is required' })
-    .refine((file) => file.size <= MAX_FILE_SIZE, `Max file size is 1MB.`)
+    .refine((file) => file.size <= MAX_PROFILE_IMAGE_BYTES, `Max file size is 1MB.`)
     .refine(
       (file) => ACCEPTED_IMAGE_TYPES.includes(file.type),
       '.jpg, .jpeg, .png and .webp files are accepted.'
