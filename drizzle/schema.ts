@@ -111,6 +111,8 @@ export const posts = pgTable("posts", {
 	viewCount: bigint("view_count", { mode: "number" }).default(0),
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	likeCount: bigint("like_count", { mode: "number" }).default(0),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	bookmarkCount: bigint("bookmark_count", { mode: "number" }).default(0),
 }, (table) => [
 	index("idx_posts_created_at").using("btree", table.createdAt.asc().nullsLast().op("timestamptz_ops")),
 	index("idx_posts_created_by").using("btree", table.createdBy.asc().nullsLast().op("uuid_ops")),

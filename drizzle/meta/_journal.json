@@ -169,6 +169,20 @@
       "when": 1775211372434,
       "tag": "0023_tidy_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1775644992538,
+      "tag": "0024_add_post_bookmark_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1775645034419,
+      "tag": "0025_post_bookmark_count_trigger",
+      "breakpoints": true
     }
   ]
 }

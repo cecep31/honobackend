@@ -135,6 +135,7 @@ export class PostService {
       status: PostQueryHelpers.getLifecycleStatus(post),
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
+      bookmark_count: post.bookmark_count ?? 0,
       user: post.user,
       tags: post.posts_to_tags.map((tag: any) => tag.tag),
     };
@@ -354,6 +355,7 @@ export class PostService {
       status: PostQueryHelpers.getLifecycleStatus(post),
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
+      bookmark_count: post.bookmark_count ?? 0,
       user: post.user,
       tags: post.posts_to_tags.map((tag: any) => tag.tag),
     }));
@@ -511,6 +513,7 @@ export class PostService {
           published_at: postsModel.published_at,
           view_count: postsModel.view_count,
           like_count: postsModel.like_count,
+          bookmark_count: postsModel.bookmark_count,
           user: {
             id: usersModel.id,
             username: usersModel.username,
@@ -707,6 +710,7 @@ export class PostService {
           published_at: postsModel.published_at,
           view_count: postsModel.view_count,
           like_count: postsModel.like_count,
+          bookmark_count: postsModel.bookmark_count,
           user: {
             id: usersModel.id,
             username: usersModel.username,
@@ -840,6 +844,7 @@ export class PostService {
         slug: true,
         view_count: true,
         like_count: true,
+        bookmark_count: true,
         created_at: true,
       },
       with: {

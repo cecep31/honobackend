@@ -232,6 +232,7 @@ export const posts = pgTable(
     published_at: timestamp('published_at', { withTimezone: true, mode: 'string' }),
     view_count: bigint('view_count', { mode: 'number' }).default(0),
     like_count: bigint('like_count', { mode: 'number' }).default(0),
+    bookmark_count: bigint('bookmark_count', { mode: 'number' }).default(0),
   },
   (table) => [
     index('idx_posts_created_by').using('btree', table.created_by.asc().nullsLast().op('uuid_ops')),
@@ -262,7 +263,7 @@ export const posts = pgTable(
       .onUpdate('cascade')
       .onDelete('cascade'),
     unique('creator and slug unique').on(table.created_by, table.slug),
-    check('chk_posts_counts_positive', sql`view_count >= 0 AND like_count >= 0`),
+    check('chk_posts_counts_positive', sql`view_count >= 0 AND like_count >= 0 AND bookmark_count >= 0`),
   ]
 );
 
