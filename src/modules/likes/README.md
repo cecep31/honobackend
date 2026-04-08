@@ -30,36 +30,44 @@ curl -X POST /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):**
+**Response (200) - Like created:**
 ```json
 {
   "success": true,
   "data": {
-    "liked": true,
+    "id": "550e8400-e29b-41d4-a716-446655440001",
     "post_id": "550e8400-e29b-41d4-a716-446655440000",
-    "total_likes": 42
+    "user_id": "550e8400-e29b-41d4-a716-446655440002",
+    "created_at": "2026-04-08T10:30:00Z"
   },
-  "message": "Like updated successfully"
+  "message": "Like updated successfully",
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T10:30:00.000Z"
 }
 ```
 
-**Response (when unliked):**
+**Response (200) - Like removed:**
 ```json
 {
   "success": true,
   "data": {
-    "liked": false,
+    "id": "550e8400-e29b-41d4-a716-446655440001",
     "post_id": "550e8400-e29b-41d4-a716-446655440000",
-    "total_likes": 41
+    "user_id": "550e8400-e29b-41d4-a716-446655440002",
+    "created_at": "2026-04-08T10:30:00Z"
   },
-  "message": "Like updated successfully"
+  "message": "Like updated successfully",
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T10:30:00.000Z"
 }
 ```
+
+**Note:** When a like is removed, the `data` field may be `null` or `undefined` depending on the database driver behavior.
 
 ---
 
 ### 2. Get Post Likes
-Retrieve the total like count and list of users who liked a post.
+Retrieve the list of likes for a post.
 
 - **URL:** `/:post_id`
 - **Method:** `GET`
@@ -75,30 +83,19 @@ curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 ```json
 {
   "success": true,
-  "data": {
-    "post_id": "550e8400-e29b-41d4-a716-446655440000",
-    "total_likes": 42,
-    "liked_by_current_user": true,
-    "users": [
-      {
-        "user_id": "550e8400-e29b-41d4-a716-446655440001",
-        "username": "johndoe",
-        "first_name": "John",
-        "last_name": "Doe",
-        "avatar_url": "https://example.com/avatars/johndoe.jpg",
-        "liked_at": "2026-01-01T00:00:00Z"
-      },
-      {
-        "user_id": "550e8400-e29b-41d4-a716-446655440002",
-        "username": "janedoe",
-        "first_name": "Jane",
-        "last_name": "Doe",
-        "avatar_url": "https://example.com/avatars/janedoe.jpg",
-        "liked_at": "2026-01-02T00:00:00Z"
-      }
-    ]
-  },
-  "message": "Likes fetched successfully"
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "created_at": "2026-04-08T10:30:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "created_at": "2026-04-08T11:00:00Z"
+    }
+  ],
+  "message": "Likes fetched successfully",
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T11:30:00.000Z"
 }
 ```
 
@@ -106,51 +103,42 @@ curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 
 ## Data Models
 
-### Like Response Object
+### Like Record Object
 
 | Field | Type | Description |
 |-------|------|-------------|
+| id | UUID | Unique identifier for the like record |
 | post_id | UUID | ID of the post |
-| total_likes | number | Total number of likes |
-| liked_by_current_user | boolean | Whether the current user has liked this post |
-| users | array | List of users who liked the post |
-
-### User Like Object
-
-| Field | Type | Description |
-|-------|------|-------------|
-| user_id | UUID | User's unique identifier |
-| username | string | User's username |
-| first_name | string | User's first name |
-| last_name | string | User's last name |
-| avatar_url | string | URL to user's avatar |
-| liked_at | ISO 8601 | When the like was created |
+| user_id | UUID | ID of the user who liked the post |
+| created_at | ISO 8601 | Timestamp when the like was created |
 
 ---
 
 ## Error Responses
 
-**400 Bad Request:**
-```json
-{
-  "success": false,
-  "error": "Invalid post_id format"
-}
-```
-
 **401 Unauthorized:**
 ```json
 {
   "success": false,
-  "error": "Authentication required"
+  "message": "Authentication required",
+  "error": {
+    "code": "AUTH_001"
+  },
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T10:30:00.000Z"
 }
 ```
 
-**404 Not Found:**
+**500 Internal Server Error:**
 ```json
 {
   "success": false,
-  "error": "Post not found"
+  "message": "Internal server error",
+  "error": {
+    "code": "SYS_001"
+  },
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T10:30:00.000Z"
 }
 ```
 
@@ -162,7 +150,7 @@ curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 
 ```typescript
 // Toggle a like on a post
-async function toggleLike(postId: string): Promise<{ liked: boolean; total_likes: number }> {
+async function toggleLike(postId: string) {
   const response = await fetch(`/v1/likes/${postId}`, {
     method: 'POST',
     headers: {
@@ -173,8 +161,8 @@ async function toggleLike(postId: string): Promise<{ liked: boolean; total_likes
   return result.data;
 }
 
-// Get like information for a post
-async function getPostLikes(postId: string): Promise<LikeInfo> {
+// Get likes for a post
+async function getPostLikes(postId: string) {
   const response = await fetch(`/v1/likes/${postId}`, {
     headers: {
       'Authorization': `Bearer ${token}`
@@ -192,13 +180,11 @@ import { useState, useCallback } from 'react';
 
 interface LikeButtonProps {
   postId: string;
-  initialLikes: number;
   initialLiked: boolean;
 }
 
-function LikeButton({ postId, initialLikes, initialLiked }: LikeButtonProps) {
+function LikeButton({ postId, initialLiked }: LikeButtonProps) {
   const [liked, setLiked] = useState(initialLiked);
-  const [likeCount, setLikeCount] = useState(initialLikes);
   const [loading, setLoading] = useState(false);
 
   const handleLike = useCallback(async () => {
@@ -211,8 +197,8 @@ function LikeButton({ postId, initialLikes, initialLiked }: LikeButtonProps) {
         }
       });
       const { data } = await response.json();
-      setLiked(data.liked);
-      setLikeCount(data.total_likes);
+      // If data exists, like was created; if null/undefined, like was removed
+      setLiked(!!data);
     } finally {
       setLoading(false);
     }
@@ -225,7 +211,6 @@ function LikeButton({ postId, initialLikes, initialLiked }: LikeButtonProps) {
       className={`like-button ${liked ? 'liked' : ''}`}
     >
       <span className="icon">{liked ? '❤️' : '🤍'}</span>
-      <span className="count">{likeCount}</span>
     </button>
   );
 }
@@ -233,26 +218,51 @@ function LikeButton({ postId, initialLikes, initialLiked }: LikeButtonProps) {
 
 ---
 
-## Integration with Posts
+## Database Schema
 
-When fetching posts, the like information is typically included in the post response:
+The `post_likes` table structure:
 
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "title": "My Blog Post",
-  "body": "...",
-  "like_count": 42,
-  "is_liked_by_current_user": true,
-  "created_at": "2026-01-01T00:00:00Z"
-}
-```
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK, NOT NULL | Unique like identifier |
+| post_id | UUID | FK → posts.id, NOT NULL | Reference to the post |
+| user_id | UUID | FK → users.id, NOT NULL | Reference to the user |
+| created_at | TIMESTAMP WITH TIME ZONE | DEFAULT NOW() | When the like was created |
+
+**Indexes:**
+- `idx_post_likes_post_id` - Fast lookup by post
+- `idx_post_likes_user_id` - Fast lookup by user
+- `idx_post_likes_unique_user_post` - Unique constraint on (post_id, user_id) pair
+- `idx_post_likes_created_at` - Sort by creation time
+- `idx_post_likes_post_created_at` - Composite index for post + time queries
 
 ---
 
-## Security Notes
+## Technical Notes
 
-- All endpoints require authentication
-- Users can only like/unlike posts they haven't created
-- Like counts are updated atomically to prevent race conditions
-- Users can only see like information for posts they have access to
+- **Transaction Safety**: Like toggles are wrapped in database transactions to ensure atomicity
+- **Unique Constraint**: The database enforces one like per user per post via unique index
+- **Cascade Deletes**: Likes are automatically deleted when the associated post or user is deleted
+- **Soft Deletes**: This module does not implement soft deletes for likes
+
+---
+
+## Future Enhancements
+
+Potential improvements for the likes API:
+
+- [ ] Return like count in POST response
+- [ ] Include `liked` boolean flag in POST response
+- [ ] Add user details to GET response (join with users table)
+- [ ] Add pagination for GET `/v1/likes/:post_id`
+- [ ] Add validation for non-existent posts
+- [ ] Prevent users from liking their own posts
+- [ ] Add bulk like endpoints for multiple posts
+
+---
+
+## Related Modules
+
+- **Posts**: Posts include like counts and `is_liked_by_current_user` fields in responses
+- **Comments**: Comments may also have like functionality in the future
+- **Analytics**: Like data can be used for engagement metrics
