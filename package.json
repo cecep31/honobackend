@@ -10,6 +10,7 @@
     "lint:fix": "eslint . --fix",
     "dev": "bun --hot index.ts",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "db:pull": "drizzle-kit pull",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
