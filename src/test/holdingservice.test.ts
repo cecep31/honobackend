@@ -369,7 +369,10 @@ describe('HoldingService', () => {
         },
       ];
 
-      mockHoldingsFindMany.mockResolvedValue(mockSourceHoldings);
+      mockHoldingsFindMany
+        .mockResolvedValueOnce(mockSourceHoldings)
+        .mockResolvedValueOnce([]);
+
       mocks.mockReturning.mockResolvedValue(
         mockSourceHoldings.map((h, i) => ({ ...h, id: BigInt(i + 10), month: 12 }))
       );
@@ -428,6 +431,55 @@ describe('HoldingService', () => {
           overwrite: false,
         })
       ).rejects.toThrow();
+    });
+
+    it('should throw when source and target period are the same', async () => {
+      await expect(
+        holdingService.duplicateHoldingsByMonth('user-1', {
+          fromMonth: 3,
+          fromYear: 2024,
+          toMonth: 3,
+          toYear: 2024,
+          overwrite: false,
+        })
+      ).rejects.toThrow();
+      expect(mockHoldingsFindMany).not.toHaveBeenCalled();
+    });
+
+    it('should throw when target month already has holdings and overwrite is false', async () => {
+      const mockSourceHoldings = [
+        {
+          id: BigInt(1),
+          user_id: 'user-1',
+          name: 'Test',
+          invested_amount: '1000',
+          month: 11,
+          year: 2024,
+        },
+      ];
+      const mockExistingTarget = [
+        {
+          id: BigInt(99),
+          user_id: 'user-1',
+          name: 'Existing',
+          invested_amount: '500',
+          month: 12,
+          year: 2024,
+        },
+      ];
+
+      mockHoldingsFindMany.mockResolvedValueOnce(mockSourceHoldings).mockResolvedValueOnce(mockExistingTarget);
+
+      await expect(
+        holdingService.duplicateHoldingsByMonth('user-1', {
+          fromMonth: 11,
+          fromYear: 2024,
+          toMonth: 12,
+          toYear: 2024,
+          overwrite: false,
+        })
+      ).rejects.toThrow();
+      expect(mockTransaction).not.toHaveBeenCalled();
     });
   });
 });

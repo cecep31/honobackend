@@ -391,6 +391,10 @@ export class HoldingService {
   async duplicateHoldingsByMonth(userId: string, data: DuplicateHoldingPayload) {
     const { fromMonth, fromYear, toMonth, toYear, overwrite } = data;
 
+    if (fromMonth === toMonth && fromYear === toYear) {
+      throw Errors.InvalidInput('target period', 'Source and target month/year must differ');
+    }
+
     // 1. Get source holdings
     const sourceHoldings = await db.query.holdings.findMany({
       where: and(
@@ -402,6 +406,21 @@ export class HoldingService {
 
     if (sourceHoldings.length === 0) {
       throw Errors.InvalidInput('source holdings', 'No holdings found for the source period');
+    }
+
+    if (!overwrite) {
+      const existingTarget = await db.query.holdings.findMany({
+        where: and(
+          eq(holdings.user_id, userId),
+          eq(holdings.month, toMonth),
+          eq(holdings.year, toYear)
+        ),
+      });
+      if (existingTarget.length > 0) {
+        throw Errors.BusinessRuleViolation(
+          'Target month already has holdings; set overwrite to true to replace them'
+        );
+      }
     }
 
     return await db.transaction(async (tx) => {
@@ -418,10 +437,11 @@ export class HoldingService {
           );
       }
 
-      // 3. Prepare new holdings (excluding 'id', 'created_at', 'updated_at')
+      // 3. Prepare new holdings (new id; gain_* are generated)
       const newHoldings = sourceHoldings.map((h) => ({
         user_id: h.user_id,
         name: h.name,
+        symbol: h.symbol,
         platform: h.platform,
         holding_type_id: h.holding_type_id,
         currency: h.currency,
