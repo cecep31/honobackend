@@ -6,7 +6,7 @@ This is a high-performance backend API built with **Hono** running on the **Bun*
 
 ### Key Technologies
 - **Runtime**: Bun (v1.x)
-- **Framework**: Hono (v4.12.9)
+- **Framework**: Hono (v4.12.12)
 - **Database**: PostgreSQL with Drizzle ORM (v0.45.2)
 - **Language**: TypeScript (v6.0.2)
 - **Validation**: Zod (v4.3.6)
@@ -239,7 +239,7 @@ Images are published to Docker Hub: `cecep31/honobackend:latest`
 - `camelCase`: variables, functions (`getUserById`)
 - `PascalCase`: types, classes, interfaces (`UserService`)
 - `UPPER_CASE`: constants (`JWT_SECRET`)
-- Boolean prefix: `is`, `has`, `can` (`isActive`, `hasPermission`)
+- Boolean-prefix: `is`, `has`, `can` (`isActive`, `hasPermission`)
 - Private members: underscore prefix (`_userService`)
 
 ### Formatting (Prettier)
@@ -387,7 +387,7 @@ describe('UserService', () => {
 });
 ```
 
-See `docs/TESTING.md` and `src/test/` for detailed examples.
+See `docs/README.md` and `src/test/` for detailed examples.
 
 ## Environment Variables
 
@@ -425,20 +425,21 @@ See `docs/TESTING.md` and `src/test/` for detailed examples.
 ## Key Dependencies
 
 ### Runtime Dependencies
-- `hono`: Web framework (v4.12.9)
+- `hono`: Web framework (v4.12.12)
 - `drizzle-orm`: Database ORM (v0.45.2)
 - `zod`: Validation library (v4.3.6)
 - `@hono/zod-validator`: Hono-Zod integration (v0.7.6)
-- `postgres`: PostgreSQL driver (v3.4.8)
+- `postgres`: PostgreSQL driver (v3.4.9)
 - `hono-rate-limiter`: Rate limiting middleware (v0.5.3)
-- `axios`: HTTP client (v1.14.1)
+- `resend`: Email service (v6.11.0)
 - `sanitize-html`: HTML sanitization (v2.17.2)
-- `resend`: Email service (v6.10.0)
 
 ### Dev Dependencies
-- `@types/bun`: Bun type definitions (v1.3.11)
+- `@types/bun`: Bun type definitions (v1.3.12)
 - `drizzle-kit`: Database toolkit (v0.31.10)
 - `typescript`: Type checker (v6.0.2)
+- `eslint`: Linter (v10.2.0)
+- `prettier`: Code formatter
 - `@types/sanitize-html`: Type definitions
 
 ## Special Notes
