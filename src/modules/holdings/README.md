@@ -6,6 +6,8 @@ The Holdings API provides endpoints for managing investment holdings, tracking p
 
 **Holding types (global catalog, not under `/holdings`):** `GET /v1/holding-types`
 
+**Note:** Holding `id` values are `bigint` in the database and are serialized as **strings** in JSON responses.
+
 ---
 
 ## Authentication
@@ -29,10 +31,12 @@ Retrieve all holdings for the authenticated user with optional filtering and sor
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| month | number | No | Current month | Filter by month (1-12) |
-| year | number | No | Current year | Filter by year |
+| month | string (digits) | No | — | Filter by month (1-12), e.g. `month=3` |
+| year | string (digits) | No | — | Filter by year |
 | sortBy | string | No | created_at | Sort field: `created_at`, `updated_at`, `name`, `platform`, `invested_amount`, `current_value`, `holding_type` |
 | order | string | No | desc | Sort order: `asc` or `desc` |
+
+Omitting `month` / `year` returns holdings for **all** periods for the user (not only the current month/year).
 
 **Example Request:**
 ```bash
@@ -46,29 +50,41 @@ curl -X GET "/v1/holdings?month=1&year=2026&sortBy=current_value&order=desc" \
   "success": true,
   "data": [
     {
-      "id": 1,
+      "id": "1",
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "Apple Inc.",
+      "symbol": "AAPL",
       "platform": "Robinhood",
+      "holding_type_id": 1,
       "holding_type": {
         "id": 1,
-        "name": "Stock"
+        "code": "STOCK",
+        "name": "Stock",
+        "notes": null
       },
       "currency": "USD",
-      "invested_amount": 5000.00,
-      "current_value": 5500.00,
-      "units": 25,
-      "avg_buy_price": 200.00,
-      "current_price": 220.00,
+      "invested_amount": "5000.00",
+      "current_value": "5500.00",
+      "gain_amount": "500.00",
+      "gain_percent": "10.00",
+      "units": "25",
+      "avg_buy_price": "200.00000000",
+      "current_price": "220.00000000",
+      "last_updated": "2026-01-08T12:00:00.000Z",
+      "notes": "Long term holding",
       "month": 1,
       "year": 2026,
-      "notes": "Long term holding",
-      "created_at": "2026-01-01T00:00:00Z",
-      "updated_at": "2026-01-08T00:00:00Z"
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-08T00:00:00.000Z"
     }
   ],
-  "message": "Holdings fetched successfully"
+  "message": "Holdings fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
+
+Numeric columns from PostgreSQL are often returned as **strings** to preserve decimal precision.
 
 ---
 
@@ -82,8 +98,10 @@ Get a summary of holdings including total invested, current value, and performan
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| month | number | No | Current month | Filter by month (1-12) |
-| year | number | No | Current year | Filter by year |
+| month | string (digits) | No | — | Filter by month (1-12) |
+| year | string (digits) | No | — | Filter by year |
+
+Omitting both aggregates across **all** of the user’s holdings (all months/years).
 
 **Example Request:**
 ```bash
@@ -96,35 +114,33 @@ curl -X GET "/v1/holdings/summary?month=1&year=2026" \
 {
   "success": true,
   "data": {
-    "total_invested": 25000.00,
-    "total_current_value": 27500.00,
-    "total_gain_loss": 2500.00,
-    "total_gain_loss_percent": 10.0,
-    "holdings_count": 10,
-    "top_performer": {
-      "name": "NVIDIA Corp",
-      "gain_loss_percent": 25.5
-    },
-    "worst_performer": {
-      "name": "Google",
-      "gain_loss_percent": -2.3
-    },
-    "by_type": [
+    "totalInvested": 25000,
+    "totalCurrentValue": 27500,
+    "totalProfitLoss": 2500,
+    "totalProfitLossPercentage": 10,
+    "holdingsCount": 10,
+    "typeBreakdown": [
       {
-        "holding_type": "Stock",
-        "invested": 15000.00,
-        "current_value": 16500.00,
-        "gain_loss_percent": 10.0
-      },
+        "name": "Stock",
+        "invested": 15000,
+        "current": 16500,
+        "profitLoss": 1500,
+        "profitLossPercentage": 10
+      }
+    ],
+    "platformBreakdown": [
       {
-        "holding_type": "Crypto",
-        "invested": 5000.00,
-        "current_value": 6000.00,
-        "gain_loss_percent": 20.0
+        "name": "Robinhood",
+        "invested": 25000,
+        "current": 27500,
+        "profitLoss": 2500,
+        "profitLossPercentage": 10
       }
     ]
   },
-  "message": "Holdings summary fetched successfully"
+  "message": "Holdings summary fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
@@ -140,7 +156,7 @@ Get historical trends of holdings over multiple years.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| years | string | No | Last 5 years | Comma-separated list of years (e.g., "2024,2025,2026") |
+| years | string | No | — | Comma-separated years (e.g. `2024,2025,2026`). If omitted, **all** years for the user are included. |
 
 **Example Request:**
 ```bash
@@ -148,28 +164,23 @@ curl -X GET "/v1/holdings/trends?years=2024,2025,2026" \
   -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):**
+**Response (200):** Array of monthly buckets, sorted by year then month.
+
 ```json
 {
   "success": true,
-  "data": {
-    "years": ["2024", "2025", "2026"],
-    "monthly_totals": {
-      "2024": {
-        "1": { "invested": 20000, "current_value": 21000 },
-        "2": { "invested": 20500, "current_value": 21800 },
-        ...
-      },
-      "2025": { ... },
-      "2026": { ... }
-    },
-    "yearly_performance": [
-      { "year": 2024, "gain_loss_percent": 8.5 },
-      { "year": 2025, "gain_loss_percent": 12.3 },
-      { "year": 2026, "gain_loss_percent": 10.0 }
-    ]
-  },
-  "message": "Holdings trends fetched successfully"
+  "data": [
+    {
+      "date": "2024-01",
+      "invested": 20000,
+      "current": 21000,
+      "profitLoss": 1000,
+      "profitLossPercentage": 5
+    }
+  ],
+  "message": "Holdings trends fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
@@ -185,10 +196,12 @@ Compare holdings between two different months.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| fromMonth | number | No | Current month | Starting month (1-12) |
-| fromYear | number | No | Current year | Starting year |
-| toMonth | number | No | Current month | Ending month (1-12) |
-| toYear | number | No | Current year | Ending year |
+| fromMonth | string (digits) | No | See below | “From” month (1-12) |
+| fromYear | string (digits) | No | See below | “From” year |
+| toMonth | string (digits) | No | Current calendar month | “To” month (1-12) |
+| toYear | string (digits) | No | Current calendar year | “To” year |
+
+**Defaults:** `toMonth` / `toYear` default to the current date. If both `fromMonth` and `fromYear` are omitted, the “from” period is the **month immediately before** the “to” period. If only one of `fromMonth` / `fromYear` is sent, the missing part defaults to the corresponding part of the “to” period.
 
 **Example Request:**
 ```bash
@@ -196,39 +209,85 @@ curl -X GET "/v1/holdings/compare?fromMonth=1&fromYear=2025&toMonth=12&toYear=20
   -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):**
+**Response (200):** Compares two summary snapshots (same shape as `GET /summary`) plus diffs and per-type / per-platform breakdown deltas.
+
 ```json
 {
   "success": true,
   "data": {
-    "from": { "month": 1, "year": 2025 },
-    "to": { "month": 12, "year": 2025 },
-    "comparison": {
-      "invested_change": 5000.00,
-      "invested_change_percent": 25.0,
-      "value_change": 7500.00,
-      "value_change_percent": 30.0,
-      "added_holdings": [
-        { "name": "Tesla", "value": 1500.00 }
-      ],
-      "removed_holdings": [
-        { "name": "Facebook", "value": 1000.00 }
-      ],
-      "top_gainers": [
-        { "name": "NVIDIA", "change_percent": 35.0 }
-      ],
-      "top_losers": [
-        { "name": "Google", "change_percent": -5.0 }
-      ]
-    }
+    "fromMonth": { "month": 1, "year": 2025 },
+    "toMonth": { "month": 12, "year": 2025 },
+    "summary": {
+      "from": { "totalInvested": 0, "totalCurrentValue": 0, "totalProfitLoss": 0, "totalProfitLossPercentage": 0, "holdingsCount": 0, "typeBreakdown": [], "platformBreakdown": [] },
+      "to": { "totalInvested": 10000, "totalCurrentValue": 11000, "totalProfitLoss": 1000, "totalProfitLossPercentage": 10, "holdingsCount": 3, "typeBreakdown": [], "platformBreakdown": [] },
+      "investedDiff": 10000,
+      "currentValueDiff": 11000,
+      "profitLossDiff": 1000,
+      "holdingsCountDiff": 3,
+      "investedDiffPercentage": 0,
+      "currentValueDiffPercentage": 0,
+      "holdingsCountDiffPercentage": 0
+    },
+    "typeComparison": [],
+    "platformComparison": []
   },
-  "message": "Month comparison fetched successfully"
+  "message": "Month comparison fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
+}
+```
+
+`typeComparison` and `platformComparison` entries include `name`, `from` / `to` breakdown objects, `investedDiff`, `currentValueDiff`, and related percentage fields.
+
+---
+
+### 5. Get Monthly Series
+
+Time series of totals per month over a configurable range. Missing months in the range are returned with zeros.
+
+- **URL:** `/monthly`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| startMonth | string (digits) | No | Current month | Range endpoint (1-12) |
+| startYear | string (digits) | No | Current year | Range endpoint year |
+| endMonth | string (digits) | No | 11 months before start | Other range endpoint (1-12); if omitted with `endYear`, computed from start |
+| endYear | string (digits) | No | Derived | Other range endpoint year |
+
+If `endMonth` / `endYear` are omitted, the range is a **12-month window**: from `startMonth`/`startYear` backward through the previous 11 months.
+
+**Example Request:**
+```bash
+curl -X GET "/v1/holdings/monthly?startYear=2026&startMonth=4&endYear=2025&endMonth=5" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "month": 5,
+      "year": 2025,
+      "date": "2025-05",
+      "totalCurrentValue": 12000,
+      "totalInvested": 10000,
+      "holdingsCount": 4
+    }
+  ],
+  "message": "Holdings monthly data fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
 ---
 
-### 5. Get Holding Types
+### 6. Get Holding Types
 Retrieve all available holding types (global catalog, not nested under user holdings).
 
 - **URL:** `/v1/holding-types` (base path `/`, i.e. `GET /v1/holding-types`)
@@ -246,21 +305,17 @@ curl -X GET /v1/holding-types \
 {
   "success": true,
   "data": [
-    { "id": 1, "name": "Stock" },
-    { "id": 2, "name": "ETF" },
-    { "id": 3, "name": "Crypto" },
-    { "id": 4, "name": "Bond" },
-    { "id": 5, "name": "Mutual Fund" },
-    { "id": 6, "name": "Real Estate" },
-    { "id": 7, "name": "Commodity" }
+    { "id": 1, "code": "STOCK", "name": "Stock", "notes": null }
   ],
-  "message": "Holding types fetched successfully"
+  "message": "Holding types fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
 ---
 
-### 6. Get Single Holding
+### 7. Get Single Holding
 Retrieve a specific holding by ID.
 
 - **URL:** `/:id`
@@ -273,35 +328,43 @@ curl -X GET /v1/holdings/1 \
   -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):**
+**Response (200):** Same row shape as list items (`holding_type` relation included; numeric columns often as strings).
+
 ```json
 {
   "success": true,
   "data": {
-    "id": 1,
+    "id": "1",
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "Apple Inc.",
+    "symbol": "AAPL",
     "platform": "Robinhood",
-    "holding_type": { "id": 1, "name": "Stock" },
+    "holding_type_id": 1,
+    "holding_type": { "id": 1, "code": "STOCK", "name": "Stock", "notes": null },
     "currency": "USD",
-    "invested_amount": 5000.00,
-    "current_value": 5500.00,
-    "units": 25,
-    "avg_buy_price": 200.00,
-    "current_price": 220.00,
-    "last_updated": "2026-01-08T12:00:00Z",
+    "invested_amount": "5000.00",
+    "current_value": "5500.00",
+    "gain_amount": "500.00",
+    "gain_percent": "10.00",
+    "units": "25",
+    "avg_buy_price": "200.00000000",
+    "current_price": "220.00000000",
+    "last_updated": "2026-01-08T12:00:00.000Z",
     "notes": "Long term holding",
     "month": 1,
     "year": 2026,
-    "created_at": "2026-01-01T00:00:00Z",
-    "updated_at": "2026-01-08T00:00:00Z"
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-08T00:00:00.000Z"
   },
-  "message": "Holding fetched successfully"
+  "message": "Holding fetched successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
 ---
 
-### 7. Create Holding
+### 8. Create Holding
 Create a new holding.
 
 - **URL:** `/`
@@ -313,6 +376,7 @@ Create a new holding.
 ```json
 {
   "name": "Apple Inc.",
+  "symbol": "AAPL",
   "platform": "Robinhood",
   "holding_type_id": 1,
   "currency": "USD",
@@ -321,6 +385,7 @@ Create a new holding.
   "units": 25,
   "avg_buy_price": 200.00,
   "current_price": 220.00,
+  "last_updated": "2026-01-08T12:00:00.000Z",
   "notes": "Long term holding",
   "month": 1,
   "year": 2026
@@ -331,41 +396,84 @@ Create a new holding.
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
 | name | string | Yes | - |
+| symbol | string \| null | No | Ticker or symbol; used by `POST /sync` when set |
 | platform | string | Yes | - |
 | holding_type_id | number | Yes | Valid holding type ID |
-| currency | string | Yes | 3 character ISO code (e.g., USD) |
-| invested_amount | number | Yes | - |
-| current_value | number | Yes | - |
-| units | number | No | - |
-| avg_buy_price | number | No | - |
-| current_price | number | No | - |
-| notes | string | No | - |
-| month | number | No | 1-12 |
-| year | number | No | - |
+| currency | string | Yes | Exactly 3 characters (e.g. USD) |
+| invested_amount | number | Yes | ≥ 0 |
+| current_value | number | Yes | ≥ 0 |
+| units | number \| null | No | - |
+| avg_buy_price | number \| null | No | - |
+| current_price | number \| null | No | - |
+| last_updated | string \| null | No | ISO timestamp string |
+| notes | string \| null | No | - |
+| month | number | Yes | 1-12 |
+| year | number | Yes | ≥ 2000 (DB check) |
 
 **Example Request:**
 ```bash
 curl -X POST /v1/holdings \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
-  -d '{"name": "Apple Inc.", "platform": "Robinhood", "holding_type_id": 1, "currency": "USD", "invested_amount": 5000, "current_value": 5500}'
+  -d '{"name":"Apple Inc.","platform":"Robinhood","holding_type_id":1,"currency":"USD","invested_amount":5000,"current_value":5500,"month":1,"year":2026}'
 ```
 
-**Response (201):**
+**Response (201):** `data` is an **array** of inserted rows returned by Drizzle (typically one element).
+
 ```json
 {
   "success": true,
-  "data": {
-    "id": 1,
-    ...
-  },
-  "message": "Holding created successfully"
+  "data": [
+    {
+      "id": "1",
+      "name": "Apple Inc.",
+      "month": 1,
+      "year": 2026
+    }
+  ],
+  "message": "Holding created successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
 ---
 
-### 8. Duplicate Holdings
+### 9. Sync Current Month Prices
+
+Fetches latest prices for all holdings in the **current calendar month/year** that have a non-null `symbol`, updates `current_price`, `current_value` (as `units * price` when `units` is set), and `last_updated`.
+
+- **URL:** `/sync`
+- **Method:** `POST`
+- **Authentication:** Required
+- **Body:** None
+
+**Example Request:**
+```bash
+curl -X POST /v1/holdings/sync \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "syncedCount": 5,
+    "month": 4,
+    "year": 2026
+  },
+  "message": "Prices synced successfully for current month",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
+}
+```
+
+If there are no holdings with symbols for the current period, `data` is an empty array `[]` (same `message`, `request_id`, and `timestamp` fields).
+
+---
+
+### 10. Duplicate Holdings
 Duplicate all holdings from one month to another.
 
 - **URL:** `/duplicate`
@@ -401,21 +509,23 @@ curl -X POST /v1/holdings/duplicate \
   -d '{"fromMonth": 1, "fromYear": 2025, "toMonth": 2, "toYear": 2025}'
 ```
 
-**Response (201):**
+**Response (201):** `data` is an **array** of newly inserted holding rows (new IDs).
+
 ```json
 {
   "success": true,
-  "data": {
-    "duplicated_count": 10,
-    "holdings": [...]
-  },
-  "message": "Holdings duplicated successfully"
+  "data": [
+    { "id": "42", "month": 2, "year": 2025, "name": "Apple Inc." }
+  ],
+  "message": "Holdings duplicated successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
 ---
 
-### 9. Update Holding
+### 11. Update Holding
 Update an existing holding.
 
 - **URL:** `/:id`
@@ -441,21 +551,27 @@ curl -X PUT /v1/holdings/1 \
   -d '{"current_value": 6000, "current_price": 240}'
 ```
 
-**Response (200):**
+**Response (200):** `data` is an **array** of updated rows (Drizzle `.returning()`).
+
 ```json
 {
   "success": true,
-  "data": {
-    "id": 1,
-    ...
-  },
-  "message": "Holding updated successfully"
+  "data": [
+    {
+      "id": "1",
+      "current_value": "6000.00",
+      "current_price": "240.00000000"
+    }
+  ],
+  "message": "Holding updated successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
 ---
 
-### 10. Delete Holding
+### 12. Delete Holding
 Delete a holding.
 
 - **URL:** `/:id`
@@ -468,12 +584,17 @@ curl -X DELETE /v1/holdings/1 \
   -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):**
+**Response (200):** `data` is an **array** of deleted rows.
+
 ```json
 {
   "success": true,
-  "data": null,
-  "message": "Holding deleted successfully"
+  "data": [
+    { "id": "1", "name": "Apple Inc." }
+  ],
+  "message": "Holding deleted successfully",
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
@@ -481,11 +602,19 @@ curl -X DELETE /v1/holdings/1 \
 
 ## Error Responses
 
-**400 Bad Request:**
+Errors follow the global API shape: `success`, `message`, `error` (optional `code` and `details`), `request_id`, `timestamp`. See `src/utils/error.ts` and `AGENTS.md`.
+
+**400 Bad Request (validation):**
 ```json
 {
   "success": false,
-  "error": "Validation error message"
+  "message": "Validation failed",
+  "error": {
+    "code": "VALID_001",
+    "details": [{ "field": "month", "message": "Invalid input" }]
+  },
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
@@ -493,7 +622,10 @@ curl -X DELETE /v1/holdings/1 \
 ```json
 {
   "success": false,
-  "error": "Authentication required"
+  "message": "Unauthorized",
+  "error": { "code": "AUTH_001" },
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
@@ -501,7 +633,10 @@ curl -X DELETE /v1/holdings/1 \
 ```json
 {
   "success": false,
-  "error": "Holding not found"
+  "message": "Holding not found",
+  "error": { "code": "DB_001" },
+  "request_id": "...",
+  "timestamp": "2026-01-08T12:00:00.000Z"
 }
 ```
 
@@ -513,24 +648,27 @@ curl -X DELETE /v1/holdings/1 \
 
 | Field | Type | Description |
 |-------|------|-------------|
-| id | number | Unique holding identifier |
-| name | string | Name of the holding (e.g., stock symbol, crypto name) |
-| platform | string | Trading platform (e.g., Robinhood, Binance) |
-| holding_type | object | Type of holding (Stock, Crypto, ETF, etc.) |
-| holding_type.id | number | Type ID |
-| holding_type.name | string | Type name |
+| id | string | Unique holding identifier (`bigint`, JSON string) |
+| user_id | string (UUID) | Owner |
+| name | string | Display name |
+| symbol | string \| null | Optional ticker (used by price sync) |
+| platform | string | Trading platform (e.g. Robinhood, Binance) |
+| holding_type_id | number | FK to `holding_types` |
+| holding_type | object \| null | Joined type: `id`, `code`, `name`, `notes` |
 | currency | string | 3-character currency code |
-| invested_amount | number | Total amount invested |
-| current_value | number | Current market value |
-| units | number | Number of units/shares |
-| avg_buy_price | number | Average purchase price |
-| current_price | number | Current market price |
-| last_updated | string | Last price update timestamp |
-| notes | string | User notes |
+| invested_amount | string \| number | Total invested (often a decimal string from DB) |
+| current_value | string \| number | Current value |
+| gain_amount | string \| number | Generated: `current_value - invested_amount` |
+| gain_percent | string \| number | Generated return % |
+| units | string \| number \| null | Position size |
+| avg_buy_price | string \| number \| null | Average cost |
+| current_price | string \| number \| null | Last known price |
+| last_updated | string \| null | ISO timestamp |
+| notes | string \| null | User notes |
 | month | number | Reporting month (1-12) |
 | year | number | Reporting year |
-| created_at | ISO 8601 | Creation timestamp |
-| updated_at | ISO 8601 | Last update timestamp |
+| created_at | string | Creation timestamp |
+| updated_at | string | Last update timestamp |
 
 ---
 
@@ -554,7 +692,7 @@ async function getHoldings(filters: HoldingsFilters): Promise<Holding[]> {
   return result.data;
 }
 
-// Create a new holding
+// Create a new holding (API returns an array from Drizzle `.returning()`)
 async function createHolding(data: HoldingCreate): Promise<Holding> {
   const response = await fetch('/v1/holdings', {
     method: 'POST',
@@ -565,7 +703,7 @@ async function createHolding(data: HoldingCreate): Promise<Holding> {
     body: JSON.stringify(data)
   });
   const result = await response.json();
-  return result.data;
+  return result.data[0];
 }
 
 // Duplicate holdings to new month
@@ -589,5 +727,5 @@ async function duplicateHoldings(data: DuplicateHoldingPayload): Promise<Duplica
 
 - All endpoints require authentication
 - Users can only access their own holdings
-- All monetary values are validated server-side
-- Month/year filtering ensures data isolation
+- Amounts are validated server-side (non-negative checks in the database)
+- Optional `month` / `year` query parameters scope list and aggregate endpoints; omitting them includes all periods for the user

@@ -4,18 +4,26 @@ The Posts API provides endpoints for creating, reading, updating, and deleting b
 
 **Base URL:** `/v1/posts`
 
+Successful JSON responses include `request_id` and `timestamp` on every endpoint (omitted in some examples below for brevity).
+
 ---
 
 ## Authentication
 
-Most endpoints are public (no authentication required). The following endpoints require authentication:
-- `POST /` - Create a new post
-- `PATCH /:id` - Update a post
-- `DELETE /:id` - Delete a post
-- `POST /upload/image` - Upload post images
-- `GET /me` - Get authenticated user's posts
-- `GET /me/liked` - Get posts liked by authenticated user
-- `GET /all` - Super admin only (get all posts)
+Most endpoints are public (no authentication required). The following require a Bearer token:
+
+- `POST /` — Create a new post
+- `PATCH /:id` — Update a post
+- `DELETE /:id` — Delete a post
+- `POST /upload/image` — Upload post image (multipart)
+- `POST /upload/presigned-url` — Get a presigned S3 URL for client-side upload
+- `GET /me` — Current user’s posts
+- `GET /me/liked` — Posts the current user liked
+- `GET /me/:id` — Post by ID (owner only; includes drafts)
+- `GET /feed/following` — Feed from followed users and tags
+- `GET /feed/for-you` — Personalized “for you” feed
+- `GET /charts/my-likes-by-month` — Monthly likes on your posts
+- `GET /all` — Super admin only (all posts including unpublished)
 
 Protected endpoints require a Bearer token in the `Authorization` header:
 ```
@@ -25,6 +33,17 @@ Authorization: Bearer <your_jwt_token>
 ---
 
 ## Endpoints
+
+List endpoints that return pagination use this `meta` shape (from `offset` + `limit` query params):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| total_items | number | Total rows matching the query |
+| offset | number | Current offset |
+| limit | number | Page size |
+| total_pages | number | `ceil(total_items / limit)` |
+
+There is no `page` query parameter; use `offset` (e.g. `offset=0`, `offset=10`).
 
 ### 1. Get All Posts
 Retrieve a paginated list of all published posts.
@@ -45,7 +64,7 @@ Retrieve a paginated list of all published posts.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts?page=1&limit=10"
+curl -X GET "/v1/posts?offset=0&limit=10"
 ```
 
 **Response (200):**
@@ -63,12 +82,12 @@ curl -X GET "/v1/posts?page=1&limit=10"
       "published": true,
       "view_count": 1250,
       "like_count": 89,
-      "creator": {
+      "user": {
         "id": "550e8400-e29b-41d4-a716-446655440001",
         "username": "johndoe",
         "first_name": "John",
         "last_name": "Doe",
-        "avatar_url": "https://example.com/avatars/johndoe.jpg"
+        "image": "https://example.com/avatars/johndoe.jpg"
       },
       "tags": ["typescript", "javascript", "programming"],
       "created_at": "2026-01-01T00:00:00Z",
@@ -76,10 +95,10 @@ curl -X GET "/v1/posts?page=1&limit=10"
     }
   ],
   "meta": {
-    "total": 50,
-    "page": 1,
+    "total_items": 50,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 5
+    "total_pages": 5
   },
   "message": "Posts fetched successfully"
 }
@@ -110,7 +129,7 @@ curl -X GET /v1/posts/random
       "slug": "random-post-title",
       "excerpt": "...",
       "photo_url": "/images/posts/random.jpg",
-      "creator": {
+      "user": {
         "username": "author"
       },
       "created_at": "2026-01-01T00:00:00Z"
@@ -123,20 +142,16 @@ curl -X GET /v1/posts/random
 ---
 
 ### 3. Get Trending Posts
-Retrieve the most viewed posts.
+Retrieve trending published posts (ordered by views, then likes). The server returns a fixed number of posts (currently **5**); there is no query parameter to change this.
 
 - **URL:** `/trending`
 - **Method:** `GET`
 - **Authentication:** Not required
-- **Query Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| limit | number | No | 5 | Number of posts to return |
+- **Query Parameters:** None
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/trending?limit=5"
+curl -X GET "/v1/posts/trending"
 ```
 
 **Response (200):**
@@ -152,7 +167,7 @@ curl -X GET "/v1/posts/trending?limit=5"
       "photo_url": "/images/posts/trending.jpg",
       "view_count": 10000,
       "like_count": 500,
-      "creator": {
+      "user": {
         "username": "popularauthor"
       },
       "created_at": "2026-01-01T00:00:00Z"
@@ -183,7 +198,7 @@ Retrieve posts created by the authenticated user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/me?page=1&limit=10" \
+curl -X GET "/v1/posts/me?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -193,10 +208,10 @@ curl -X GET "/v1/posts/me?page=1&limit=10" \
   "success": true,
   "data": [...],
   "meta": {
-    "total": 25,
-    "page": 1,
+    "total_items": 25,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 3
+    "total_pages": 3
   },
   "message": "My posts fetched successfully"
 }
@@ -219,7 +234,7 @@ Retrieve posts liked by the authenticated user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/me/liked?page=1&limit=10" \
+curl -X GET "/v1/posts/me/liked?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -246,10 +261,10 @@ curl -X GET "/v1/posts/me/liked?page=1&limit=10" \
     }
   ],
   "meta": {
-    "total": 10,
-    "page": 1,
+    "total_items": 10,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 1
+    "total_pages": 1
   },
   "message": "Liked posts fetched successfully"
 }
@@ -292,14 +307,20 @@ curl -X GET /v1/posts/tag/typescript
       "created_at": "2026-01-01T00:00:00Z"
     }
   ],
+  "meta": {
+    "total_items": 100,
+    "offset": 0,
+    "limit": 10,
+    "total_pages": 10
+  },
   "message": "Posts by tag fetched successfully"
 }
 ```
 
 ---
 
-### 6. Get Posts by Username
-Retrieve all posts by a specific user.
+### 7. Get Posts by Username
+Retrieve published posts by a specific author (newest first).
 
 - **URL:** `/author/:username`
 - **Method:** `GET`
@@ -310,14 +331,12 @@ Retrieve all posts by a specific user.
 |-----------|------|----------|---------|-------------|
 | offset | number | No | 0 | Pagination offset |
 | limit | number | No | 10 | Items per page |
-| search | string | No | - | Search in title and body |
-| q | string | No | - | Alias for search |
-| orderBy | string | No | - | Field to order by |
-| orderDirection | string | No | desc | Order direction (asc/desc) |
+
+The route accepts the same query schema as other list endpoints, but **only `offset` and `limit` are applied** for this handler (search/sort query fields are ignored).
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/author/johndoe?page=1&limit=10"
+curl -X GET "/v1/posts/author/johndoe?offset=0&limit=10"
 ```
 
 **Response (200):**
@@ -326,10 +345,10 @@ curl -X GET "/v1/posts/author/johndoe?page=1&limit=10"
   "success": true,
   "data": [...],
   "meta": {
-    "total": 15,
-    "page": 1,
+    "total_items": 15,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 2
+    "total_pages": 2
   },
   "message": "Posts by johndoe fetched successfully"
 }
@@ -337,7 +356,7 @@ curl -X GET "/v1/posts/author/johndoe?page=1&limit=10"
 
 ---
 
-### 7. Get Post by Slug
+### 8. Get Post by Slug
 Retrieve a single post by its slug.
 
 - **URL:** `/slug/:slug`
@@ -365,12 +384,12 @@ curl -X GET /v1/posts/slug/getting-started-typescript
     "like_count": 89,
     "is_liked": false,
     "is_bookmarked": false,
-    "creator": {
+    "user": {
       "id": "550e8400-e29b-41d4-a716-446655440001",
       "username": "johndoe",
       "first_name": "John",
       "last_name": "Doe",
-      "avatar_url": "https://example.com/avatars/johndoe.jpg",
+      "image": "https://example.com/avatars/johndoe.jpg",
       "bio": "Full stack developer",
       "website": "https://johndoe.com"
     },
@@ -384,7 +403,7 @@ curl -X GET /v1/posts/slug/getting-started-typescript
 
 ---
 
-### 8. Get Post by Username and Slug
+### 9. Get Post by Username and Slug
 Retrieve a single post by the author's username and the post's slug.
 
 - **URL:** `/u/:username/:slug`
@@ -400,7 +419,7 @@ curl -X GET /v1/posts/u/johndoe/getting-started-typescript
 
 ---
 
-### 9. Get All Posts (Admin)
+### 10. Get All Posts (Admin)
 Retrieve all posts including unpublished ones. Super admin only.
 
 - **URL:** `/all`
@@ -436,7 +455,7 @@ curl -X GET /v1/posts/all \
 
 ---
 
-### 10. Get Post by ID
+### 11. Get Post by ID
 Retrieve a single post by its ID.
 
 - **URL:** `/:id`
@@ -453,7 +472,7 @@ curl -X GET /v1/posts/550e8400-e29b-41d4-a716-446655440000
 
 ---
 
-### 11. Create Post
+### 12. Create Post
 Create a new post.
 
 - **URL:** `/`
@@ -481,8 +500,9 @@ Create a new post.
 | body | string | Yes | 20-500000 characters (HTML sanitized) |
 | slug | string | Yes | 5-255 characters, URL-friendly |
 | tags | array | No | Array of tag strings |
-| photo_url | string | No | Default: "/images/default.jpg" |
+| photo_url | string \| null | No | Omit or null if none |
 | published | boolean | No | Default: true |
+| published_at | string (ISO 8601) | No | Must be omitted when `published` is false |
 
 **Example Request:**
 ```bash
@@ -492,15 +512,13 @@ curl -X POST /v1/posts \
   -d '{"title": "My New Post", "body": "This is my new post content...", "slug": "my-new-post", "tags": ["news"], "published": true}'
 ```
 
-**Response (201):**
+**Response (201):** Returns only the new post id; fetch `GET /me/:id` or list endpoints for full rows.
+
 ```json
 {
   "success": true,
   "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "title": "My New Post",
-    "slug": "my-new-post",
-    "...": "..."
+    "id": "550e8400-e29b-41d4-a716-446655440000"
   },
   "message": "Post created successfully"
 }
@@ -508,7 +526,7 @@ curl -X POST /v1/posts \
 
 ---
 
-### 12. Update Post
+### 13. Update Post
 Update an existing post.
 
 - **URL:** `/:id`
@@ -536,6 +554,7 @@ Update an existing post.
 | tags | array | No | Array of tag strings |
 | photo_url | string | No | - |
 | published | boolean | No | - |
+| published_at | string \| null | No | Same rules as create |
 
 **Example Request:**
 ```bash
@@ -560,7 +579,7 @@ curl -X PATCH /v1/posts/550e8400-e29b-41d4-a716-446655440000 \
 
 ---
 
-### 13. Increment View Count
+### 14. Increment View Count
 Increment the view count of a post.
 
 - **URL:** `/:id/view`
@@ -573,20 +592,26 @@ Increment the view count of a post.
 curl -X POST /v1/posts/550e8400-e29b-41d4-a716-446655440000/view
 ```
 
-**Response (200):**
+**Response (200):** `data` is an array from the DB `RETURNING` clause (one row when the post exists).
+
 ```json
 {
   "success": true,
-  "data": {
-    "view_count": 1251
-  },
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "view_count": 1251
+    }
+  ],
   "message": "Post view incremented"
 }
 ```
 
+If no row matched the id, `data` may be an empty array.
+
 ---
 
-### 14. Delete Post
+### 15. Delete Post
 Delete a post.
 
 - **URL:** `/:id`
@@ -600,18 +625,23 @@ curl -X DELETE /v1/posts/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):**
+**Response (200):** Soft-delete; `data` is an array with the deleted post id.
+
 ```json
 {
   "success": true,
-  "data": null,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  ],
   "message": "Post deleted successfully"
 }
 ```
 
 ---
 
-### 15. Upload Image
+### 16. Upload Image
 Upload an image for a post to S3.
 
 - **URL:** `/upload/image`
@@ -627,7 +657,7 @@ Upload an image for a post to S3.
 
 **Validation Rules:**
 - Allowed types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
-- Max size: 5MB
+- Max size: **1MB**
 
 **Example Request:**
 ```bash
@@ -649,7 +679,41 @@ curl -X POST /v1/posts/upload/image \
 
 ---
 
-### 16. Get Following Feed
+### 17. Generate Presigned Upload URL
+Request a short-lived presigned URL to upload an image directly to object storage (client uploads the file to the URL, then uses `publicUrl` in the post body).
+
+- **URL:** `/upload/presigned-url`
+- **Method:** `POST`
+- **Authentication:** Required
+- **Content-Type:** `application/json`
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| contentType | string | Yes | One of: `image/jpeg`, `image/png`, `image/gif`, `image/webp` |
+| filename | string | No | Safe filename base (sanitized); a random name is used if omitted |
+| size | number | No | Intended size in bytes (must not exceed 1MB if sent) |
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "presignedUrl": "https://...",
+    "key": "posts/<user-id>/<name>.jpg",
+    "publicUrl": "https://...",
+    "expiresIn": 300,
+    "maxSize": 1048576,
+    "requestedSize": 102400
+  },
+  "message": "Presigned URL generated successfully"
+}
+```
+
+---
+
+### 18. Get Following Feed
 Retrieve posts from users and tags the authenticated user follows.
 
 - **URL:** `/feed/following`
@@ -668,7 +732,7 @@ Retrieve posts from users and tags the authenticated user follows.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/feed/following?page=1&limit=10" \
+curl -X GET "/v1/posts/feed/following?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -678,10 +742,10 @@ curl -X GET "/v1/posts/feed/following?page=1&limit=10" \
   "success": true,
   "data": [...],
   "meta": {
-    "total": 25,
-    "page": 1,
+    "total_items": 25,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 3
+    "total_pages": 3
   },
   "message": "Following feed fetched successfully"
 }
@@ -689,7 +753,48 @@ curl -X GET "/v1/posts/feed/following?page=1&limit=10" \
 
 ---
 
-### 17. Get Sitemap Posts
+### 19. Get For You Feed
+Personalized feed: published posts ranked by relevance to users and tags you follow, with pagination. Supports search on title/body.
+
+- **URL:** `/feed/for-you`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| offset | number | No | 0 | Pagination offset |
+| limit | number | No | 10 | Items per page |
+| search | string | No | - | Search in title and body |
+| q | string | No | - | Alias for search |
+
+The shared list query schema also allows `orderBy` / `orderDirection`, but **this route ignores them**; ordering is fixed (relevance score, then recency).
+
+**Example Request:**
+```bash
+curl -X GET "/v1/posts/feed/for-you?offset=0&limit=10" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):** Same `meta` shape as other paginated list endpoints.
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "total_items": 40,
+    "offset": 0,
+    "limit": 10,
+    "total_pages": 4
+  },
+  "message": "For you feed fetched successfully"
+}
+```
+
+---
+
+### 20. Get Sitemap Posts
 Retrieve minimal post data for sitemap generation. Rate limited.
 
 - **URL:** `/sitemap`
@@ -720,7 +825,7 @@ curl -X GET /v1/posts/sitemap
 
 ---
 
-### 18. Get Post by ID (Owner)
+### 21. Get Post by ID (Owner)
 Retrieve a single post by its ID. Only the post owner can access this endpoint (includes drafts).
 
 - **URL:** `/me/:id`
@@ -742,7 +847,7 @@ curl -X GET /v1/posts/me/550e8400-e29b-41d4-a716-446655440000 \
 This section describes chart endpoints available for posts module. These endpoints provide data for visualizing post statistics and engagement metrics in frontend.
 
 ### 1. Posts Over Time
-**GET** `/posts/charts/posts-over-time`
+**GET** `/v1/posts/charts/posts-over-time`
 
 Get number of posts created over a specified time period, grouped by day, week, or month.
 
@@ -752,7 +857,7 @@ Get number of posts created over a specified time period, grouped by day, week, 
 
 **Example Request:**
 ```
-GET /posts/charts/posts-over-time?days=60&groupBy=week
+GET /v1/posts/charts/posts-over-time?days=60&groupBy=week
 ```
 
 **Response:**
@@ -778,7 +883,7 @@ GET /posts/charts/posts-over-time?days=60&groupBy=week
 ---
 
 ### 2. Posts by Tag Distribution
-**GET** `/posts/charts/posts-by-tag`
+**GET** `/v1/posts/charts/posts-by-tag`
 
 Get distribution of posts across different tags.
 
@@ -787,7 +892,7 @@ Get distribution of posts across different tags.
 
 **Example Request:**
 ```
-GET /posts/charts/posts-by-tag?limit=15
+GET /v1/posts/charts/posts-by-tag?limit=15
 ```
 
 **Response:**
@@ -815,7 +920,7 @@ GET /posts/charts/posts-by-tag?limit=15
 ---
 
 ### 3. Top Posts by Views
-**GET** `/posts/charts/top-by-views`
+**GET** `/v1/posts/charts/top-by-views`
 
 Get posts with highest view counts.
 
@@ -824,7 +929,7 @@ Get posts with highest view counts.
 
 **Example Request:**
 ```
-GET /posts/charts/top-by-views?limit=5
+GET /v1/posts/charts/top-by-views?limit=5
 ```
 
 **Response:**
@@ -840,7 +945,7 @@ GET /posts/charts/top-by-views?limit=5
       "view_count": 1250,
       "like_count": 89,
       "created_at": "2026-01-01T00:00:00Z",
-      "creator": {
+      "user": {
         "id": "uuid",
         "username": "johndoe",
         "first_name": "John",
@@ -856,7 +961,7 @@ GET /posts/charts/top-by-views?limit=5
 ---
 
 ### 4. Top Posts by Likes
-**GET** `/posts/charts/top-by-likes`
+**GET** `/v1/posts/charts/top-by-likes`
 
 Get posts with highest like counts.
 
@@ -865,7 +970,7 @@ Get posts with highest like counts.
 
 **Example Request:**
 ```
-GET /posts/charts/top-by-likes?limit=5
+GET /v1/posts/charts/top-by-likes?limit=5
 ```
 
 **Response:**
@@ -881,7 +986,7 @@ GET /posts/charts/top-by-likes?limit=5
       "view_count": 980,
       "like_count": 156,
       "created_at": "2026-01-05T00:00:00Z",
-      "creator": {
+      "user": {
         "id": "uuid",
         "username": "janedoe",
         "first_name": "Jane",
@@ -897,7 +1002,7 @@ GET /posts/charts/top-by-likes?limit=5
 ---
 
 ### 5. User Activity
-**GET** `/posts/charts/user-activity`
+**GET** `/v1/posts/charts/user-activity`
 
 Get statistics about user posting activity, including post counts and engagement metrics per user.
 
@@ -906,7 +1011,7 @@ Get statistics about user posting activity, including post counts and engagement
 
 **Example Request:**
 ```
-GET /posts/charts/user-activity?limit=15
+GET /v1/posts/charts/user-activity?limit=15
 ```
 
 **Response:**
@@ -933,7 +1038,7 @@ GET /posts/charts/user-activity?limit=15
 ---
 
 ### 6. Engagement Metrics Overview
-**GET** `/posts/charts/engagement-metrics`
+**GET** `/v1/posts/charts/engagement-metrics`
 
 Get overall engagement metrics for all posts.
 
@@ -941,7 +1046,7 @@ Get overall engagement metrics for all posts.
 
 **Example Request:**
 ```
-GET /posts/charts/engagement-metrics
+GET /v1/posts/charts/engagement-metrics
 ```
 
 **Response:**
@@ -966,16 +1071,16 @@ GET /posts/charts/engagement-metrics
 ---
 
 ### 7. Engagement Comparison
-**GET** `/posts/charts/engagement-comparison`
+**GET** `/v1/posts/charts/engagement-comparison`
 
 Get posts with their view and like counts, including engagement rate (likes/views ratio).
 
 **Query Parameters:**
-- `limit` (optional, default: 20) - Number of posts to return
+- `limit` (optional, default: 10) - Number of posts to return
 
 **Example Request:**
 ```
-GET /posts/charts/engagement-comparison?limit=30
+GET /v1/posts/charts/engagement-comparison?limit=30
 ```
 
 **Response:**
@@ -1002,7 +1107,7 @@ GET /posts/charts/engagement-comparison?limit=30
 ---
 
 ### 8. My Likes by Month
-**GET** `/posts/charts/my-likes-by-month`
+**GET** `/v1/posts/charts/my-likes-by-month`
 
 Count how many likes your posts received in each calendar month. Uses each like’s `created_at` timestamp; only includes likes on posts you authored (non-deleted posts).
 
@@ -1024,11 +1129,11 @@ curl -X GET "/v1/posts/charts/my-likes-by-month?months=24" \
   "message": "Monthly likes on your posts fetched successfully",
   "data": [
     {
-      "month": "2025-11",
+      "month": "2026-01",
       "count": 12
     },
     {
-      "month": "2025-12",
+      "month": "2026-02",
       "count": 28
     }
   ]
@@ -1049,7 +1154,8 @@ curl -X GET "/v1/posts/charts/my-likes-by-month?months=24" \
 | title | string | Post title |
 | slug | string | URL-friendly identifier |
 | body | string | Full post content (HTML sanitized) |
-| photo_url | string | Featured image URL |
+| excerpt | string | Optional; some list endpoints return a short preview |
+| photo_url | string \| null | Featured image URL |
 | published | boolean | Publication status |
 | view_count | number | Number of views |
 | like_count | number | Number of likes |
@@ -1069,37 +1175,25 @@ curl -X GET "/v1/posts/charts/my-likes-by-month?months=24" \
 
 ## Error Responses
 
-**400 Bad Request:**
+Errors follow the API-wide shape: `success`, `message`, `error` (optional `code` and `details`), plus `request_id` and `timestamp`.
+
+**Example (validation):**
 ```json
 {
   "success": false,
-  "error": "Validation error message"
+  "message": "Validation failed",
+  "error": {
+    "code": "VALID_001",
+    "details": [{ "field": "body", "message": "String must contain at least 20 character(s)" }]
+  },
+  "request_id": "…",
+  "timestamp": "2026-01-01T00:00:00.000Z"
 }
 ```
 
-**401 Unauthorized:**
-```json
-{
-  "success": false,
-  "error": "Authentication required"
-}
-```
-
-**403 Forbidden:**
-```json
-{
-  "success": false,
-  "error": "You can only update your own posts"
-}
-```
-
-**404 Not Found:**
-```json
-{
-  "success": false,
-  "error": "Post not found"
-}
-```
+**401 Unauthorized** — missing or invalid Bearer token.  
+**403 Forbidden** — authenticated but not allowed (e.g. not the post owner, not super admin).  
+**404 Not Found** — post or resource does not exist.
 
 ---
 
@@ -1152,13 +1246,13 @@ async function uploadPostImage(file: File): Promise<{ url: string }> {
   return result.data;
 }
 
-// Increment view count
+// Increment view count (data is a single-element array when updated)
 async function incrementView(postId: string): Promise<number> {
   const response = await fetch(`/v1/posts/${postId}/view`, {
     method: 'POST'
   });
   const result = await response.json();
-  return result.data.view_count;
+  return result.data[0]?.view_count ?? 0;
 }
 ```
 
@@ -1166,8 +1260,8 @@ async function incrementView(postId: string): Promise<number> {
 
 ## Security Notes
 
-- Image upload has strict file type and size validation
-- Users can only modify their own posts
-- Draft (unpublished) posts are only visible to the author
-- View counts are incremented via separate endpoint to prevent abuse
-- Rate limiting may apply to image uploads
+- Image upload (multipart and presigned flow) enforces type and **1MB** size limits
+- Users can only modify or delete their own posts
+- Draft posts are only visible to the author (use `GET /me/:id` for drafts)
+- View counts use a separate endpoint
+- `GET /sitemap` is rate-limited (10 requests per 5 minutes per client key)

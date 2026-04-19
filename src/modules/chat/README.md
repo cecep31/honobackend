@@ -5,76 +5,102 @@ The Chat API provides endpoints for managing conversations and messages, integra
 **Base URL:** `/v1/chat`
 
 ## Authentication
+
 All endpoints require a Bearer token in the `Authorization` header.
+
+## Rate limiting (AI routes)
+
+These routes apply an additional limit of **30 requests per hour per user** (on top of the global API rate limit):
+
+- `POST /conversations/stream`
+- `POST /conversations/:conversationId/messages`
+- `POST /conversations/:conversationId/messages/stream`
+
+On limit, the API responds with **429** and error code `RATE_001`; `error.details.retry_after` is **3600** (seconds).
+
+---
+
+## Response envelope
+
+Successful JSON responses follow the shared shape: `success`, `data`, `message`, `request_id`, `timestamp`, and optional `meta` (see `sendSuccess` in `src/utils/response.ts`).
 
 ---
 
 ## Conversations
 
-### Create Conversation
+### Create conversation
+
 Create a new conversation.
 
 - **URL:** `/conversations`
 - **Method:** `POST`
-- **Body:**
+- **Body:** (all optional)
   ```json
   {
     "title": "My New Chat"
   }
   ```
-- **Response (201):**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "id": "uuid",
-      "title": "My New Chat",
-      "user_id": "uuid",
-      "created_at": "timestamp",
-      "updated_at": "timestamp"
-    },
-    "message": "Conversation created successfully"
-  }
-  ```
+  If `title` is omitted, the server uses `"New conversation"`.
+- **Response (201):** `message`: `"Conversation created successfully"`. `data` includes `id`, `title`, `user_id`, `is_pinned`, `pinned_at`, `created_at`, `updated_at`.
 
-### List Conversations
-Get a paginated list of the user's conversations.
+### List conversations
+
+Paginated list of the current user’s conversations. Pinned rows are ordered first; then by `orderBy` / `orderDirection` (see query params).
 
 - **URL:** `/conversations`
 - **Method:** `GET`
-- **Query Params:** `page`, `limit`
-- **Response (200):**
+- **Query params:**
+  - `offset` — string, default `0`
+  - `limit` — string, default `10`
+  - `search` or `q` — optional filter on conversation title (case-insensitive contains)
+  - `orderBy` — optional; use `title` to sort by title, otherwise ordering uses `updated_at`
+  - `orderDirection` — `asc` or `desc`, default `desc`
+- **Response (200):** `message`: `"Conversations fetched successfully"`. `meta` uses offset-based pagination:
   ```json
   {
-    "success": true,
-    "data": [...],
-    "meta": {
-      "total": 10,
-      "page": 1,
-      "limit": 10,
-      "totalPages": 1
-    }
+    "total_items": 10,
+    "offset": 0,
+    "limit": 10,
+    "total_pages": 1
   }
   ```
 
-### Get Conversation
-Get details of a specific conversation.
+### Get conversation
+
+Load one conversation. **Includes nested messages:** `data.chatMessages` is ordered ascending by `created_at`.
 
 - **URL:** `/conversations/:id`
 - **Method:** `GET`
+- **Response (200):** `message`: `"Conversation fetched successfully"`.
 
-### Delete Conversation
-Delete a conversation and all its messages.
+### Update conversation
+
+- **URL:** `/conversations/:id`
+- **Method:** `PATCH`
+- **Body:** at least one field required
+  ```json
+  {
+    "title": "Renamed",
+    "is_pinned": true
+  }
+  ```
+- **Response (200):** `message`: `"Conversation updated successfully"`.
+
+### Delete conversation
+
+Deletes the conversation row (messages are removed via foreign key cascade).
 
 - **URL:** `/conversations/:id`
 - **Method:** `DELETE`
+- **Response (200):** `message`: `"Conversation deleted successfully"`.
 
 ---
 
 ## Messages
 
-### Create Message (Sync)
-Send a message and wait for the full AI response.
+### Create message (sync)
+
+Send a message; when `role` is `user` (default), the server calls OpenRouter and appends the assistant reply when successful.
 
 - **URL:** `/conversations/:conversationId/messages`
 - **Method:** `POST`
@@ -87,27 +113,33 @@ Send a message and wait for the full AI response.
     "temperature": 0.7
   }
   ```
-- **Response (201):** Returns an array containing the user message and the assistant response.
+  - `role` — optional, default `"user"`
+  - `model` — optional OpenRouter model id
+  - `temperature` — optional, default `0.7`, range `0`–`2`
+- **Response (201):** `data` is an **array** of saved messages (typically the user message plus the assistant message when generation succeeds). `message`: `"Messages created successfully"`. If the assistant call fails, `data` may contain only the user message.
 
-### Create Message (Streaming)
-Send a message and receive the AI response as a stream of Server-Sent Events (SSE).
+### Create message (streaming)
+
+SSE (`text/event-stream`). Each event line is `data: <payload>\n\n` where `<payload>` is JSON with `type` and `data`, except the terminal line `data: [DONE]\n\n`.
 
 - **URL:** `/conversations/:conversationId/messages/stream`
 - **Method:** `POST`
-- **Body:** Same as Create Message (Sync).
-- **Stream Events:**
-  - `type: user_message` - The saved user message object.
-  - `type: ai_chunk` - A string fragment of the AI response.
-  - `type: ai_complete` - The final saved assistant message object.
-  - `type: error` - Sent if an error occurs during streaming.
-  - `[DONE]` - Final signal.
+- **Body:** same as sync create message.
+- **Events:**
+  - `type: user_message` — `data` is the saved user message object.
+  - `type: ai_chunk` — `data` is a string fragment of the assistant reply.
+  - `type: ai_complete` — `data` is the saved assistant message (includes token fields when available).
+  - `type: error` — `data` is the string `"Failed to generate AI response"` if streaming fails.
+  - `data: [DONE]\n\n` — end of stream.
+- **Non-streaming fallback:** if no stream is available, response is **201** JSON with `data: [<user_message>]` and `message`: `"Message created successfully"`.
 
 ---
 
-## Combined Actions
+## Combined actions
 
-### Start Conversation with Stream
-Create a new conversation and start a streaming AI response in one request.
+### Start conversation with stream
+
+Create a conversation and stream the first assistant reply.
 
 - **URL:** `/conversations/stream`
 - **Method:** `POST`
@@ -120,30 +152,32 @@ Create a new conversation and start a streaming AI response in one request.
     "temperature": 0.7
   }
   ```
-- **Stream Events:**
-  - `type: conversation_created` - Contains the `conversationId` and the saved `userMessage`.
-  - `type: ai_chunk` - AI response fragments.
-  - `type: ai_complete` - The final saved assistant message.
-  - `[DONE]` - Final signal.
+  `content` is required; `title` is optional (title is derived from content when omitted).
+- **SSE events:**
+  - `type: conversation_created` — `data` is `{ "conversation_id": "...", "user_message": { ... } }`.
+  - `type: ai_chunk` / `type: ai_complete` / `type: error` — same semantics as message streaming.
+  - `data: [DONE]\n\n` — end of stream.
+- **Non-streaming fallback:** same as message stream (**201** with a single user message array when no generator).
 
 ---
 
-## Message Management
+## Message management
 
-### List Messages
-Get all messages for a specific conversation.
+### List messages
+
+Returns messages for the conversation, newest first (`created_at` descending).
 
 - **URL:** `/conversations/:conversationId/messages`
 - **Method:** `GET`
 
-### Get Message
-Get details of a specific message.
+### Get message
 
 - **URL:** `/messages/:id`
 - **Method:** `GET`
+- **Response (200):** `message`: `"Message fetched successfully"`.
 
-### Delete Message
-Delete a specific message.
+### Delete message
 
 - **URL:** `/messages/:id`
 - **Method:** `DELETE`
+- **Response (200):** `message`: `"Message deleted successfully"`.
