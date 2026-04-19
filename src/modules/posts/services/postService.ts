@@ -743,6 +743,62 @@ export class PostService {
     };
   }
 
+  async getLikedPostsByUser(user_id: string, params: GetPaginationParams) {
+    const { offset, limit } = params;
+
+    const likedPostIds = await db
+      .select({ post_id: postLikesModel.post_id })
+      .from(postLikesModel)
+      .where(eq(postLikesModel.user_id, user_id));
+
+    const postIds = likedPostIds.map((lp) => lp.post_id);
+
+    if (postIds.length === 0) {
+      const meta = getPaginationMetadata(0, offset, limit);
+      return { data: [], meta };
+    }
+
+    const whereClause = and(
+      inArray(postsModel.id, postIds),
+      isNull(postsModel.deleted_at),
+      PostQueryHelpers.buildPublishedVisibilityClause()
+    );
+
+    const [posts, total] = await Promise.all([
+      db.query.posts.findMany({
+        where: whereClause,
+        columns: {
+          body: false,
+        },
+        extras: {
+          body_snippet: sql<string>`substring(${postsModel.body} from 1 for 200)`.as(
+            'body_snippet'
+          ),
+        },
+        with: {
+          user: {
+            columns: { password: false, github_id: false, last_logged_at: false },
+          },
+          posts_to_tags: { columns: {}, with: { tag: true } },
+        },
+        orderBy: desc(postsModel.created_at),
+        limit: limit,
+        offset: offset,
+      }),
+      PostQueryHelpers.getTotalCount(whereClause),
+    ]);
+
+    const data = posts.map((post: any) => ({
+      ...post,
+      body: post.body_snippet ? post.body_snippet + '...' : '',
+      status: PostQueryHelpers.getLifecycleStatus(post),
+      tags: post.posts_to_tags.map((tag: any) => tag.tag),
+    }));
+
+    const meta = getPaginationMetadata(total, params.offset, params.limit);
+    return { data, meta };
+  }
+
   /**
    * Get posts created over time (grouped by date)
    * @param days Number of days to look back (default: 30)

@@ -14,6 +14,7 @@ Most endpoints are public (no authentication required). The following endpoints 
 - `DELETE /:id` - Delete a post
 - `POST /upload/image` - Upload post images
 - `GET /me` - Get authenticated user's posts
+- `GET /me/liked` - Get posts liked by authenticated user
 - `GET /all` - Super admin only (get all posts)
 
 Protected endpoints require a Bearer token in the `Authorization` header:
@@ -203,7 +204,62 @@ curl -X GET "/v1/posts/me?page=1&limit=10" \
 
 ---
 
-### 5. Get Posts by Tag
+### 5. Get Liked Posts
+Retrieve posts liked by the authenticated user.
+
+- **URL:** `/me/liked`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| offset | number | No | 0 | Pagination offset |
+| limit | number | No | 10 | Items per page |
+
+**Example Request:**
+```bash
+curl -X GET "/v1/posts/me/liked?page=1&limit=10" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Liked Post Title",
+      "slug": "liked-post-title",
+      "excerpt": "...",
+      "photo_url": "/images/posts/liked.jpg",
+      "view_count": 500,
+      "like_count": 25,
+      "user": {
+        "id": "author-id",
+        "username": "author",
+        "image": "https://example.com/avatars/author.jpg"
+      },
+      "tags": ["typescript"],
+      "created_at": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "meta": {
+    "total": 10,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  },
+  "message": "Liked posts fetched successfully"
+}
+```
+
+**Note:** Posts are ordered by the time they were liked (most recently liked first). Only published posts are returned.
+
+---
+
+### 6. Get Posts by Tag
 Retrieve all posts with a specific tag.
 
 - **URL:** `/tag/:tag`

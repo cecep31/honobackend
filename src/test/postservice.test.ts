@@ -24,7 +24,6 @@ const mockChain = {
 };
 
 // Mock for count queries - needs to be async/promise-like or return array
-const mockCountResult = [{ count: 1 }];
 const mockQueryResult = [];
 
 // Make the chain callable/awaitable by returning promises for terminal operations
@@ -706,6 +705,59 @@ describe('PostService', () => {
       expect(mockWhere).toHaveBeenCalled();
       expect(mockOrderBy).toHaveBeenCalled();
       expect(mockLimit).toHaveBeenCalledWith(5000);
+    });
+  });
+
+  describe('getLikedPostsByUser', () => {
+    it('returns posts liked by a user with pagination', async () => {
+      const userId = 'user1';
+      const mockLikedPosts = [{ post_id: 'post1' }];
+      const mockPosts = [
+        {
+          id: 'post1',
+          title: 'Liked Post',
+          body_snippet: 'Content',
+          posts_to_tags: [{ tag: { id: 1, name: 'tag1' } }],
+          user: { id: 'author1' },
+        },
+      ];
+
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve(mockLikedPosts)),
+        })),
+      });
+
+      mockFindMany.mockResolvedValue(mockPosts);
+
+      // Mock count query
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ count: 1 }])),
+        })),
+      });
+
+      const result = await postService.getLikedPostsByUser(userId, { limit: 10, offset: 0 });
+
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('meta');
+      expect(mockFindMany).toHaveBeenCalled();
+    });
+
+    it('returns empty array when user has no liked posts', async () => {
+      const userId = 'user1';
+
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([])),
+        })),
+      });
+
+      const result = await postService.getLikedPostsByUser(userId, { limit: 10, offset: 0 });
+
+      expect(result.data).toEqual([]);
+      expect(result.meta.total_items).toBe(0);
+      expect(mockFindMany).not.toHaveBeenCalled();
     });
   });
 });

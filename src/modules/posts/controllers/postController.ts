@@ -65,6 +65,17 @@ export const createPostController = (postService: PostService, userService: User
     return sendSuccess(c, data, 'My posts fetched successfully', 200, meta);
   });
 
+  postController.get('/me/liked', auth, validateRequest('query', listPostsQuerySchema), async (c) => {
+    const q = c.req.valid('query');
+    const params = {
+      offset: q.offset,
+      limit: q.limit,
+    };
+    const authUser = c.get('user');
+    const { data, meta } = await postService.getLikedPostsByUser(authUser.user_id, params);
+    return sendSuccess(c, data, 'Liked posts fetched successfully', 200, meta);
+  });
+
   postController.get(
     '/feed/following',
     auth,
