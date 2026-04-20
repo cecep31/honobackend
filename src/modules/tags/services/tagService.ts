@@ -1,5 +1,5 @@
 import { randomUUIDv7 } from 'bun';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, asc } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
 import {
   posts_to_tags,
@@ -11,6 +11,13 @@ import { Errors } from '../../../utils/error';
 export class TagService {
   async getTags() {
     return await db.query.tags.findMany();
+  }
+
+  async getTagsForSitemap(limit = 1000) {
+    return await db.query.tags.findMany({
+      orderBy: [asc(tagsModel.created_at)],
+      limit,
+    });
   }
 
   async getTag(name: string) {

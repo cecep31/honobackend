@@ -8,7 +8,11 @@ The Tags API provides endpoints for retrieving available tags used in posts.
 
 ## Authentication
 
-All endpoints are public (no authentication required).
+Most endpoints are public (no authentication required). The following endpoints require authentication:
+- `/following` - Get followed tags
+- `/:tagId/is-following` - Check if following a tag
+- `/:tagId/follow` - Follow a tag (POST)
+- `/:tagId/follow` - Unfollow a tag (DELETE)
 
 ---
 
@@ -63,6 +67,81 @@ curl -X GET /v1/tags
     }
   ],
   "message": "Tags fetched successfully"
+}
+```
+
+---
+
+### 2. Get Tags for Sitemap
+Retrieve all tags in a sitemap-friendly format for SEO purposes.
+
+- **URL:** `/sitemap`
+- **Method:** `GET`
+- **Authentication:** Not required
+
+**Example Request:**
+```bash
+curl -X GET /v1/tags/sitemap
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "typescript",
+      "created_at": "2024-01-15T10:30:00.000Z"
+    },
+    {
+      "name": "javascript",
+      "created_at": "2024-01-16T14:20:00.000Z"
+    },
+    {
+      "name": "react",
+      "created_at": "2024-01-17T09:15:00.000Z"
+    },
+    {
+      "name": "nodejs",
+      "created_at": "2024-01-18T16:45:00.000Z"
+    },
+    {
+      "name": "python",
+      "created_at": "2024-01-19T11:00:00.000Z"
+    }
+  ],
+  "message": "Sitemap tags fetched successfully"
+}
+```
+
+---
+
+### 3. Get Followed Tags
+Retrieve tags that the authenticated user is following.
+
+- **URL:** `/following`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X GET /v1/tags/following \
+  -H "Authorization: Bearer <token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "typescript",
+      "slug": "typescript",
+      "post_count": 45
+    }
+  ],
+  "message": "Followed tags fetched successfully"
 }
 ```
 

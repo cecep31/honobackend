@@ -16,6 +16,15 @@ export const createTagController = (tagService: TagService) => {
     return sendSuccess(c, tags, 'Tags fetched successfully');
   });
 
+  tagController.get('/sitemap', async (c) => {
+    const tags = await tagService.getTagsForSitemap();
+    const sitemapTags = tags.map((tag) => ({
+      name: tag.name,
+      created_at: tag.created_at,
+    }));
+    return sendSuccess(c, sitemapTags, 'Sitemap tags fetched successfully');
+  });
+
   tagController.get('/following', auth, async (c) => {
     const authUser = c.get('user');
     const tags = await tagService.getFollowedTags(authUser.user_id);
