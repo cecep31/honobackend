@@ -1,95 +1,74 @@
-# GEMINI.md - Hono Backend
+# Gemini CLI Project Context: Hono Backend
+
+This document provides foundational context and instructions for AI agents working on the `honobackend` project.
 
 ## Project Overview
 
-This is a high-performance backend API built with **Hono** running on the **Bun** runtime. It leverages **PostgreSQL** as the primary database, with **Drizzle ORM** for type-safe database access and migrations.
+- **Core Framework:** [Hono](https://hono.dev/)
+- **Runtime:** [Bun](https://bun.sh/)
+- **Database:** PostgreSQL with [Drizzle ORM](https://orm.drizzle.team/)
+- **Architecture:** Service-Oriented Architecture (SOA) with a domain-driven modular structure.
+- **Validation:** Type-safe schema validation using [Zod](https://zod.dev/) via `@hono/zod-validator`.
+- **Key Modules:** Authentication (JWT & GitHub OAuth), Users, Posts, Tags, Likes, Bookmarks, Chat (via OpenRouter), Notifications, and Reports.
 
-The project follows a **Service-Oriented Architecture (SOA)**, where business logic and data access are encapsulated in the service layer, separated from controllers and routing.
+## Project Structure
 
-**Key Technologies:**
-- **Framework:** Hono
-- **Runtime:** Bun
-- **Database:** PostgreSQL
-- **ORM:** Drizzle ORM
-- **Validation:** Zod (via `@hono/zod-validator` and custom middleware)
-- **Email:** Resend
-- **Language:** TypeScript
+- `index.ts`: Application entry point for Bun.
+- `src/server/app.ts`: Hono app initialization, global middlewares, and health checks.
+- `src/router/index.ts`: Main router that mounts all module-specific routes under `/v1`.
+- `src/modules/`: Contains business logic divided into domain modules.
+  - `<module>/controllers/`: Hono routers that handle HTTP requests and call services.
+  - `<module>/services/`: Core business logic and database interactions.
+  - `<module>/validation/`: Zod schemas for request validation.
+- `src/database/`: Drizzle ORM configuration and schemas.
+- `src/services/`: Centralized service registry and dependency injection.
+- `src/middlewares/`: Custom middlewares (auth, error handling, validation, etc.).
+- `src/utils/`: Shared utilities for responses, errors, pagination, and HTTP clients.
+- `src/test/`: Comprehensive test suite using Bun's native test runner.
 
-## Building and Running
+## Key Commands
 
-### Prerequisites
-- [Bun](https://bun.sh/) runtime installed.
-- PostgreSQL database instance.
-
-### Commands
-- **Install dependencies:** `bun install`
-- **Development:** `bun run dev` (hot-reloading at `http://localhost:3001`)
-- **Build:** `bun run build` (outputs to `dist/`)
-- **Compile:** `bun run build:compile` (outputs a standalone binary to `bin/honobackend`)
-- **Production Start:** `bun run start:prod`
-- **Type Checking:** `bun run typecheck`
+- **Development:** `bun run dev` (starts server with hot reload)
+- **Testing:** `bun test`
+- **Linting:** `bun run lint` / `bun run lint:fix`
 - **Formatting:** `bun run format` (Prettier)
-- **Linting:** `bun run lint` (ESLint)
-
-### Database Management
-- **Generate migrations:** `bun run db:generate`
-- **Push schema to DB:** `bun run db:push`
-- **Pull from DB:** `bun run db:pull`
-- **Drizzle Studio:** `bun run db:studio`
-
-### Testing
-- **Run tests:** `bun test`
-- **Watch mode:** `bun test:watch`
-- **Coverage:** `bun test:coverage`
+- **Database Management:**
+  - `bun run db:generate`: Generate migrations from schema.
+  - `bun run db:migrate`: Apply migrations to database.
+  - `bun run db:push`: Sync schema to database (for development).
+  - `bun run db:studio`: Launch Drizzle Studio UI.
+- **Production Build:** `bun run build`
 
 ## Development Conventions
 
-### Architecture: Service-Oriented
-The codebase is organized into modules under `src/modules/`. Each module typically contains:
-- `controllers/`: Hono route handlers.
-- `services/`: Business logic and database operations (using Drizzle).
-- `validation/`: Zod schemas for request validation (`body.ts`, `query.ts`, `param.ts`).
+### 1. Controllers and Routing
+- Controllers are implemented as factory functions (e.g., `createAuthController`) that take services as arguments and return a Hono instance.
+- Always use `validateRequest` middleware with a Zod schema for input validation.
+- Use `sendSuccess` utility for consistent JSON responses.
 
-### Service Instantiation
-Services are centrally managed in `src/services/index.ts` using a **lazy-loading proxy pattern**. This ensures services are only instantiated when needed and provides a single point of access for all cross-module service dependencies.
-- **Factory:** `createServices()` initializes all services.
-- **Proxy:** `createLazyService` handles instantiation and caches bound methods to prevent memory leaks.
+### 2. Service Layer
+- Business logic MUST reside in the service layer, not in controllers.
+- Services are typically classes that interact with the database via Drizzle.
+- Use `createLazyService` in `src/services/index.ts` for service instantiation.
 
-### Routing
-Routes are defined modularly within each controller and aggregated in `src/router/index.ts`.
-- **Versioning:** All API routes are versioned under `/v1`.
-- **Health Checks:** `/health` (liveness) and `/ready` (readiness) are available at the root level.
+### 3. Error Handling
+- Use the `Errors` utility class in `src/utils/error.ts` to throw standard HTTP errors (e.g., `Errors.NotFound()`, `Errors.Unauthorized()`).
+- Global error handling is managed by `src/middlewares/errorHandler.ts`.
 
-### Request Validation
-Use the `validateRequest` middleware (in `src/middlewares/validateRequest.ts`) to validate incoming requests against Zod schemas. It handles `json`, `query`, and `param` validation consistently and returns standardized `VALID_001` errors on failure.
+### 4. Database
+- Define schemas in `src/database/schemas/postgres/schema.ts`.
+- Use Drizzle's relational API where appropriate (defined in `drizzle/relations.ts`).
 
-### Error Handling
-A centralized error handling system is used:
-- `src/utils/error.ts`: Defines `ApiError`, `Errors` utility, and standardized error codes:
-    - `AUTH_xxx`: Authentication/Authorization.
-    - `VALID_xxx`: Validation.
-    - `DB_xxx`: Database.
-    - `EXT_xxx`: External service.
-    - `BIZ_xxx`: Business logic.
-    - `SYS_xxx`: System/Infrastructure.
-- `src/middlewares/errorHandler.ts`: Global middleware to catch and format errors into a consistent JSON response.
+### 5. Authentication
+- Protected routes should use the `auth` middleware from `src/middlewares/auth.ts`.
+- The `auth` middleware populates `c.get('user')` with the authenticated user's information.
 
-### Database Patterns
-- **Schema:** The single source of truth for the DB schema is `src/database/schemas/postgres/schema.ts`.
-- **Instance:** The database instance is exported from `src/database/drizzle.ts`.
-- **BigInt:** Custom JSON serialization for BigInt is handled in `src/server/app.ts` (`BigInt.prototype.toJSON`) to prevent serialization errors.
-- **Transactions:** Prefer using Drizzle's `tx` (transaction) for multi-step operations to ensure data integrity.
+## Testing Strategy
+- Add tests for every new feature or bug fix in `src/test/`.
+- Prefer Bun's native test runner (`bun test`).
+- Mock dependencies (like database calls) using `src/test/helpers/drizzleMock.ts` when unit testing services.
 
-### Coding Style
-- **Naming:** CamelCase for files and classes, camelCase for variables and functions.
-- **Formatting:** Prettier is used for code formatting (`bun run format`).
-- **Standardized Responses:** Use `sendSuccess` and `sendError` utilities (found in `src/utils/response.ts` and `src/utils/error.ts`) for consistent API responses.
-
-## Key Files & Directories
-- `index.ts`: Application entry point and server configuration.
-- `src/server/app.ts`: Hono app initialization and global middleware.
-- `src/router/index.ts`: Centralized route registration.
-- `src/database/schemas/postgres/schema.ts`: Drizzle schema definitions.
-- `src/services/index.ts`: Central service registry.
-- `src/utils/error.ts`: Standardized error response utilities.
-- `src/middlewares/`: Shared middlewares (auth, logger, validation, etc.).
+## Security
+- Never log sensitive information or credentials.
+- Use `process.env` through the centralized config in `src/config/index.ts`.
+- Ensure all incoming data is validated using Zod.
