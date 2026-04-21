@@ -81,9 +81,9 @@ const config = {
   rateLimitConfig,
   database: {
     url: validateDatabaseUrl(),
-    max_connections: getNumberEnv('DB_MAX_CONNECTIONS', 20),
+    max_connections: getNumberEnv('DB_MAX_CONNECTIONS', 10),
     idle_timeout: getNumberEnv('DB_IDLE_TIMEOUT', 30),
-    connect_timeout: getNumberEnv('DB_CONNECT_TIMEOUT', 5),
+    connect_timeout: getNumberEnv('DB_CONNECT_TIMEOUT', 10),
     max_lifetime: getNumberEnv('DB_MAX_LIFETIME', 1800),
   },
   jwt: {
