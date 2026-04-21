@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "files" (
 	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
 	"created_at" timestamp with time zone,
@@ -29,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "post_comments" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "posts" (
-	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now(),
 	"updated_at" timestamp with time zone DEFAULT now(),
 	"deleted_at" timestamp with time zone,
@@ -75,7 +77,7 @@ CREATE TABLE IF NOT EXISTS "tags" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "users" (
-	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT uuid_generate_v4() NOT NULL,
 	"github_id" bigint,
 	"created_at" timestamp with time zone DEFAULT now(),
 	"updated_at" timestamp with time zone,
