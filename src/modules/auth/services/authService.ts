@@ -279,10 +279,10 @@ export class AuthService {
       const tokenResponse = await externalApiClient.post<{ access_token?: string }>(
         'https://github.com/login/oauth/access_token',
         {
-          client_id: config.github.CLIENT_ID,
-          client_secret: config.github.CLIENT_SECRET,
+          client_id: config.github.clientId,
+          client_secret: config.github.clientSecret,
           code,
-          redirect_uri: config.github.REDIRECT_URI,
+          redirect_uri: config.github.redirectUri,
         },
         {
           headers: { accept: 'application/json' },

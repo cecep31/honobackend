@@ -9,9 +9,9 @@ mock.module('../config', () => ({
       expiresIn: '1d',
     },
     github: {
-      CLIENT_ID: 'test-id',
-      CLIENT_SECRET: 'test-secret',
-      REDIRECT_URI: 'test-uri',
+      clientId: 'test-id',
+      clientSecret: 'test-secret',
+      redirectUri: 'test-uri',
     },
     frontend: {
       resetPasswordUrl: 'http://localhost:3000/reset-password',

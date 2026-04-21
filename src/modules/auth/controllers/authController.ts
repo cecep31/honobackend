@@ -52,8 +52,8 @@ export const createAuthController = (
 
   authController.get('/oauth/github', async (c) => {
     const authUrl = new URL('https://github.com/login/oauth/authorize');
-    authUrl.searchParams.append('client_id', config.github.CLIENT_ID);
-    authUrl.searchParams.append('redirect_uri', config.github.REDIRECT_URI);
+    authUrl.searchParams.append('client_id', config.github.clientId);
+    authUrl.searchParams.append('redirect_uri', config.github.redirectUri);
     authUrl.searchParams.append('scope', 'user:email');
     return c.redirect(authUrl.toString());
   });

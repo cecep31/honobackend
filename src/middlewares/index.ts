@@ -49,7 +49,7 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
         maxAge: 86400, // 24 hours preflight cache
       })
     );
-  if (config.rateLimiter) {
+  if (config.rateLimiterEnabled) {
     // Create store with automatic cleanup
     rateLimitStore = new CleanupStore(rateLimitConfig.windowMs);
 
