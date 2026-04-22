@@ -21,7 +21,7 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
-    "clean": "rm -rf dist bin",
+    "clean": "node -e \"['dist','bin'].forEach(d=>{try{require('fs').rmSync(d,{recursive:true,force:true})}catch{}})\"",
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {

@@ -89,7 +89,12 @@ export class BookmarkService {
     }
   }
 
-  async getBookmarksByUser(user_id: string, folder_id?: string) {
+  async getBookmarksByUser(
+    user_id: string,
+    folder_id?: string,
+    limit = 50,
+    offset = 0
+  ) {
     try {
       let whereClause = eq(post_bookmarks.user_id, user_id);
 
@@ -114,6 +119,8 @@ export class BookmarkService {
           },
           folder: true,
         },
+        limit,
+        offset,
       });
       return bookmarks;
     } catch (error) {

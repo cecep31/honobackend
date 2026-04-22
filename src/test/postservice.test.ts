@@ -747,9 +747,19 @@ describe('PostService', () => {
     it('returns empty array when user has no liked posts', async () => {
       const userId = 'user1';
 
+      mockFindMany.mockResolvedValue([]);
+
+      // First call: exists subquery construction
       mockSelect.mockReturnValueOnce({
         from: mock(() => ({
-          where: mock(() => Promise.resolve([])),
+          where: mock(() => ({})),
+        })),
+      });
+
+      // Second call: getTotalCount
+      mockSelect.mockReturnValueOnce({
+        from: mock(() => ({
+          where: mock(() => Promise.resolve([{ count: 0 }])),
         })),
       });
 
@@ -757,7 +767,7 @@ describe('PostService', () => {
 
       expect(result.data).toEqual([]);
       expect(result.meta.total_items).toBe(0);
-      expect(mockFindMany).not.toHaveBeenCalled();
+      expect(mockFindMany).toHaveBeenCalled();
     });
   });
 });

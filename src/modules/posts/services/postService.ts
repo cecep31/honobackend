@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, exists, isNull, sql } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
 import {
   users as usersModel,
@@ -477,20 +477,17 @@ export class PostService {
   async getLikedPostsByUser(user_id: string, params: GetPaginationParams) {
     const { offset, limit } = params;
 
-    const likedPostIds = await db
-      .select({ post_id: postLikesModel.post_id })
-      .from(postLikesModel)
-      .where(eq(postLikesModel.user_id, user_id));
-
-    const postIds = likedPostIds.map((lp) => lp.post_id);
-
-    if (postIds.length === 0) {
-      const meta = getPaginationMetadata(0, offset, limit);
-      return { data: [], meta };
-    }
+    const likedByUser = exists(
+      db
+        .select({ one: sql`1` })
+        .from(postLikesModel)
+        .where(
+          and(eq(postLikesModel.post_id, postsModel.id), eq(postLikesModel.user_id, user_id))
+        )
+    );
 
     const whereClause = and(
-      inArray(postsModel.id, postIds),
+      likedByUser,
       isNull(postsModel.deleted_at),
       PostQueryHelpers.buildPublishedVisibilityClause()
     );

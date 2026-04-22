@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { auth } from '../../../middlewares/auth';
 import type { AppServices } from '../../../services';
 import type { Variables } from '../../../types/context';
+import { safeLimit, safeOffset } from '../../../utils/request';
 import { sendSuccess } from '../../../utils/response';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
@@ -52,7 +53,9 @@ export const createBookmarkController = (bookmarkService: BookmarkService) => {
   bookmarkController.get('/', auth, async (c) => {
     const { user_id } = c.get('user');
     const folder_id = c.req.query('folder_id');
-    const result = await bookmarkService.getBookmarksByUser(user_id, folder_id);
+    const limit = safeLimit(c.req.query('limit'), 50);
+    const offset = safeOffset(c.req.query('offset'), 0);
+    const result = await bookmarkService.getBookmarksByUser(user_id, folder_id, limit, offset);
     return sendSuccess(c, result, 'Bookmarks fetched successfully');
   });
 

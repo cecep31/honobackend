@@ -8,7 +8,7 @@ import {
   tags,
   posts_to_tags,
 } from '../../../database/schemas/postgres/schema';
-import { sql, eq, gte, lte, and, count, desc } from 'drizzle-orm';
+import { sql, eq, gte, lte, and, count, desc, inArray, isNull } from 'drizzle-orm';
 
 export interface DateRange {
   startDate?: string;
@@ -346,36 +346,43 @@ export class ReportService {
     }
 
     const topPostsData = await topPostsQuery;
+    const topPostIds = topPostsData.map((p) => p.id);
 
-    const topPosts: PostPerformanceData[] = await Promise.all(
-      topPostsData.map(async (post) => {
-        const commentCountResult = await db
-          .select({ count: count() })
+    // Pre-fetch comment counts in a single query to avoid N+1
+    const commentCounts = topPostIds.length
+      ? await db
+          .select({ post_id: post_comments.post_id, count: count() })
           .from(post_comments)
-          .where(and(eq(post_comments.post_id, post.id), sql`${post_comments.deleted_at} IS NULL`));
+          .where(
+            and(inArray(post_comments.post_id, topPostIds), isNull(post_comments.deleted_at))
+          )
+          .groupBy(post_comments.post_id)
+      : [];
 
-        const comments = Number(commentCountResult[0]?.count || 0);
-        const engagementRate =
-          Number(post.views) > 0 ? ((Number(post.likes) + comments) / Number(post.views)) * 100 : 0;
+    const commentCountMap = new Map(commentCounts.map((c) => [c.post_id, Number(c.count)]));
 
-        return {
-          id: post.id,
-          title: post.title,
-          slug: post.slug,
-          views: Number(post.views),
-          likes: Number(post.likes),
-          comments,
-          engagementRate: Math.round(engagementRate * 100) / 100,
-          author: {
-            id: post.authorId,
-            username: post.authorUsername,
-            firstName: post.authorFirstName,
-            lastName: post.authorLastName,
-          },
-          createdAt: post.createdAt ?? new Date().toISOString(),
-        };
-      })
-    );
+    const topPosts: PostPerformanceData[] = topPostsData.map((post) => {
+      const comments = commentCountMap.get(post.id) || 0;
+      const engagementRate =
+        Number(post.views) > 0 ? ((Number(post.likes) + comments) / Number(post.views)) * 100 : 0;
+
+      return {
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        views: Number(post.views),
+        likes: Number(post.likes),
+        comments,
+        engagementRate: Math.round(engagementRate * 100) / 100,
+        author: {
+          id: post.authorId,
+          username: post.authorUsername,
+          firstName: post.authorFirstName,
+          lastName: post.authorLastName,
+        },
+        createdAt: post.createdAt ?? new Date().toISOString(),
+      };
+    });
 
     const tagPerformance = await db
       .select({
