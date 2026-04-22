@@ -5,18 +5,19 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 ## Build/Lint/Test Commands
 
 ```bash
-bun run typecheck          # TypeScript type checking (tsc --noEmit)
-bun run lint               # ESLint
+bun run typecheck          # tsc --noEmit
+bun run lint               # ESLint (ignores dist/, bin/, drizzle/, *.config.*)
 bun run lint:fix           # ESLint with auto-fix
-bun run format             # Format with Prettier
+bun run format             # Prettier — ONLY src/**/*.ts (does not format root/config/tests)
 bun test                   # Run all tests
 bun test <file>            # Run single test
 bun test --coverage        # Coverage report
 bun run dev                # Dev server with hot reload (localhost:3001)
-bun run build              # Typecheck + bundle to dist/
+bun run build              # Typecheck + bundle to dist/ (--target bun)
 bun run build:compile      # Typecheck + compile native binary to bin/
 bun run start:prod         # Run from dist/
 bun run db:generate        # Generate Drizzle migrations
+bun run db:migrate         # Apply migrations (uses drizzle/my-migrations-table)
 bun run db:push            # Push schema changes directly (no migration files)
 bun run db:pull            # Pull schema from database
 bun run db:studio          # Open Drizzle Studio
@@ -27,9 +28,9 @@ Pre-commit order: `bun run typecheck && bun run lint && bun test`.
 
 ## Code Style
 
-- ES modules (`import/export`), `"type": "module"` in package.json
 - Prettier: 2-space, single quotes, semicolons, trailingComma `es5`, 100 char max, LF endings
 - TypeScript strict mode, Zod v4 for validation
+- `verbatimModuleSyntax: true` in tsconfig — use `import type` for type-only imports
 - Naming: `camelCase` vars/functions, `PascalCase` types/classes, `UPPER_CASE` constants, `_` prefix for private members
 
 ## Error Handling
@@ -73,14 +74,14 @@ Error shape: `{ success: false, message, error: { code?, details? }, request_id,
 
 ### Routing
 - All API routes under `/v1`, wired in `src/router/index.ts` via `setupRouter(app)`.
-- 13 feature modules: auth, users, posts, tags, likes, writers, chat, holdings, bookmarks, comments, notifications, reports.
+- 13 feature modules: auth, users, posts, tags, likes, writers, chat, holding-types, holdings, bookmarks, comments, notifications, reports.
 
 ### Module structure
 ```
 src/modules/<feature>/
   controllers/     # Factory functions returning Hono apps
   services/        # Business logic classes
-  validation/      # Zod schemas (body.ts, query.ts, param.ts)
+  validation/      # Zod schemas exported from index.ts (body.ts, query.ts, param.ts)
 ```
 
 ### Service layer (`src/services/index.ts`)
@@ -118,6 +119,7 @@ await db.insert(users).values(data).returning();
 await db.update(users).set(data).where(eq(users.id, id)).returning();
 ```
 Schema source of truth: `src/database/schemas/postgres/schema.ts`. Tables use `deleted_at` for soft deletes.
+Migrations table is custom: `my-migrations-table` (see `drizzle.config.ts`).
 
 ### Context variables (`src/types/context.ts`)
 ```typescript
@@ -130,15 +132,20 @@ Applied in order: requestId → logging → bodyLimit (default 10MB) → CORS �
 
 ## Testing
 
-Bun test runner, files in `src/test/`. Use helpers from `src/test/helpers/drizzleMock.ts`:
+Bun test runner, files in `src/test/`. **tsconfig excludes `**/*.test.ts`.**
+
+Use helpers from `src/test/helpers/drizzleMock.ts`, and **mock dependencies BEFORE importing services that use them**:
 
 ```typescript
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
-import { createDrizzleMocks, createMockDb, createChainableMock } from './helpers/drizzleMock';
+import { createDrizzleMocks, setupTransactionMock } from './helpers/drizzleMock';
 
-const { mocks, db: mockDb } = createMockDb({ users: { findFirst: mockFindFirst } });
+// Mock config and db BEFORE service imports
+mock.module('../config', () => ({ default: { jwt: { secret: 'test', expiresIn: '1d' } } }));
+const mocks = createDrizzleMocks();
+mock.module('../database/drizzle', () => ({ db: { insert: mocks.mockInsert, ... } }));
 
-mock.module('../database/drizzle', () => ({ db: mockDb }));
+import { authService } from '../services';
 
 describe('Service', () => {
   beforeEach(() => mocks.reset());
@@ -154,11 +161,8 @@ For complex queries use `createChainableMock(result)`. For transactions use `set
 
 Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 chars). Config validated at startup in `src/config/index.ts`.
 
-## Security & Best Practices
+## Repo Quirks
 
-- Validate all input with Zod
-- Never log sensitive data
-- Use transactions for multi-step operations
-- BigInt serialization patched in `src/server/app.ts`
-- Server errors return generic message (no stack traces to clients)
-- `MAIN_DOMAIN` env defaults to `pilput.net`
+- BigInt serialization patched in `src/server/app.ts` (adds `toJSON` to prototype).
+- Server errors return generic message; never send stack traces to clients.
+- `MAIN_DOMAIN` env defaults to `pilput.net`.
