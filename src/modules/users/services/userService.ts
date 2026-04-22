@@ -1,76 +1,64 @@
-import { getS3Helper } from '../../../utils/s3';
 import { randomUUIDv7 } from 'bun';
 import { db } from '../../../database/drizzle';
-import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import {
   profiles,
   users as usersModel,
-  user_follows,
 } from '../../../database/schemas/postgres/schema';
 import type { NotificationService } from '../../notifications/services/notificationService';
 import type { UserCreateBody, UserUpdateBody, UpdateProfileBody } from '../validation';
-import { MAX_PROFILE_IMAGE_BYTES } from '../validation/body';
 import type { UserSignup } from '../../auth/validation';
 import type { GetPaginationParams } from '../../../types/paginate';
 import { getPaginationMetadata } from '../../../utils/paginate';
-import { ApiError, Errors } from '../../../utils/error';
+import { Errors } from '../../../utils/error';
 import type { GithubUser } from '../../../types/auth';
-
-const OAUTH_AVATAR_MIME_TO_EXT: Record<string, string> = {
-  'image/jpeg': 'jpeg',
-  'image/jpg': 'jpeg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
-
-const OAUTH_AVATAR_FETCH_TIMEOUT_MS = 15_000;
-
-function normalizeAvatarContentType(header: string | null): string {
-  if (!header) return '';
-  return header.split(';')[0].trim().toLowerCase();
-}
-
-/** Stream read with hard cap; rejects oversize Content-Length and truncated bodies over maxBytes. */
-async function readResponseBodyWithLimit(
-  res: Response,
-  maxBytes: number
-): Promise<ArrayBuffer | null> {
-  const cl = res.headers.get('content-length');
-  if (cl) {
-    const n = parseInt(cl, 10);
-    if (!Number.isFinite(n) || n > maxBytes) return null;
-  }
-  if (!res.body) return null;
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.length;
-      if (total > maxBytes) return null;
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const c of chunks) {
-    merged.set(c, offset);
-    offset += c.length;
-  }
-  return merged.buffer;
-}
+import { UserFollowService } from './userFollowService';
+import { UserImageService } from './userImageService';
 
 /**
  * Service class for managing user operations
  * Handles CRUD operations, authentication helpers, and user queries
  */
 export class UserService {
-  constructor(private notificationService?: NotificationService) {}
+  private followService: UserFollowService;
+  private imageService: UserImageService;
 
+  constructor(private notificationService?: NotificationService) {
+    this.followService = new UserFollowService(notificationService);
+    this.imageService = new UserImageService();
+  }
+
+  // ===== Follow delegation =====
+  async followUser(follower_id: string, following_id: string) {
+    return this.followService.followUser(follower_id, following_id);
+  }
+
+  async unfollowUser(follower_id: string, following_id: string) {
+    return this.followService.unfollowUser(follower_id, following_id);
+  }
+
+  async getFollowers(userId: string, params?: GetPaginationParams) {
+    return this.followService.getFollowers(userId, params);
+  }
+
+  async getFollowing(userId: string, params?: GetPaginationParams) {
+    return this.followService.getFollowing(userId, params);
+  }
+
+  async isFollowing(follower_id: string, following_id: string) {
+    return this.followService.isFollowing(follower_id, following_id);
+  }
+
+  // ===== Image delegation =====
+  async updateUserImage(userId: string, imageFile: File) {
+    return this.imageService.updateUserImage(userId, imageFile);
+  }
+
+  async mirrorOAuthAvatarToStorage(userId: string, avatarUrl: string) {
+    return this.imageService.mirrorOAuthAvatarToStorage(userId, avatarUrl);
+  }
+
+  // ===== Core CRUD =====
   /**
    * Get paginated list of users (excluding passwords)
    * @param params Pagination parameters (limit, offset)
@@ -496,78 +484,6 @@ export class UserService {
   }
 
   /**
-   * Download an OAuth profile image (e.g. GitHub `avatar_url`) into S3 and point `users.image` at the object key.
-   * Only updates the row if `image` still equals `avatarUrl` (avoids overwriting a newer manual upload).
-   * On failure, logs and leaves the remote URL in the database.
-   */
-  async mirrorOAuthAvatarToStorage(userId: string, avatarUrl: string): Promise<void> {
-    try {
-      if (!avatarUrl.startsWith('http://') && !avatarUrl.startsWith('https://')) {
-        return;
-      }
-
-      const res = await fetch(avatarUrl, {
-        redirect: 'follow',
-        signal: AbortSignal.timeout(OAUTH_AVATAR_FETCH_TIMEOUT_MS),
-      });
-
-      if (!res.ok) {
-        console.warn('OAuth avatar mirror: HTTP', res.status, avatarUrl);
-        return;
-      }
-
-      const buffer = await readResponseBodyWithLimit(res, MAX_PROFILE_IMAGE_BYTES);
-      if (!buffer || buffer.byteLength === 0) {
-        console.warn('OAuth avatar mirror: empty or too large body', avatarUrl);
-        return;
-      }
-
-      const mime = normalizeAvatarContentType(res.headers.get('content-type'));
-      const ext = OAUTH_AVATAR_MIME_TO_EXT[mime];
-      if (!ext) {
-        console.warn('OAuth avatar mirror: unsupported content-type', mime);
-        return;
-      }
-
-      const s3 = getS3Helper();
-      const imageKey = `avatars/${userId}/${randomUUIDv7()}.${ext}`;
-      await s3.uploadFile(imageKey, Buffer.from(buffer));
-
-      const [replaced] = await db
-        .update(usersModel)
-        .set({ image: imageKey, updated_at: new Date().toISOString() })
-        .where(and(eq(usersModel.id, userId), eq(usersModel.image, avatarUrl)))
-        .returning({ id: usersModel.id });
-
-      if (!replaced) {
-        try {
-          await s3.deleteFile(imageKey);
-        } catch {
-          /* ignore orphan cleanup failure */
-        }
-      }
-    } catch (error) {
-      console.warn('OAuth avatar mirror failed:', error);
-    }
-  }
-
-  /**
-   * Get user with password field (for authentication)
-   * @param id User ID
-   * @returns User object with password or null
-   */
-  async getUserWithPassword(id: string) {
-    try {
-      return await db.query.users.findFirst({
-        where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
-      });
-    } catch (error) {
-      console.error('Error fetching user with password:', error);
-      throw Errors.DatabaseError({ message: 'Failed to fetch user', error });
-    }
-  }
-
-  /**
    * Get user profile with profile data
    * @param id User ID
    * @returns User with profile or null
@@ -694,329 +610,19 @@ export class UserService {
     }
   }
 
-  async updateUserImage(userId: string, imageFile: File) {
-    try {
-      if (imageFile.size > MAX_PROFILE_IMAGE_BYTES) {
-        throw Errors.ValidationFailed([
-          { field: 'image', message: 'Max file size is 1MB.' },
-        ]);
-      }
-
-      const s3 = getS3Helper();
-      const user = await this.getUser(userId);
-
-      if (!user) {
-        throw Errors.NotFound('User not found');
-      }
-
-      // If user has an old image, delete it from S3
-      if (user.image) {
-        try {
-          const oldKey = user.image.substring(user.image.lastIndexOf('/') + 1);
-          await s3.deleteFile(`avatars/${oldKey}`);
-        } catch (error) {
-          console.warn('Old image deletion failed, continuing with upload:', error);
-        }
-      }
-
-      const imageId = randomUUIDv7();
-      const imageKey = `avatars/${userId}/${imageId}.${imageFile.type.split('/')[1]}`;
-
-      await s3.uploadFile(imageKey, imageFile);
-
-      const [updatedUser] = await db
-        .update(usersModel)
-        .set({ image: imageKey, updated_at: new Date().toISOString() })
-        .where(eq(usersModel.id, userId))
-        .returning({
-          id: usersModel.id,
-          image: usersModel.image,
-        });
-
-      return updatedUser;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      console.error('Error updating user image:', error);
-      throw Errors.DatabaseError({
-        message: 'Failed to update user image',
-        error,
-      });
-    }
-  }
-
-  // ============================================
-  // User Follow Methods
-  // ============================================
-
   /**
-   * Follow a user
-   * @param follower_id ID of the user who is following
-   * @param following_id ID of the user being followed
-   * @returns Created follow relationship
+   * Get user with password field (for authentication)
+   * @param id User ID
+   * @returns User object with password or null
    */
-  async followUser(follower_id: string, following_id: string) {
+  async getUserWithPassword(id: string) {
     try {
-      const [follower, following] = await Promise.all([
-        this.getUser(follower_id),
-        this.getUser(following_id),
-      ]);
-
-      if (!follower) throw Errors.NotFound('Follower user');
-      if (!following) throw Errors.NotFound('Following user');
-
-      const follow = await db.transaction(async (tx) => {
-        const existingFollow = await tx.query.user_follows.findFirst({
-          where: and(
-            eq(user_follows.follower_id, follower_id),
-            eq(user_follows.following_id, following_id),
-            isNull(user_follows.deleted_at)
-          ),
-        });
-
-        if (existingFollow) {
-          throw Errors.BusinessRuleViolation('Already following this user');
-        }
-
-        const [follow] = await tx
-          .insert(user_follows)
-          .values({ id: randomUUIDv7(), follower_id, following_id })
-          .returning();
-
-        const now = new Date().toISOString();
-        await Promise.all([
-          tx
-            .update(usersModel)
-            .set({
-              following_count: sql`${usersModel.following_count} + 1`,
-              updated_at: now,
-            })
-            .where(eq(usersModel.id, follower_id)),
-          tx
-            .update(usersModel)
-            .set({
-              followers_count: sql`${usersModel.followers_count} + 1`,
-              updated_at: now,
-            })
-            .where(eq(usersModel.id, following_id)),
-        ]);
-
-        return follow;
-      });
-
-      if (this.notificationService && follower_id !== following_id) {
-        await this.notificationService.createNotification({
-          user_id: following_id,
-          type: 'user_followed',
-          title: 'New follower',
-          message: `${follower.username} started following you.`,
-          data: {
-            actor_user_id: follower_id,
-            actor_username: follower.username,
-            follow_id: follow.id,
-          },
-        });
-      }
-
-      return follow;
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message.includes('not found') || error.message.includes('Already following'))
-      ) {
-        throw error;
-      }
-      console.error('Error following user:', error);
-      throw Errors.DatabaseError({ message: 'Failed to follow user', error });
-    }
-  }
-
-  /**
-   * Unfollow a user
-   * @param follower_id ID of the user who is unfollowing
-   * @param following_id ID of the user being unfollowed
-   * @returns Soft deleted follow relationship
-   */
-  async unfollowUser(follower_id: string, following_id: string) {
-    try {
-      return await db.transaction(async (tx) => {
-        const existingFollow = await tx.query.user_follows.findFirst({
-          where: and(
-            eq(user_follows.follower_id, follower_id),
-            eq(user_follows.following_id, following_id),
-            isNull(user_follows.deleted_at)
-          ),
-        });
-
-        if (!existingFollow) {
-          throw Errors.NotFound('Follow relationship');
-        }
-
-        const now = new Date().toISOString();
-
-        const [[unfollow]] = await Promise.all([
-          tx
-            .update(user_follows)
-            .set({ deleted_at: now })
-            .where(eq(user_follows.id, existingFollow.id))
-            .returning(),
-          tx
-            .update(usersModel)
-            .set({
-              following_count: sql`GREATEST(${usersModel.following_count} - 1, 0)`,
-              updated_at: now,
-            })
-            .where(eq(usersModel.id, follower_id)),
-          tx
-            .update(usersModel)
-            .set({
-              followers_count: sql`GREATEST(${usersModel.followers_count} - 1, 0)`,
-              updated_at: now,
-            })
-            .where(eq(usersModel.id, following_id)),
-        ]);
-
-        return unfollow;
+      return await db.query.users.findFirst({
+        where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
       });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('not found')) {
-        throw error;
-      }
-      console.error('Error unfollowing user:', error);
-      throw Errors.DatabaseError({ message: 'Failed to unfollow user', error });
-    }
-  }
-
-  /**
-   * Get list of followers for a user
-   * @param userId User ID
-   * @param params Pagination parameters
-   * @returns Paginated list of followers
-   */
-  async getFollowers(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
-    try {
-      const { limit, offset } = params;
-
-      const followersWhere = and(
-        eq(user_follows.following_id, userId),
-        isNull(user_follows.deleted_at),
-        isNull(usersModel.deleted_at)
-      );
-
-      const [followers, totalResult] = await Promise.all([
-        db
-          .select({
-            id: usersModel.id,
-            first_name: usersModel.first_name,
-            last_name: usersModel.last_name,
-            username: usersModel.username,
-            email: usersModel.email,
-            image: usersModel.image,
-            followers_count: usersModel.followers_count,
-            following_count: usersModel.following_count,
-            created_at: user_follows.created_at,
-          })
-          .from(user_follows)
-          .innerJoin(usersModel, eq(user_follows.follower_id, usersModel.id))
-          .where(followersWhere)
-          .orderBy(desc(user_follows.created_at))
-          .limit(limit)
-          .offset(offset),
-        db
-          .select({ count: count() })
-          .from(user_follows)
-          .innerJoin(usersModel, eq(user_follows.follower_id, usersModel.id))
-          .where(followersWhere),
-      ]);
-
-      const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
-      return { data: followers, meta };
-    } catch (error) {
-      console.error('Error fetching followers:', error);
-      throw Errors.DatabaseError({
-        message: 'Failed to fetch followers',
-        error,
-      });
-    }
-  }
-
-  /**
-   * Get list of users that a user is following
-   * @param userId User ID
-   * @param params Pagination parameters
-   * @returns Paginated list of following users
-   */
-  async getFollowing(userId: string, params: GetPaginationParams = { offset: 0, limit: 10 }) {
-    try {
-      const { limit, offset } = params;
-
-      const followingWhere = and(
-        eq(user_follows.follower_id, userId),
-        isNull(user_follows.deleted_at),
-        isNull(usersModel.deleted_at)
-      );
-
-      const [following, totalResult] = await Promise.all([
-        db
-          .select({
-            id: usersModel.id,
-            first_name: usersModel.first_name,
-            last_name: usersModel.last_name,
-            username: usersModel.username,
-            email: usersModel.email,
-            image: usersModel.image,
-            followers_count: usersModel.followers_count,
-            following_count: usersModel.following_count,
-            created_at: user_follows.created_at,
-          })
-          .from(user_follows)
-          .innerJoin(usersModel, eq(user_follows.following_id, usersModel.id))
-          .where(followingWhere)
-          .orderBy(desc(user_follows.created_at))
-          .limit(limit)
-          .offset(offset),
-        db
-          .select({ count: count() })
-          .from(user_follows)
-          .innerJoin(usersModel, eq(user_follows.following_id, usersModel.id))
-          .where(followingWhere),
-      ]);
-
-      const meta = getPaginationMetadata(totalResult[0].count, offset, limit);
-      return { data: following, meta };
-    } catch (error) {
-      console.error('Error fetching following:', error);
-      throw Errors.DatabaseError({
-        message: 'Failed to fetch following',
-        error,
-      });
-    }
-  }
-
-  /**
-   * Check if a user is following another user
-   * @param follower_id ID of the potential follower
-   * @param following_id ID of the potential following
-   * @returns Boolean indicating if following
-   */
-  async isFollowing(follower_id: string, following_id: string): Promise<boolean> {
-    try {
-      const follow = await db.query.user_follows.findFirst({
-        where: and(
-          eq(user_follows.follower_id, follower_id),
-          eq(user_follows.following_id, following_id),
-          isNull(user_follows.deleted_at)
-        ),
-      });
-
-      return !!follow;
-    } catch (error) {
-      console.error('Error checking follow status:', error);
-      throw Errors.DatabaseError({
-        message: 'Failed to check follow status',
-        error,
-      });
+      console.error('Error fetching user with password:', error);
+      throw Errors.DatabaseError({ message: 'Failed to fetch user', error });
     }
   }
 }

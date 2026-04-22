@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { rateLimiter } from 'hono-rate-limiter';
 import { auth } from '../../../middlewares/auth';
 import { createSuperAdminMiddleware } from '../../../middlewares/superAdmin';
 import { validateRequest } from '../../../middlewares/validateRequest';
@@ -9,6 +8,7 @@ import type { Variables } from '../../../types/context';
 import { Errors } from '../../../utils/error';
 import { sendSuccess } from '../../../utils/response';
 import { getS3Helper } from '../../../utils/s3';
+import { createRateLimiter } from '../../../utils/rateLimiter';
 import {
   chartLimitQuerySchema,
   createPostSchema,
@@ -41,15 +41,23 @@ export const createPostController = (postService: PostService, userService: User
     return sendSuccess(c, data, 'Posts fetched successfully', 200, meta);
   });
 
-  postController.get('/random', async (c) => {
-    const posts = await postService.getPostsRandom();
-    return sendSuccess(c, posts, 'Random posts fetched successfully');
-  });
+  postController.get(
+    '/random',
+    createRateLimiter(5 * 60 * 1000, 20),
+    async (c) => {
+      const posts = await postService.getPostsRandom();
+      return sendSuccess(c, posts, 'Random posts fetched successfully');
+    }
+  );
 
-  postController.get('/trending', async (c) => {
-    const posts = await postService.getTrendingPosts(5);
-    return sendSuccess(c, posts, 'Trending posts fetched successfully');
-  });
+  postController.get(
+    '/trending',
+    createRateLimiter(5 * 60 * 1000, 30),
+    async (c) => {
+      const posts = await postService.getTrendingPosts(5);
+      return sendSuccess(c, posts, 'Trending posts fetched successfully');
+    }
+  );
 
   postController.get('/me', auth, validateRequest('query', listPostsQuerySchema), async (c) => {
     const q = c.req.valid('query');
@@ -152,16 +160,7 @@ export const createPostController = (postService: PostService, userService: User
 
   postController.get(
     '/sitemap',
-    rateLimiter({
-      windowMs: 5 * 60 * 1000,
-      limit: 10,
-      standardHeaders: 'draft-6',
-      keyGenerator: (c) =>
-        c.req.header('x-forwarded-for') ||
-        c.req.header('x-real-ip') ||
-        c.req.header('cf-connecting-ip') ||
-        'unknown',
-    }),
+    createRateLimiter(5 * 60 * 1000, 10),
     async (c) => {
       const posts = await postService.getPostsForSitemap();
       return sendSuccess(c, posts, 'Sitemap posts fetched successfully');
@@ -303,11 +302,16 @@ export const createPostController = (postService: PostService, userService: User
     }
   );
 
-  postController.post('/:id/view', validateRequest('param', postIdSchema), async (c) => {
-    const id = c.req.param('id');
-    const result = await postService.incrementView(id);
-    return sendSuccess(c, result, 'Post view incremented');
-  });
+  postController.post(
+    '/:id/view',
+    createRateLimiter(60 * 1000, 60),
+    validateRequest('param', postIdSchema),
+    async (c) => {
+      const id = c.req.param('id');
+      const result = await postService.incrementView(id);
+      return sendSuccess(c, result, 'Post view incremented');
+    }
+  );
 
   postController.delete('/:id', auth, async (c) => {
     const id = c.req.param('id');

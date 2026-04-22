@@ -8,7 +8,7 @@ import {
   tags,
   posts_to_tags,
 } from '../../../database/schemas/postgres/schema';
-import { sql, eq, gte, lte, and, count, desc, aliasedTable } from 'drizzle-orm';
+import { sql, eq, gte, lte, and, count, desc } from 'drizzle-orm';
 
 export interface DateRange {
   startDate?: string;
@@ -498,4 +498,4 @@ export class ReportService {
   }
 }
 
-export const reportService = new ReportService();
+

@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { auth } from '../../../middlewares/auth';
 import { createSuperAdminMiddleware } from '../../../middlewares/superAdmin';
 import { validateRequest } from '../../../middlewares/validateRequest';
+import type { AppServices } from '../../../services';
 import type { Variables } from '../../../types/context';
 import { sendSuccess } from '../../../utils/response';
-import { reportService } from '../services/reportService';
 import {
   userReportQuerySchema,
   postReportQuerySchema,
@@ -12,7 +12,12 @@ import {
 } from '../validation/query';
 import type { UserService } from '../../users/services/userService';
 
-export const createReportController = (userService: UserService) => {
+type ReportService = AppServices['reportService'];
+
+export const createReportController = (
+  userService: UserService,
+  reportService: ReportService
+) => {
   const superAdminMiddleware = createSuperAdminMiddleware(userService);
 
   return new Hono<{ Variables: Variables }>()

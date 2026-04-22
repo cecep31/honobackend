@@ -33,7 +33,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
   const bookmarkController = createBookmarkController(services.bookmarkService);
   const commentController = createCommentController(services.commentService);
   const notificationController = createNotificationController(services.notificationService);
-  const reportController = createReportController(services.userService);
+  const reportController = createReportController(services.userService, services.reportService);
 
   const v1 = new Hono<{ Variables: Variables }>()
     .route('/auth', authController)

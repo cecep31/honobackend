@@ -1,6 +1,5 @@
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { Hono } from 'hono';
-import { rateLimiter } from 'hono-rate-limiter';
 import config from '../../../config';
 import { auth } from '../../../middlewares/auth';
 import { validateRequest } from '../../../middlewares/validateRequest';
@@ -11,6 +10,8 @@ import { Errors } from '../../../utils/error';
 import { externalApiClient } from '../../../utils/httpClient';
 import { getPaginationMetadata } from '../../../utils/paginate';
 import { getClientIp } from '../../../utils/request';
+import { createRateLimiter } from '../../../utils/rateLimiter';
+import { parseExpiresIn } from '../../../utils/jwt';
 import { sendSuccess } from '../../../utils/response';
 import {
   activityLogsQuerySchema,
@@ -30,18 +31,6 @@ import {
 type AuthService = AppServices['authService'];
 type UserService = AppServices['userService'];
 type ActivityService = AppServices['activityService'];
-
-function createRateLimiter(windowMs: number, limit: number) {
-  return rateLimiter({
-    windowMs,
-    limit,
-    standardHeaders: 'draft-6',
-    keyGenerator: (c) => getClientIp(c) || 'unknown',
-    handler: () => {
-      throw Errors.TooManyRequests(Math.ceil(windowMs / 1000));
-    },
-  });
-}
 
 export const createAuthController = (
   authService: AuthService,
@@ -103,7 +92,7 @@ export const createAuthController = (
         const jwtToken = await authService.signInWithGithub(githubUserData, ipAddress, userAgent);
         setCookie(c, 'token', jwtToken.access_token, {
           domain: `.${config.frontend.mainDomain}`,
-          maxAge: 60 * 60 * 5,
+          maxAge: parseExpiresIn(config.jwt.expiresIn),
           sameSite: 'Strict',
         });
         return c.redirect(config.frontend.url);

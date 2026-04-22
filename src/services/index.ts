@@ -8,6 +8,7 @@ import { HoldingService } from '../modules/holdings/services/holdingService';
 import { LikeService } from '../modules/likes/services/likeService';
 import { NotificationService } from '../modules/notifications/services/notificationService';
 import { PostService } from '../modules/posts/services/postService';
+import { ReportService } from '../modules/reports/services/reportService';
 import { TagService } from '../modules/tags/services/tagService';
 import { UserService } from '../modules/users/services/userService';
 import { WriterService } from '../modules/writers/services/writerService';
@@ -51,6 +52,7 @@ export interface AppServices {
   bookmarkService: BookmarkService;
   commentService: CommentService;
   notificationService: NotificationService;
+  reportService: ReportService;
 }
 
 export function createServices(): AppServices {
@@ -67,6 +69,7 @@ export function createServices(): AppServices {
   const likeService = createLazyService(() => new LikeService());
   const bookmarkService = createLazyService(() => new BookmarkService());
   const commentService = createLazyService(() => new CommentService(notificationService));
+  const reportService = createLazyService(() => new ReportService());
 
   return {
     notificationService,
@@ -82,6 +85,7 @@ export function createServices(): AppServices {
     likeService,
     bookmarkService,
     commentService,
+    reportService,
   };
 }
 
@@ -101,4 +105,5 @@ export const {
   likeService,
   bookmarkService,
   commentService,
+  reportService,
 } = defaultServices;

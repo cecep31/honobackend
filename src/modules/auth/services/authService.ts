@@ -2,6 +2,7 @@ import { sign } from 'hono/jwt';
 import { eq, and, gte } from 'drizzle-orm';
 import { users } from '../../../database/schemas/postgres/schema';
 import type { UserService } from '../../users/services/userService';
+import type { UserImageService } from '../../users/services/userImageService';
 import type { UserSignup } from '../validation';
 import type { GithubUser } from '../../../types/auth';
 import config from '../../../config';
@@ -15,11 +16,15 @@ import {
 } from '../../../database/schemas/postgres/schema';
 import { AuthActivityService } from './authActivityService';
 import { isEmailConfigured, sendPasswordResetEmail } from '../../../email';
+import { parseExpiresIn } from '../../../utils/jwt';
 
 export class AuthService {
   private activityService: AuthActivityService;
 
-  constructor(private userService: UserService) {
+  constructor(
+    private userService: UserService,
+    private userImageService?: UserImageService
+  ) {
     this.activityService = new AuthActivityService();
   }
 
@@ -36,7 +41,7 @@ export class AuthService {
       user_id: user.id,
       email: user.email,
       is_super_admin: user.is_super_admin,
-      exp: Math.floor(Date.now() / 1000) + 5 * 60 * 60, // 5 hours
+      exp: Math.floor(Date.now() / 1000) + parseExpiresIn(config.jwt.expiresIn),
     };
   }
 
@@ -218,7 +223,8 @@ export class AuthService {
     });
 
     if (result.mirrorAvatar && result.avatarUrl) {
-      void this.userService
+      const imageService = this.userImageService ?? this.userService;
+      void imageService
         .mirrorOAuthAvatarToStorage(result.userId, result.avatarUrl)
         .catch(() => undefined);
     }
