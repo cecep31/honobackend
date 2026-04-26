@@ -138,16 +138,17 @@ curl -X GET /v1/users/me \
 ---
 
 ### 3. Get User by ID
-Retrieve a user by their ID.
+Retrieve a user by their ID. Super admin only (same as other admin user management operations).
 
 - **URL:** `/:id`
 - **Method:** `GET`
 - **Authentication:** Required
+- **Requires:** Super Admin role
 
 **Example Request:**
 ```bash
 curl -X GET /v1/users/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer <your_token>"
+  -H "Authorization: Bearer <admin_token>"
 ```
 
 **Response (200):**
@@ -543,10 +544,10 @@ async function getMyProfile(extended = false): Promise<UserProfile> {
   return result.data;
 }
 
-// Get user by ID
+// Super admin: Get user by ID
 async function getUser(userId: string): Promise<User> {
   const response = await fetch(`/v1/users/${userId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { 'Authorization': `Bearer ${adminToken}` }
   });
   const result = await response.json();
   return result.data;

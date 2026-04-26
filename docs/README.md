@@ -123,7 +123,7 @@ Each module has its own README.md with detailed documentation:
 |----------|--------|-------------|---------------|
 | `/users` | GET | Get all users | Yes (Super Admin) |
 | `/users/me` | GET | Get current user profile | Yes |
-| `/users/:id` | GET | Get user by ID | Yes |
+| `/users/:id` | GET | Get user by ID | Yes (Super Admin) |
 | `/users` | POST | Create user | Yes (Super Admin) |
 | `/users/:id` | DELETE | Delete user | Yes (Super Admin) |
 | `/users/:id/follow` | POST | Follow user | Yes |

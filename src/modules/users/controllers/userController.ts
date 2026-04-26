@@ -80,16 +80,22 @@ export const createUserController = (userService: UserService) => {
 
       return sendSuccess(c, user, 'User fetched successfully');
     })
-    .get('/:id', auth, validateRequest('param', userIdSchema), async (c) => {
-      const params = c.req.valid('param');
-      const user = await userService.getUser(params.id);
+    .get(
+      '/:id',
+      auth,
+      superAdminMiddleware,
+      validateRequest('param', userIdSchema),
+      async (c) => {
+        const params = c.req.valid('param');
+        const user = await userService.getUser(params.id);
 
-      if (!user) {
-        throw Errors.NotFound('User');
+        if (!user) {
+          throw Errors.NotFound('User');
+        }
+
+        return sendSuccess(c, user, 'User fetched successfully');
       }
-
-      return sendSuccess(c, user, 'User fetched successfully');
-    })
+    )
     .post('/', auth, superAdminMiddleware, validateRequest('json', createUserSchema), async (c) => {
       const body = c.req.valid('json');
       const user = await userService.addUser(body);
