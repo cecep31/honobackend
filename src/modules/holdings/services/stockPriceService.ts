@@ -1,4 +1,5 @@
 import { externalApiClient } from '../../../utils/httpClient';
+import { Errors } from '../../../utils/error';
 
 interface YahooFinanceQuoteResponse {
   quoteResponse?: {
@@ -39,7 +40,7 @@ export class StockPriceService {
       }));
     } catch (error) {
       console.error('Error fetching stock prices:', error);
-      throw new Error('Failed to fetch stock prices from external provider');
+      throw Errors.ExternalServiceError('Stock price provider');
     }
   }
 

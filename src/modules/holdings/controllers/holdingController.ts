@@ -10,6 +10,7 @@ import {
   getCompareMonthsSchema,
   getHoldingsQuerySchema,
   getMonthlyQuerySchema,
+  getPriceQuerySchema,
   getSummaryQuerySchema,
   getTrendsQuerySchema,
   holdingIdSchema,
@@ -68,11 +69,10 @@ export const createHoldingController = (holdingService: HoldingService) =>
       );
       return sendSuccess(c, data, 'Holdings monthly data fetched successfully');
     })
-    .get('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
-      const authUser = c.get('user');
-      const params = c.req.valid('param');
-      const holding = await holdingService.getHoldingById(authUser.user_id, Number(params.id));
-      return sendSuccess(c, holding, 'Holding fetched successfully');
+    .get('/price', auth, validateRequest('query', getPriceQuerySchema), async (c) => {
+      const { symbol } = c.req.valid('query');
+      const price = await holdingService.getPrice(symbol);
+      return sendSuccess(c, price, 'Price fetched successfully');
     })
     .post('/', auth, validateRequest('json', createHoldingSchema), async (c) => {
       const authUser = c.get('user');
@@ -90,6 +90,12 @@ export const createHoldingController = (holdingService: HoldingService) =>
       const body = c.req.valid('json');
       const holdings = await holdingService.duplicateHoldingsByMonth(authUser.user_id, body);
       return sendSuccess(c, holdings, 'Holdings duplicated successfully', 201);
+    })
+    .get('/:id', auth, validateRequest('param', holdingIdSchema), async (c) => {
+      const authUser = c.get('user');
+      const params = c.req.valid('param');
+      const holding = await holdingService.getHoldingById(authUser.user_id, Number(params.id));
+      return sendSuccess(c, holding, 'Holding fetched successfully');
     })
     .put(
       '/:id',

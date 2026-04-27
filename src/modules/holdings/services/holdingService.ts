@@ -68,13 +68,25 @@ export class HoldingService {
         .where(eq(holdings.id, h.id));
     });
 
-    await Promise.all(updatePromises.filter(Boolean));
+    const validUpdatePromises = updatePromises.filter((promise) => promise !== null);
+    await Promise.all(validUpdatePromises);
 
     return {
-      syncedCount: userHoldings.length,
+      syncedCount: validUpdatePromises.length,
       month: currentMonth,
       year: currentYear,
     };
+  }
+
+  async getPrice(symbol: string) {
+    const normalizedSymbol = symbol.trim().toUpperCase();
+    const price = await stockPriceService.getPrice(normalizedSymbol);
+
+    if (!price) {
+      throw Errors.NotFound('Stock price');
+    }
+
+    return price;
   }
 
   async getHoldingById(userId: string, id: number) {

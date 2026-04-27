@@ -43,3 +43,7 @@ export const getMonthlyQuerySchema = z.object({
   endMonth: z.string().regex(/^\d+$/).transform(Number).optional(),
   endYear: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
+
+export const getPriceQuerySchema = z.object({
+  symbol: z.string().trim().min(1),
+});
