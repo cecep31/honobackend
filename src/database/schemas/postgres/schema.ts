@@ -861,7 +861,7 @@ export const holdings = pgTable(
         END
       `
     ),
-    units: numeric({ precision: 24, scale: 10 }),
+    units: numeric({ precision: 24, scale: 4 }),
     avg_buy_price: numeric('avg_buy_price', { precision: 18, scale: 8 }),
     current_price: numeric('current_price', { precision: 18, scale: 8 }),
     last_updated: timestamp('last_updated', {

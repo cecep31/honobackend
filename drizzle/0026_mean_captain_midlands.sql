@@ -1,0 +1,1 @@
+ALTER TABLE "holdings" ALTER COLUMN "units" SET DATA TYPE numeric(24, 4);
