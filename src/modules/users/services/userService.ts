@@ -104,6 +104,26 @@ export class UserService {
   }
 
   /**
+   * Check if a user has super admin role from database.
+   * This is used for authorization checks to avoid relying on stale JWT payload role flags.
+   * @param id User ID
+   * @returns True when user exists, is not deleted, and is marked as super admin
+   */
+  async isUserSuperAdmin(id: string): Promise<boolean> {
+    try {
+      const user = await db.query.users.findFirst({
+        columns: { id: true, is_super_admin: true },
+        where: and(eq(usersModel.id, id), isNull(usersModel.deleted_at)),
+      });
+
+      return Boolean(user?.is_super_admin);
+    } catch (error) {
+      console.error('Error checking super admin role:', error);
+      throw Errors.DatabaseError({ message: 'Failed to verify super admin role', error });
+    }
+  }
+
+  /**
    * Get authenticated user's own profile
    * @param id User ID
    * @param profile Whether to include profile data

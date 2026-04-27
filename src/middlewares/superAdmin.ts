@@ -10,9 +10,9 @@ export const createSuperAdminMiddleware = (userService: UserService) =>
     if (!auth) {
       throw Errors.Unauthorized();
     }
-    const user = await userService.getUser(auth.user_id);
 
-    if (user?.is_super_admin) {
+    const isSuperAdmin = await userService.isUserSuperAdmin(auth.user_id);
+    if (isSuperAdmin) {
       await next();
     } else {
       throw Errors.Forbidden();

@@ -175,6 +175,45 @@ describe('UserService', () => {
     });
   });
 
+  describe('isUserSuperAdmin', () => {
+    it('returns true when user is a super admin', async () => {
+      mockUserFindFirst.mockResolvedValue({
+        id: 'user1',
+        is_super_admin: true,
+      });
+
+      const result = await userService.isUserSuperAdmin('user1');
+
+      expect(result).toBe(true);
+      expect(mockUserFindFirst).toHaveBeenCalled();
+    });
+
+    it('returns false when user is not a super admin', async () => {
+      mockUserFindFirst.mockResolvedValue({
+        id: 'user1',
+        is_super_admin: false,
+      });
+
+      const result = await userService.isUserSuperAdmin('user1');
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false when user is not found', async () => {
+      mockUserFindFirst.mockResolvedValue(null);
+
+      const result = await userService.isUserSuperAdmin('missing-user');
+
+      expect(result).toBe(false);
+    });
+
+    it('handles database errors', async () => {
+      mockUserFindFirst.mockRejectedValue(new Error('Database error'));
+
+      await expect(userService.isUserSuperAdmin('user1')).rejects.toThrow();
+    });
+  });
+
   describe('getUserMe', () => {
     it('returns user without profile when profile flag is false', async () => {
       const mockUser = {
