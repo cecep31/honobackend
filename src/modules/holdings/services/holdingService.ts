@@ -449,7 +449,8 @@ export class HoldingService {
           );
       }
 
-      // 3. Prepare new holdings (new id; gain_* are generated)
+      // 3. Prepare new holdings - copy all insertable columns from source
+      // Note: id is auto-generated, gain_amount/gain_percent are computed columns
       const newHoldings = sourceHoldings.map((h) => ({
         user_id: h.user_id,
         name: h.name,
