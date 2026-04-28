@@ -11,11 +11,12 @@ bun run lint:fix           # ESLint with auto-fix
 bun run format             # Prettier — ONLY src/**/*.ts (does not format root/config/tests)
 bun test                   # Run all tests
 bun test <file>            # Run single test
+bun test --watch           # Watch mode
 bun test --coverage        # Coverage report
-bun run dev                # Dev server with hot reload (localhost:3001)
-bun run build              # Typecheck + bundle to dist/ (--target bun)
-bun run build:compile      # Typecheck + compile native binary to bin/
-bun run start:prod         # Run from dist/
+bun run dev                # Dev server with hot reload (localhost:3001 via bun --hot)
+bun run build              # Typecheck + bundle to dist/ (--target bun, minified)
+bun run build:compile      # Typecheck + compile native binary to bin/honobackend
+bun run start:prod         # Run from dist/index.js
 bun run db:generate        # Generate Drizzle migrations
 bun run db:migrate         # Apply migrations (uses drizzle/my-migrations-table)
 bun run db:push            # Push schema changes directly (no migration files)
@@ -29,9 +30,10 @@ Pre-commit order: `bun run typecheck && bun run lint && bun test`.
 ## Code Style
 
 - Prettier: 2-space, single quotes, semicolons, trailingComma `es5`, 100 char max, LF endings
-- TypeScript strict mode, Zod v4 for validation
+- TypeScript strict mode, Zod v4 for validation, `@hono/zod-validator` for route validation
 - `verbatimModuleSyntax: true` in tsconfig — use `import type` for type-only imports
-- Naming: `camelCase` vars/functions, `PascalCase` types/classes, `UPPER_CASE` constants, `_` prefix for private members
+- Naming: `camelCase` vars/functions, `PascalCase` types/classes, `UPPER_CASE` constants, `_` prefix for private/unused vars
+- ESLint: `@typescript-eslint/no-explicit-any` is **off**, `@typescript-eslint/no-unsafe-function-type` is **off**, unused vars with `_` prefix are ignored
 
 ## Error Handling
 
@@ -74,7 +76,8 @@ Error shape: `{ success: false, message, error: { code?, details? }, request_id,
 
 ### Routing
 - All API routes under `/v1`, wired in `src/router/index.ts` via `setupRouter(app)`.
-- 13 feature modules: auth, users, posts, tags, likes, writers, chat, holding-types, holdings, bookmarks, comments, notifications, reports.
+- 14 controllers (13 feature modules): auth, users, posts, tags, likes, writers, chat, holding-types, holdings, bookmarks, comments, notifications, reports.
+- `holdingTypeController` and `holdingController` both use `HoldingService` (no separate HoldingTypeService).
 
 ### Module structure
 ```
@@ -89,7 +92,7 @@ Services use **lazy-loading proxy** via `createLazyService()`. Import pre-create
 ```typescript
 import { authService, userService } from '../services';
 ```
-Services receive dependencies via constructor. Dependency graph is wired in `createServices()`.
+Services receive dependencies via constructor. Dependency graph is wired in `createServices()`. Key dependencies: `userService → notificationService`, `authService → userService`, `chatService → openrouterService`, `commentService → notificationService`.
 
 ### Controllers
 Factory functions that receive services and return Hono route apps:
@@ -108,6 +111,14 @@ app.post('/', validateRequest('json', bodySchema), handler);
 // Supports: 'json' | 'query' | 'param' | 'cookie' | 'header' | 'form'
 ```
 
+### Authentication
+Protected routes use `auth` middleware from `src/middlewares/auth.ts`:
+```typescript
+import { auth } from '../../middlewares/auth';
+app.get('/', auth, handler);
+```
+The middleware validates Bearer JWT and sets `c.set('user', userPayload)`.
+
 ### Database (Drizzle ORM)
 ```typescript
 import { db } from '../../../database/drizzle';
@@ -119,7 +130,7 @@ await db.insert(users).values(data).returning();
 await db.update(users).set(data).where(eq(users.id, id)).returning();
 ```
 Schema source of truth: `src/database/schemas/postgres/schema.ts`. Tables use `deleted_at` for soft deletes.
-Migrations table is custom: `my-migrations-table` (see `drizzle.config.ts`).
+Migrations table is custom: `my-migrations-table` (see `drizzle.config.ts`). Relations defined in `drizzle/relations.ts`.
 
 ### Context variables (`src/types/context.ts`)
 ```typescript
@@ -161,8 +172,21 @@ For complex queries use `createChainableMock(result)`. For transactions use `set
 
 Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 chars). Config validated at startup in `src/config/index.ts`.
 
+Key optional integrations: GitHub OAuth (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`), S3 storage, OpenRouter AI (`OPENROUTER_API_KEY`, default model `openai/gpt-oss-20b:free`), Resend email for password resets.
+
+DB pool defaults: `DB_MAX_CONNECTIONS=50`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIMEOUT=5`, `DB_MAX_LIFETIME=1800`.
+
+## Deploy
+
+- Docker image: `cecep31/honobackend` (built from `Dockerfile`, multi-stage, compiles native binary)
+- CI: push to `main` triggers Docker Hub build/push (`.github/workflows/build_deploy.yml`)
+- Runtime: Fly.io (`fly.toml`), region `sin`, 256MB RAM + 128MB swap, port 3001
+- `MAIN_DOMAIN` env defaults to `pilput.net`
+
 ## Repo Quirks
 
 - BigInt serialization patched in `src/server/app.ts` (adds `toJSON` to prototype).
 - Server errors return generic message; never send stack traces to clients.
-- `MAIN_DOMAIN` env defaults to `pilput.net`.
+- `bun --hot` used for dev (not nodemon or similar).
+- `sanitize-html` dependency used for HTML sanitization (posts, comments).
+- `resend` package for transactional email (password reset flows).
