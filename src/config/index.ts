@@ -13,10 +13,6 @@ function getNumber(key: string, fallback: number): number {
   return Number.isNaN(parsed) ? fallback : parsed;
 }
 
-function getBoolean(key: string, fallback = false): boolean {
-  return process.env[key] === 'true' ? true : fallback;
-}
-
 function requireString(key: string): string {
   const value = process.env[key];
   if (!value) {
@@ -97,7 +93,6 @@ interface CorsConfig {
 }
 
 interface AppConfig {
-  rateLimiterEnabled: boolean;
   rateLimit: RateLimitConfig;
   bodyLimit: BodyLimitConfig;
   cors: CorsConfig;
@@ -197,10 +192,10 @@ function buildCorsConfig(): CorsConfig {
 // ------------------------------------------------------------------------------
 
 const config: AppConfig = {
-  rateLimiterEnabled: getBoolean('RATE_LIMITER'),
   rateLimit: {
     windowMs: 60 * 1000,
-    limit: getNumber('RATE_LIMIT_MAX', 150),
+    /** Max requests per IP per minute. 0 (default) disables the global rate limiter. */
+    limit: Math.max(0, getNumber('RATE_LIMIT_MAX', 0)),
   },
   bodyLimit: {
     maxSizeMB: getNumber('BODY_LIMIT_MAX_SIZE_MB', 10),

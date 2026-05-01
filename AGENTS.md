@@ -139,7 +139,7 @@ type Variables = { user: jwtPayload; requestId: string };
 JWT payload: `user_id`, `email`, `is_super_admin`, `exp`. Expiration from `JWT_EXPIRES_IN` env (default `1d`).
 
 ## Middlewares (`src/middlewares/index.ts`)
-Applied in order: requestId → logging → bodyLimit (default 10MB) → CORS → rateLimiter (150 req/min, toggleable via `RATE_LIMITER` env). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
+Applied in order: requestId → logging → bodyLimit (default 10MB) → CORS → optional global rate limiter (`RATE_LIMIT_MAX` requests/min per IP; default **0** = off, set **> 0** to enable). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
 
 ## Testing
 

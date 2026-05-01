@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import type { Hono } from 'hono';
 import { requestId } from 'hono/request-id';
 import { rateLimiter } from 'hono-rate-limiter';
-import config, { bodyLimitConfig, originList, rateLimitConfig } from '../config';
+import { bodyLimitConfig, originList, rateLimitConfig } from '../config';
 import type { Variables } from '../types/context';
 import { Errors } from '../utils/error';
 import { getClientIp } from '../utils/request';
@@ -49,14 +49,14 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
         maxAge: 86400, // 24 hours preflight cache
       })
     );
-  if (config.rateLimiterEnabled) {
+  if (rateLimitConfig.limit > 0) {
     // Create store with automatic cleanup
     rateLimitStore = new CleanupStore(rateLimitConfig.windowMs);
 
     app.use(
       rateLimiter({
         windowMs: rateLimitConfig.windowMs, // 1 minute
-        limit: rateLimitConfig.limit, // Limit each IP to 150 requests per `window` (here, per 1 minute) by default.
+        limit: rateLimitConfig.limit,
         standardHeaders: 'draft-6', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
         keyGenerator: (c) => getClientIp(c) || 'unknown',
         store: rateLimitStore,
