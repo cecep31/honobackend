@@ -127,7 +127,7 @@ function buildDatabaseConfig(): DatabaseConfig {
 function buildJwtConfig(): JwtConfig {
   return {
     secret: requireJwtSecret(),
-    expiresIn: getString('JWT_EXPIRES_IN', '1d'),
+    expiresIn: getString('JWT_EXPIRES_IN', '3h'),
   };
 }
 
