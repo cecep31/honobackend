@@ -1175,17 +1175,15 @@ curl -X GET "/v1/posts/charts/my-likes-by-month?months=24" \
 
 ## Error Responses
 
-Errors follow the API-wide shape: `success`, `message`, `error` (optional `code` and `details`), plus `request_id` and `timestamp`.
+Errors follow the API-wide shape: flat `success`, `message`, optional `error` (classification code string), optional `details`, optional `errors` (validation issues for `VALID_001`), plus `request_id` and `timestamp`.
 
 **Example (validation):**
 ```json
 {
   "success": false,
   "message": "Validation failed",
-  "error": {
-    "code": "VALID_001",
-    "details": [{ "field": "body", "message": "String must contain at least 20 character(s)" }]
-  },
+  "error": "VALID_001",
+  "errors": [{ "field": "body", "message": "String must contain at least 20 character(s)" }],
   "request_id": "…",
   "timestamp": "2026-01-01T00:00:00.000Z"
 }

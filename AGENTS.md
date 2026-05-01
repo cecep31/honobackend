@@ -66,7 +66,7 @@ return sendSuccess(c, items, 'OK', 200, { total, limit, offset, hasMore });
 ```
 
 Response shape: `{ success, data, message, request_id, timestamp, meta? }`.
-Error shape: `{ success: false, message, request_id, timestamp }` with optional flat fields: `code`, `details`, and `errors` (validation issues when `VALID_001`).
+Error shape: `{ success: false, message, request_id, timestamp }` with optional flat fields: `error` (classification code string), `details`, and `errors` (validation issues when `VALID_001`).
 
 ## Architecture
 

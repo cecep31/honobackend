@@ -121,9 +121,7 @@ curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 {
   "success": false,
   "message": "Authentication required",
-  "error": {
-    "code": "AUTH_001"
-  },
+  "error": "AUTH_001",
   "request_id": "abc-123",
   "timestamp": "2026-04-08T10:30:00.000Z"
 }
@@ -134,9 +132,7 @@ curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 {
   "success": false,
   "message": "Internal server error",
-  "error": {
-    "code": "SYS_001"
-  },
+  "error": "SYS_001",
   "request_id": "abc-123",
   "timestamp": "2026-04-08T10:30:00.000Z"
 }

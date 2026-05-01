@@ -602,17 +602,15 @@ curl -X DELETE /v1/holdings/1 \
 
 ## Error Responses
 
-Errors follow the global API shape: `success`, `message`, `error` (optional `code` and `details`), `request_id`, `timestamp`. See `src/utils/error.ts` and `AGENTS.md`.
+Errors follow the global API shape: flat `success`, `message`, optional `error` (code string), optional `details`, optional `errors` (validation issues), `request_id`, `timestamp`. See `src/utils/error.ts` and `AGENTS.md`.
 
 **400 Bad Request (validation):**
 ```json
 {
   "success": false,
   "message": "Validation failed",
-  "error": {
-    "code": "VALID_001",
-    "details": [{ "field": "month", "message": "Invalid input" }]
-  },
+  "error": "VALID_001",
+  "errors": [{ "field": "month", "message": "Invalid input" }],
   "request_id": "...",
   "timestamp": "2026-01-08T12:00:00.000Z"
 }
@@ -623,7 +621,7 @@ Errors follow the global API shape: `success`, `message`, `error` (optional `cod
 {
   "success": false,
   "message": "Unauthorized",
-  "error": { "code": "AUTH_001" },
+  "error": "AUTH_001",
   "request_id": "...",
   "timestamp": "2026-01-08T12:00:00.000Z"
 }
@@ -634,7 +632,7 @@ Errors follow the global API shape: `success`, `message`, `error` (optional `cod
 {
   "success": false,
   "message": "Holding not found",
-  "error": { "code": "DB_001" },
+  "error": "DB_001",
   "request_id": "...",
   "timestamp": "2026-01-08T12:00:00.000Z"
 }

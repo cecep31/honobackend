@@ -69,16 +69,16 @@ export function normalizeValidationIssues(details: unknown): ValidationIssue[] {
 }
 
 /**
- * Standard error response format (flat; no nested `error` object).
+ * Standard error response format (flat; no nested envelope object).
  * - success, message, request_id, timestamp: always present
- * - code: present when classified (ApiError)
- * - VALID_001: lists issues in `errors`
+ * - error: machine-readable classification (`ErrorCode`) when thrown as ApiError
+ * - VALID_001: lists field issues in `errors`
  * - details: optional extra context (retry_after, etc.)
  */
 export interface ApiErrorResponse {
   success: false;
   message: string;
-  code?: ErrorCode;
+  error?: ErrorCode;
   errors?: ValidationIssue[];
   details?: ValidationIssue[] | Record<string, unknown>;
   request_id: string;
@@ -132,7 +132,7 @@ export function createErrorResponse(error: unknown, requestId: string): ApiError
       return {
         success: false,
         message: getSafeMessage(error.statusCode, error.message),
-        code: error.errorCode,
+        error: error.errorCode,
         errors: normalizeValidationIssues(error.details),
         request_id: requestId,
         timestamp,
@@ -146,7 +146,7 @@ export function createErrorResponse(error: unknown, requestId: string): ApiError
       timestamp,
     };
     if (error.errorCode) {
-      body.code = error.errorCode;
+      body.error = error.errorCode;
     }
     if (error.details !== undefined && error.details !== null) {
       body.details = error.details;
