@@ -10,9 +10,8 @@ The Tags API provides endpoints for retrieving available tags used in posts.
 
 Most endpoints are public (no authentication required). The following endpoints require authentication:
 - `/following` - Get followed tags
-- `/:tagId/is-following` - Check if following a tag
-- `/:tagId/follow` - Follow a tag (POST)
-- `/:tagId/follow` - Unfollow a tag (DELETE)
+- `/:tagId/is-following` — check if you follow a tag
+- `/:tagId/follow` — follow (POST) or unfollow (DELETE)
 
 ---
 
@@ -144,6 +143,43 @@ curl -X GET /v1/tags/following \
   "message": "Followed tags fetched successfully"
 }
 ```
+
+---
+
+### 4. Check Tag Follow Status
+
+- **URL:** `/:tagId/is-following`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": { "following": true },
+  "message": "Tag follow status fetched successfully"
+}
+```
+
+---
+
+### 5. Follow Tag
+
+- **URL:** `/:tagId/follow`
+- **Method:** `POST`
+- **Authentication:** Required
+
+**Response (201):** `message`: `"Tag followed successfully"`.
+
+---
+
+### 6. Unfollow Tag
+
+- **URL:** `/:tagId/follow`
+- **Method:** `DELETE`
+- **Authentication:** Required
+
+**Response (200):** `message`: `"Tag unfollowed successfully"`.
 
 ---
 

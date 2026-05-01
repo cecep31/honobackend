@@ -25,7 +25,7 @@ Initiate GitHub OAuth authentication flow.
 - **Response:** Redirects to GitHub authorization page
 
 **Response (After Authorization):**
-- Redirects to `https://pilput.me` with JWT cookie set
+- Redirects to `FRONTEND_URL` (default `https://pilput.net`; see `src/config/index.ts`) and sets `token` + `refresh_token` cookies on `MAIN_DOMAIN` (e.g. `.pilput.net`).
 
 ---
 
@@ -60,10 +60,13 @@ Authenticate user with email/username and password.
 }
 ```
 
+You may send **`email`** instead of `identifier` (same rules as identifier); at least one of `identifier` or `email` is required.
+
 **Validation Rules:**
 | Field | Type | Rules |
 |-------|------|-------|
-| identifier | string | Min 3 chars, max 254 chars, can be email or username |
+| identifier | string (optional) | Min 3 chars, max 254 chars, email or username |
+| email | string (optional) | Min 5 chars, max 254 chars — use if you prefer this field name |
 | password | string | Min 6 chars, max 25 chars |
 
 **Example Request:**
@@ -94,6 +97,7 @@ Create a new user account.
 
 - **URL:** `/register`
 - **Method:** `POST`
+- **Rate Limit:** 5 requests per 15 minutes per IP
 - **Content-Type:** `application/json`
 
 **Request Body:**
@@ -101,7 +105,7 @@ Create a new user account.
 {
   "username": "johndoe",
   "email": "user@example.com",
-  "password": "password123"
+  "password": "Str0ng!Pass"
 }
 ```
 
@@ -110,13 +114,13 @@ Create a new user account.
 |-------|------|-------|
 | username | string | 3-20 chars, letters/numbers/underscores only |
 | email | string | Valid email format |
-| password | string | Min 6 chars |
+| password | string | Min **8** chars; must include upper, lower, digit, and special char (see `validatePassword` in `src/utils/password.ts`) |
 
 **Example Request:**
 ```bash
 curl -X POST /v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username": "johndoe", "email": "user@example.com", "password": "password123"}'
+  -d '{"username": "johndoe", "email": "user@example.com", "password": "Str0ng!Pass"}'
 ```
 
 **Response (201):**
@@ -128,7 +132,7 @@ curl -X POST /v1/auth/register \
     "refresh_token": "your_refresh_token",
     "token_type": "Bearer"
   },
-  "message": "User created successfully"
+  "message": "User registered successfully"
 }
 ```
 
@@ -427,42 +431,62 @@ curl -X POST /v1/auth/reset-password \
 
 ---
 
+### 12. Get Profile (JWT user)
+Return the full user profile for the authenticated JWT (distinct from `GET /v1/users/me`).
+
+- **URL:** `/profile`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Response (200):** `message`: `"User profile retrieved successfully"`. `data` is the user profile from `userService.getUserProfile`.
+
+---
+
+### 13. Activity logs
+Paginated security / auth activity for the current user.
+
+- **URL:** `/activity-logs`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query:** `offset`, `limit` (string query params, defaults **0** / **20**), optional `activity_type` (`login` \| `login_failed` \| `logout` \| `register` \| `password_change` \| `password_reset_request` \| `password_reset` \| `token_refresh` \| `oauth_login` \| `oauth_login_failed`), optional `status` (`success` \| `failure` \| `pending`).
+
+**Response (200):** `data` is the log rows; `meta` uses `total_items`, `offset`, `limit`, `total_pages`.
+
+---
+
+### 14. Recent activity
+- **URL:** `/activity-logs/recent`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query:** `limit` (default **10**)
+
+**Response (200):** `message`: `"Recent activity retrieved successfully"`.
+
+---
+
+### 15. Failed login attempts
+- **URL:** `/activity-logs/failed-logins`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query:** optional `since` (ISO date); default window **last 24 hours**
+
+**Response (200):** `data`: `{ "logs": [...], "count": number }`.
+
+---
+
 ## Error Responses
 
-All endpoints return consistent error responses:
-
-**400 Bad Request:**
-```json
-{
-  "success": false,
-  "error": "Validation error message"
-}
-```
-
-**401 Unauthorized:**
-```json
-{
-  "success": false,
-  "error": "Invalid or expired token"
-}
-```
-
-**429 Too Many Requests:**
-```json
-{
-  "success": false,
-  "error": "Rate limit exceeded"
-}
-```
+Errors use the API-wide envelope: `success`, `message`, optional `error` (code string such as `AUTH_001`, `VALID_001`), optional `errors` / `details`, plus `request_id` and `timestamp`. See `src/utils/error.ts` and `AGENTS.md`.
 
 ---
 
 ## Security Notes
 
 - Passwords are hashed using bcrypt (cost factor 12) before storage
-- JWT tokens expire after 5 hours (set in cookie)
+- Access token lifetime follows **`JWT_EXPIRES_IN`** (default **3h** in `src/config/index.ts`; also used for OAuth `token` cookie `maxAge`)
 - GitHub OAuth uses strict same-site cookie policy
 - Login attempts are rate-limited (7 per 15 minutes)
+- Register is rate-limited (5 per 15 minutes)
 - Password reset requests are rate-limited (3 per 15 minutes)
 - Password reset tokens expire after 1 hour
 - Reset tokens can only be used once

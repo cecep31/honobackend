@@ -109,12 +109,12 @@ Send a message; when `role` is `user` (default), the server calls OpenRouter and
   {
     "content": "Hello, how are you?",
     "role": "user",
-    "model": "openai/gpt-3.5-turbo",
+    "model": "google/gemma-2-9b-it:free",
     "temperature": 0.7
   }
   ```
   - `role` — optional, default `"user"`
-  - `model` — optional OpenRouter model id
+  - `model` — optional OpenRouter model id; server default from `OPENROUTER_DEFAULT_MODEL` (see `src/config/index.ts`, e.g. `google/gemma-2-9b-it:free`)
   - `temperature` — optional, default `0.7`, range `0`–`2`
 - **Response (201):** `data` is an **array** of saved messages (typically the user message plus the assistant message when generation succeeds). `message`: `"Messages created successfully"`. If the assistant call fails, `data` may contain only the user message.
 
@@ -148,7 +148,7 @@ Create a conversation and stream the first assistant reply.
   {
     "title": "Optional Title",
     "content": "First message content",
-    "model": "openai/gpt-3.5-turbo",
+    "model": "google/gemma-2-9b-it:free",
     "temperature": 0.7
   }
   ```

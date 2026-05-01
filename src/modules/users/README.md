@@ -30,12 +30,15 @@ Retrieve a paginated list of all users. Super admin only.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| page | number | No | 1 | Page number |
-| limit | number | No | 10 | Items per page |
+| offset | number | No | 0 | Pagination offset (string in query) |
+| limit | number | No | 10 | Page size |
+| search / q | string | No | — | Filter |
+| orderBy | string | No | — | Sort field |
+| orderDirection | asc \| desc | No | desc | Sort direction |
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/users?page=1&limit=10" \
+curl -X GET "/v1/users?offset=0&limit=10" \
   -H "Authorization: Bearer <admin_token>"
 ```
 
@@ -57,10 +60,10 @@ curl -X GET "/v1/users?page=1&limit=10" \
     }
   ],
   "meta": {
-    "total": 100,
-    "page": 1,
+    "total_items": 100,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 10
+    "total_pages": 10
   },
   "message": "Users fetched successfully"
 }
@@ -78,7 +81,7 @@ Retrieve the authenticated user's profile.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| profile | boolean | No | false | Return extended profile data |
+| profile | string | No | false | Pass `profile=true` or `profile=1` for extended profile (`stats`, `posts`, etc.) |
 
 **Example Request:**
 ```bash
@@ -116,7 +119,7 @@ curl -X GET /v1/users/me \
     "username": "johndoe",
     "email": "john@example.com",
     "first_name": "John",
-    "last_name.doe",
+    "last_name": "Doe",
     "avatar_url": "https://example.com/avatars/johndoe.jpg",
     "bio": "Full stack developer",
     "website": "https://johndoe.com",
@@ -137,7 +140,46 @@ curl -X GET /v1/users/me \
 
 ---
 
-### 3. Get User by ID
+### 3. Update Current User Profile Fields
+Update **profile** fields (bio, phone, location) for the signed-in user.
+
+- **URL:** `/me/profile`
+- **Method:** `PATCH`
+- **Authentication:** Required
+- **Content-Type:** `application/json`
+
+**Body (all optional):** `bio` (max 500), `phone` (max 50), `location` (max 255).
+
+---
+
+### 4. Update Current User (core fields)
+Patch **user** table fields for the signed-in user: `first_name`, `last_name`, `username`, `email` (each optional; see `updateUserSchema` in `validation/body.ts`).
+
+- **URL:** `/me`
+- **Method:** `PATCH`
+- **Authentication:** Required
+
+---
+
+### 5. Update Profile Image
+- **URL:** `/me/image`
+- **Method:** `PATCH`
+- **Authentication:** Required
+- **Content-Type:** `multipart/form-data`
+- **Field:** `image` — JPEG/PNG/WebP, max **1MB**
+
+---
+
+### 6. Get User by Username (public)
+Public profile by username (no email).
+
+- **URL:** `/username/:username`
+- **Method:** `GET`
+- **Authentication:** Not required
+
+---
+
+### 7. Get User by ID
 Retrieve a user by their ID. Super admin only (same as other admin user management operations).
 
 - **URL:** `/:id`
@@ -178,7 +220,7 @@ curl -X GET /v1/users/550e8400-e29b-41d4-a716-446655440000 \
 
 ---
 
-### 4. Create User (Admin)
+### 8. Create User (Admin)
 Create a new user. Super admin only.
 
 - **URL:** `/`
@@ -190,22 +232,26 @@ Create a new user. Super admin only.
 **Request Body:**
 ```json
 {
+  "first_name": "New",
+  "last_name": "User",
   "username": "newuser",
   "email": "newuser@example.com",
   "password": "password123",
-  "first_name": "New",
-  "last_name": "User"
+  "image": "/images/default.jpg",
+  "is_super_admin": false
 }
 ```
 
 **Validation Rules:**
 | Field | Type | Required | Rules |
 |-------|------|----------|-------|
-| username | string | Yes | 3-20 chars, alphanumeric + underscore |
-| email | string | Yes | Valid email format |
-| password | string | Yes | Min 6 chars |
-| first_name | string | No | - |
-| last_name | string | No | - |
+| first_name | string | Yes | 1-100 chars |
+| last_name | string | Yes | 1-100 chars |
+| username | string | Yes | 3-30 chars; letters, numbers, `_`, `-` |
+| email | string | Yes | Valid email |
+| password | string | Yes | 8-100 chars |
+| image | string | No | Valid URL (default `/images/default.jpg`) |
+| is_super_admin | boolean | No | Default false |
 
 **Example Request:**
 ```bash
@@ -234,8 +280,20 @@ curl -X POST /v1/users \
 
 ---
 
-### 5. Delete User (Admin)
-Delete a user. Super admin only.
+### 9. Update User (Admin)
+Super admin patch of another user’s `first_name`, `last_name`, `username`, `email` (same schema as `PATCH /me`).
+
+- **URL:** `/:id`
+- **Method:** `PATCH`
+- **Authentication:** Required
+- **Requires:** Super Admin role
+
+**Response (200):** Updated user row in `data`.
+
+---
+
+### 10. Delete User (Admin)
+Soft-delete a user (`deleted_at`). Super admin only.
 
 - **URL:** `/:id`
 - **Method:** `DELETE`
@@ -248,18 +306,11 @@ curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <admin_token>"
 ```
 
-**Response (200):**
-```json
-{
-  "success": true,
-  "data": null,
-  "message": "User deleted successfully"
-}
-```
+**Response (200):** `data` is `{ "id": "<user-uuid>" }` from `.returning()`.
 
 ---
 
-### 6. Follow User
+### 11. Follow User
 Follow another user.
 
 - **URL:** `/:id/follow`
@@ -304,7 +355,7 @@ curl -X POST /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
 
 ---
 
-### 7. Unfollow User
+### 12. Unfollow User
 Unfollow a user.
 
 - **URL:** `/:id/follow`
@@ -341,7 +392,7 @@ curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
 
 ---
 
-### 8. Get User Followers
+### 13. Get User Followers
 Get a paginated list of users following to specified user.
 
 - **URL:** `/:id/followers`
@@ -351,12 +402,15 @@ Get a paginated list of users following to specified user.
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| page | number | No | 1 | Page number |
-| limit | number | No | 10 | Items per page |
+| offset | number | No | 0 | Pagination offset |
+| limit | number | No | 10 | Page size |
+| search / q | string | No | — | Filter |
+| orderBy | string | No | — | Sort field |
+| orderDirection | asc \| desc | No | desc | Sort direction |
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?page=1&limit=10" \
+curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -379,9 +433,9 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?page=1&lim
   ],
   "meta": {
     "total_items": 50,
-    "current_page": 1,
-    "total_pages": 5,
-    "items_per_page": 10
+    "offset": 0,
+    "limit": 10,
+    "total_pages": 5
   },
   "message": "Followers fetched successfully"
 }
@@ -389,22 +443,17 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?page=1&lim
 
 ---
 
-### 9. Get User Following
+### 14. Get User Following
 Get a paginated list of users that specified user is following.
 
 - **URL:** `/:id/following`
 - **Method:** `GET`
 - **Authentication:** Required
-- **Query Parameters:**
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| page | number | No | 1 | Page number |
-| limit | number | No | 10 | Items per page |
+- **Query Parameters:** Same as followers (`offset`, `limit`, `search`/`q`, `orderBy`, `orderDirection`).
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?page=1&limit=10" \
+curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -415,7 +464,7 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?page=1&lim
   "data": [
     {
       "id": "following-user-id",
-      "username": "follwing1",
+      "username": "following1",
       "first_name": "Jane",
       "last_name": "Smith",
       "email": "following@example.com",
@@ -427,9 +476,9 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?page=1&lim
   ],
   "meta": {
     "total_items": 100,
-    "current_page": 1,
-    "total_pages": 10,
-    "items_per_page": 10
+    "offset": 0,
+    "limit": 10,
+    "total_pages": 10
   },
   "message": "Following fetched successfully"
 }
@@ -437,7 +486,7 @@ curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?page=1&lim
 
 ---
 
-### 10. Check Follow Status
+### 15. Check Follow Status
 Check if the authenticated user is following another user.
 
 - **URL:** `/:id/is-following`
@@ -554,8 +603,8 @@ async function getUser(userId: string): Promise<User> {
 }
 
 // Admin: Get all users
-async function getAllUsers(page = 1, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/users?page=${page}&limit=${limit}`, {
+async function getAllUsers(offset = 0, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
+  const response = await fetch(`/v1/users?offset=${offset}&limit=${limit}`, {
     headers: { 'Authorization': `Bearer ${adminToken}` }
   });
   const result = await response.json();
@@ -597,8 +646,8 @@ async function unfollowUser(userId: string): Promise<FollowRelationship> {
 }
 
 // Get user's followers
-async function getFollowers(userId: string, page = 1, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/users/${userId}/followers?page=${page}&limit=${limit}`, {
+async function getFollowers(userId: string, offset = 0, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
+  const response = await fetch(`/v1/users/${userId}/followers?offset=${offset}&limit=${limit}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
@@ -606,8 +655,8 @@ async function getFollowers(userId: string, page = 1, limit = 10): Promise<{ dat
 }
 
 // Get users that a user is following
-async function getFollowing(userId: string, page = 1, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/users/${userId}/following?page=${page}&limit=${limit}`, {
+async function getFollowing(userId: string, offset = 0, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
+  const response = await fetch(`/v1/users/${userId}/following?offset=${offset}&limit=${limit}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
@@ -640,5 +689,5 @@ async function isFollowing(userId: string): Promise<boolean> {
 
 - User email is only visible to the authenticated user and super admins
 - Passwords are never returned in responses
-- User deletion is permanent and irreversible
+- User deletion is a **soft delete** (`deleted_at`); the row is retained
 - Super admin actions are logged for auditing

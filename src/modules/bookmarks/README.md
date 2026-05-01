@@ -72,7 +72,8 @@ Retrieve all bookmarks for the authenticated user, optionally filtered by folder
 
 **Example Request:**
 ```bash
-# All bookmarkscurl -X GET /v1/bookmarks \
+# All bookmarks
+curl -X GET /v1/bookmarks \
   -H "Authorization: Bearer <your_token>"
 
 # Bookmarks in specific folder

@@ -62,7 +62,7 @@ curl -X POST /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 }
 ```
 
-**Note:** When a like is removed, the `data` field may be `null` or `undefined` depending on the database driver behavior.
+**Note:** On **unlike** (removing a like), `data` is the full deleted row from `.returning()`. On **like** (creating a like), `data` is only `{ "id": "<uuid>" }` (insert uses a narrow `.returning()`).
 
 ---
 
