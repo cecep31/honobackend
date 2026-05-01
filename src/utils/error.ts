@@ -53,19 +53,34 @@ export interface ValidationIssue {
   message: string;
 }
 
+/** Normalize ValidationFailed payloads (Zod arrays or `{ message }` objects). */
+export function normalizeValidationIssues(details: unknown): ValidationIssue[] {
+  if (Array.isArray(details)) {
+    return details as ValidationIssue[];
+  }
+  if (details !== null && details !== undefined && typeof details === 'object') {
+    const o = details as Record<string, unknown>;
+    if (typeof o.message === 'string') {
+      const field = typeof o.field === 'string' ? o.field : undefined;
+      return [{ field, message: o.message }];
+    }
+  }
+  return [{ message: 'Validation failed' }];
+}
+
 /**
- * Standard error response format.
- * - success, message: always present for clients
- * - error: always present; code for machine handling, details for validation/extra context
- * - request_id, timestamp: for support and client logging
+ * Standard error response format (flat; no nested `error` object).
+ * - success, message, request_id, timestamp: always present
+ * - code: present when classified (ApiError)
+ * - VALID_001: lists issues in `errors`
+ * - details: optional extra context (retry_after, etc.)
  */
 export interface ApiErrorResponse {
   success: false;
   message: string;
-  error: {
-    code?: ErrorCode;
-    details?: ValidationIssue[] | Record<string, unknown>;
-  };
+  code?: ErrorCode;
+  errors?: ValidationIssue[];
+  details?: ValidationIssue[] | Record<string, unknown>;
   request_id: string;
   timestamp: string;
 }
@@ -113,31 +128,41 @@ export function createErrorResponse(error: unknown, requestId: string): ApiError
   // Never send stack traces to clients (security); stack is logged server-side only.
 
   if (error instanceof ApiError) {
-    return {
+    if (error.errorCode === 'VALID_001') {
+      return {
+        success: false,
+        message: getSafeMessage(error.statusCode, error.message),
+        code: error.errorCode,
+        errors: normalizeValidationIssues(error.details),
+        request_id: requestId,
+        timestamp,
+      };
+    }
+
+    const body: ApiErrorResponse = {
       success: false,
       message: getSafeMessage(error.statusCode, error.message),
-      error: {
-        code: error.errorCode,
-        details: error.details,
-      },
       request_id: requestId,
       timestamp,
     };
+    if (error.errorCode) {
+      body.code = error.errorCode;
+    }
+    if (error.details !== undefined && error.details !== null) {
+      body.details = error.details;
+    }
+    return body;
   }
 
   if (error instanceof HTTPException) {
-    const safeMessage = getSafeMessage(error.status, error.message);
-
     return {
       success: false,
-      message: safeMessage,
-      error: {},
+      message: getSafeMessage(error.status, error.message),
       request_id: requestId,
       timestamp,
     };
   }
 
-  // Handle unknown errors
   const errorMessage = error instanceof Error ? error.message : undefined;
   if (!(error instanceof ApiError) && !(error instanceof HTTPException)) {
     console.error('Unexpected error:', error);
@@ -145,7 +170,6 @@ export function createErrorResponse(error: unknown, requestId: string): ApiError
   return {
     success: false,
     message: getSafeMessage(500, errorMessage),
-    error: {},
     request_id: requestId,
     timestamp,
   };

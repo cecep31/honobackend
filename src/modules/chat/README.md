@@ -16,7 +16,7 @@ These routes apply an additional limit of **30 requests per hour per user** (on 
 - `POST /conversations/:conversationId/messages`
 - `POST /conversations/:conversationId/messages/stream`
 
-On limit, the API responds with **429** and error code `RATE_001`; `error.details.retry_after` is **3600** (seconds).
+On limit, the API responds with **429** with code `RATE_001`; flat `details.retry_after` is **3600** (seconds).
 
 ---
 

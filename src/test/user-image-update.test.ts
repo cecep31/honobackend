@@ -94,7 +94,7 @@ describe('User Image Update Endpoint', () => {
     const jsonResponse = await res.json();
     expect(jsonResponse.success).toBe(false);
     expect(jsonResponse.message).toBe('Validation failed');
-    expect(jsonResponse.error.details[0].message).toContain(
+    expect(jsonResponse.errors[0].message).toContain(
       '.jpg, .jpeg, .png and .webp files are accepted.'
     );
   });
@@ -121,7 +121,7 @@ describe('User Image Update Endpoint', () => {
     expect(jsonResponse.success).toBe(false);
     expect(jsonResponse.message).toBe('Validation failed');
     expect(
-      jsonResponse.error.details.some((d: { message?: string }) =>
+      jsonResponse.errors.some((d: { message?: string }) =>
         String(d.message).includes('Max file size is 1MB')
       )
     ).toBe(true);
