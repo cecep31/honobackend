@@ -185,6 +185,7 @@ export class AuthService {
 
         const payload = this.createJwtPayload(user);
         const token = await sign(payload, config.jwt.secret);
+        const session = await this.createSession(user.id ?? '', user_agent, tx);
 
         await this.activityService.logActivity(
           {
@@ -202,6 +203,7 @@ export class AuthService {
 
         return {
           access_token: token,
+          refresh_token: session.refresh_token,
           mirrorAvatar: isNewUser && Boolean(githubUser.avatar_url),
           userId: user.id,
           avatarUrl: githubUser.avatar_url ?? '',
@@ -229,7 +231,7 @@ export class AuthService {
         .catch(() => undefined);
     }
 
-    return { access_token: result.access_token };
+    return { access_token: result.access_token, refresh_token: result.refresh_token };
   }
 
   async signUp(data: UserSignup, ip_address?: string, user_agent?: string) {

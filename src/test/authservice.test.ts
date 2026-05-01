@@ -187,7 +187,9 @@ describe('AuthService', () => {
       const result = await authService.signInWithGithub(githubUser);
 
       expect(result).toHaveProperty('access_token');
+      expect(result).toHaveProperty('refresh_token');
       expect(mockUserFindFirst).toHaveBeenCalled();
+      expect(mockTxInsert).toHaveBeenCalled();
     });
 
     it('throws NotFound if github user does not exist', async () => {

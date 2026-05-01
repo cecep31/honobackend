@@ -95,6 +95,12 @@ export const createAuthController = (
           maxAge: parseExpiresIn(config.jwt.expiresIn),
           sameSite: 'Strict',
         });
+        setCookie(c, 'refresh_token', jwtToken.refresh_token, {
+          domain: `.${config.frontend.mainDomain}`,
+          maxAge: 24 * 60 * 60,
+          sameSite: 'Strict',
+          httpOnly: true,
+        });
         return c.redirect(config.frontend.url);
       } catch (error) {
         console.error('Github OAuth error:', error);
