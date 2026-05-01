@@ -15,7 +15,7 @@ This document provides foundational context and instructions for AI agents worki
 
 - `index.ts`: Application entry point for Bun.
 - `src/server/app.ts`: Hono app initialization, global middlewares, and health checks.
-- `src/router/index.ts`: Main router that mounts all module-specific routes under `/v1`.
+- `src/router/index.ts`: Main router that mounts all module-specific routes under `/api`.
 - `src/modules/`: Contains business logic divided into domain modules.
   - `<module>/controllers/`: Hono routers that handle HTTP requests and call services.
   - `<module>/services/`: Core business logic and database interactions.

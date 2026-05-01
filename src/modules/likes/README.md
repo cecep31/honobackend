@@ -2,7 +2,7 @@
 
 The Likes API provides endpoints for users to like/unlike posts and retrieve like information.
 
-**Base URL:** `/v1/likes`
+**Base URL:** `/api/likes`
 
 ---
 
@@ -26,7 +26,7 @@ Add or remove a like from a post. If the post is already liked, it will be unlik
 
 **Example Request:**
 ```bash
-curl -X POST /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
+curl -X POST /api/likes/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -75,7 +75,7 @@ Retrieve the list of likes for a post.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
+curl -X GET /api/likes/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -147,7 +147,7 @@ curl -X GET /v1/likes/550e8400-e29b-41d4-a716-446655440000 \
 ```typescript
 // Toggle a like on a post
 async function toggleLike(postId: string) {
-  const response = await fetch(`/v1/likes/${postId}`, {
+  const response = await fetch(`/api/likes/${postId}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -159,7 +159,7 @@ async function toggleLike(postId: string) {
 
 // Get likes for a post
 async function getPostLikes(postId: string) {
-  const response = await fetch(`/v1/likes/${postId}`, {
+  const response = await fetch(`/api/likes/${postId}`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -186,7 +186,7 @@ function LikeButton({ postId, initialLiked }: LikeButtonProps) {
   const handleLike = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/v1/likes/${postId}`, {
+      const response = await fetch(`/api/likes/${postId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -250,7 +250,7 @@ Potential improvements for the likes API:
 - [ ] Return like count in POST response
 - [ ] Include `liked` boolean flag in POST response
 - [ ] Add user details to GET response (join with users table)
-- [ ] Add pagination for GET `/v1/likes/:post_id`
+- [ ] Add pagination for GET `/api/likes/:post_id`
 - [ ] Add validation for non-existent posts
 - [ ] Prevent users from liking their own posts
 - [ ] Add bulk like endpoints for multiple posts

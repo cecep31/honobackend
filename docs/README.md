@@ -7,7 +7,7 @@ Welcome to the Hono/TypeScript Backend API documentation. This documentation pro
 ## Base URL
 
 ```
-https://api.pilput.me/v1
+https://api.pilput.me/api
 ```
 
 ## Response Format

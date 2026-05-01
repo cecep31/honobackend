@@ -2,7 +2,7 @@
 
 The Chat API provides endpoints for managing conversations and messages, integrating with AI models via OpenRouter.
 
-**Base URL:** `/v1/chat`
+**Base URL:** `/api/chat`
 
 ## Authentication
 

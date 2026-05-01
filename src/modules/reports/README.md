@@ -2,7 +2,7 @@
 
 Aggregated analytics for dashboards: overview, users, posts, and engagement. **Super admin only.**
 
-**Base URL:** `/v1/reports`
+**Base URL:** `/api/reports`
 
 ---
 

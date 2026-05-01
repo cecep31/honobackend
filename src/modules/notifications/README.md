@@ -2,7 +2,7 @@
 
 In-app notifications for the authenticated user (read/unread, pagination).
 
-**Base URL:** `/v1/notifications`
+**Base URL:** `/api/notifications`
 
 ---
 

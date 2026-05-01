@@ -2,7 +2,7 @@
 
 The Posts API provides endpoints for creating, reading, updating, and deleting blog posts. This documentation covers the main post management endpoints. For analytics and visualization endpoints, see the Chart Endpoints section below.
 
-**Base URL:** `/v1/posts`
+**Base URL:** `/api/posts`
 
 Successful JSON responses include `request_id` and `timestamp` on every endpoint (omitted in some examples below for brevity).
 
@@ -64,7 +64,7 @@ Retrieve a paginated list of all published posts.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts?offset=0&limit=10"
+curl -X GET "/api/posts?offset=0&limit=10"
 ```
 
 **Response (200):**
@@ -115,7 +115,7 @@ Retrieve a selection of random published posts.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/random
+curl -X GET /api/posts/random
 ```
 
 **Response (200):**
@@ -151,7 +151,7 @@ Retrieve trending published posts (ordered by views, then likes). The server ret
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/trending"
+curl -X GET "/api/posts/trending"
 ```
 
 **Response (200):**
@@ -198,7 +198,7 @@ Retrieve posts created by the authenticated user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/me?offset=0&limit=10" \
+curl -X GET "/api/posts/me?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -234,7 +234,7 @@ Retrieve posts liked by the authenticated user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/me/liked?offset=0&limit=10" \
+curl -X GET "/api/posts/me/liked?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -289,7 +289,7 @@ Retrieve all posts with a specific tag.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/tag/typescript
+curl -X GET /api/posts/tag/typescript
 ```
 
 **Response (200):**
@@ -336,7 +336,7 @@ The route accepts the same query schema as other list endpoints, but **only `off
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/author/johndoe?offset=0&limit=10"
+curl -X GET "/api/posts/author/johndoe?offset=0&limit=10"
 ```
 
 **Response (200):**
@@ -365,7 +365,7 @@ Retrieve a single post by its slug.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/slug/getting-started-typescript
+curl -X GET /api/posts/slug/getting-started-typescript
 ```
 
 **Response (200):**
@@ -412,7 +412,7 @@ Retrieve a single post by the author's username and the post's slug.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/u/johndoe/getting-started-typescript
+curl -X GET /api/posts/u/johndoe/getting-started-typescript
 ```
 
 **Response (200):** Same as Get Post by Slug
@@ -430,7 +430,7 @@ Retrieve all posts including unpublished ones. Super admin only.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/all \
+curl -X GET /api/posts/all \
   -H "Authorization: Bearer <admin_token>"
 ```
 
@@ -465,7 +465,7 @@ Retrieve a single post by its ID.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/550e8400-e29b-41d4-a716-446655440000
+curl -X GET /api/posts/550e8400-e29b-41d4-a716-446655440000
 ```
 
 **Response (200):** Same as Get Post by Slug
@@ -506,7 +506,7 @@ Create a new post.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/posts \
+curl -X POST /api/posts \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"title": "My New Post", "body": "This is my new post content...", "slug": "my-new-post", "tags": ["news"], "published": true}'
@@ -558,7 +558,7 @@ Update an existing post.
 
 **Example Request:**
 ```bash
-curl -X PATCH /v1/posts/550e8400-e29b-41d4-a716-446655440000 \
+curl -X PATCH /api/posts/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"title": "Updated Title"}'
@@ -589,7 +589,7 @@ Increment the view count of a post.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/posts/550e8400-e29b-41d4-a716-446655440000/view
+curl -X POST /api/posts/550e8400-e29b-41d4-a716-446655440000/view
 ```
 
 **Response (200):** `data` is an array from the DB `RETURNING` clause (one row when the post exists).
@@ -621,7 +621,7 @@ Delete a post.
 
 **Example Request:**
 ```bash
-curl -X DELETE /v1/posts/550e8400-e29b-41d4-a716-446655440000 \
+curl -X DELETE /api/posts/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -661,7 +661,7 @@ Upload an image for a post to S3.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/posts/upload/image \
+curl -X POST /api/posts/upload/image \
   -H "Authorization: Bearer <your_token>" \
   -F "image=@/path/to/image.jpg"
 ```
@@ -732,7 +732,7 @@ Retrieve posts from users and tags the authenticated user follows.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/feed/following?offset=0&limit=10" \
+curl -X GET "/api/posts/feed/following?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -772,7 +772,7 @@ The shared list query schema also allows `orderBy` / `orderDirection`, but **thi
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/feed/for-you?offset=0&limit=10" \
+curl -X GET "/api/posts/feed/for-you?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -804,7 +804,7 @@ Retrieve minimal post data for sitemap generation. Rate limited.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/sitemap
+curl -X GET /api/posts/sitemap
 ```
 
 **Response (200):**
@@ -834,7 +834,7 @@ Retrieve a single post by its ID. Only the post owner can access this endpoint (
 
 **Example Request:**
 ```bash
-curl -X GET /v1/posts/me/550e8400-e29b-41d4-a716-446655440000 \
+curl -X GET /api/posts/me/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -847,7 +847,7 @@ curl -X GET /v1/posts/me/550e8400-e29b-41d4-a716-446655440000 \
 This section describes chart endpoints available for posts module. These endpoints provide data for visualizing post statistics and engagement metrics in frontend.
 
 ### 1. Posts Over Time
-**GET** `/v1/posts/charts/posts-over-time`
+**GET** `/api/posts/charts/posts-over-time`
 
 Get number of posts created over a specified time period, grouped by day, week, or month.
 
@@ -857,7 +857,7 @@ Get number of posts created over a specified time period, grouped by day, week, 
 
 **Example Request:**
 ```
-GET /v1/posts/charts/posts-over-time?days=60&groupBy=week
+GET /api/posts/charts/posts-over-time?days=60&groupBy=week
 ```
 
 **Response:**
@@ -883,7 +883,7 @@ GET /v1/posts/charts/posts-over-time?days=60&groupBy=week
 ---
 
 ### 2. Posts by Tag Distribution
-**GET** `/v1/posts/charts/posts-by-tag`
+**GET** `/api/posts/charts/posts-by-tag`
 
 Get distribution of posts across different tags.
 
@@ -892,7 +892,7 @@ Get distribution of posts across different tags.
 
 **Example Request:**
 ```
-GET /v1/posts/charts/posts-by-tag?limit=15
+GET /api/posts/charts/posts-by-tag?limit=15
 ```
 
 **Response:**
@@ -920,7 +920,7 @@ GET /v1/posts/charts/posts-by-tag?limit=15
 ---
 
 ### 3. Top Posts by Views
-**GET** `/v1/posts/charts/top-by-views`
+**GET** `/api/posts/charts/top-by-views`
 
 Get posts with highest view counts.
 
@@ -929,7 +929,7 @@ Get posts with highest view counts.
 
 **Example Request:**
 ```
-GET /v1/posts/charts/top-by-views?limit=5
+GET /api/posts/charts/top-by-views?limit=5
 ```
 
 **Response:**
@@ -961,7 +961,7 @@ GET /v1/posts/charts/top-by-views?limit=5
 ---
 
 ### 4. Top Posts by Likes
-**GET** `/v1/posts/charts/top-by-likes`
+**GET** `/api/posts/charts/top-by-likes`
 
 Get posts with highest like counts.
 
@@ -970,7 +970,7 @@ Get posts with highest like counts.
 
 **Example Request:**
 ```
-GET /v1/posts/charts/top-by-likes?limit=5
+GET /api/posts/charts/top-by-likes?limit=5
 ```
 
 **Response:**
@@ -1002,7 +1002,7 @@ GET /v1/posts/charts/top-by-likes?limit=5
 ---
 
 ### 5. User Activity
-**GET** `/v1/posts/charts/user-activity`
+**GET** `/api/posts/charts/user-activity`
 
 Get statistics about user posting activity, including post counts and engagement metrics per user.
 
@@ -1011,7 +1011,7 @@ Get statistics about user posting activity, including post counts and engagement
 
 **Example Request:**
 ```
-GET /v1/posts/charts/user-activity?limit=15
+GET /api/posts/charts/user-activity?limit=15
 ```
 
 **Response:**
@@ -1038,7 +1038,7 @@ GET /v1/posts/charts/user-activity?limit=15
 ---
 
 ### 6. Engagement Metrics Overview
-**GET** `/v1/posts/charts/engagement-metrics`
+**GET** `/api/posts/charts/engagement-metrics`
 
 Get overall engagement metrics for all posts.
 
@@ -1046,7 +1046,7 @@ Get overall engagement metrics for all posts.
 
 **Example Request:**
 ```
-GET /v1/posts/charts/engagement-metrics
+GET /api/posts/charts/engagement-metrics
 ```
 
 **Response:**
@@ -1071,7 +1071,7 @@ GET /v1/posts/charts/engagement-metrics
 ---
 
 ### 7. Engagement Comparison
-**GET** `/v1/posts/charts/engagement-comparison`
+**GET** `/api/posts/charts/engagement-comparison`
 
 Get posts with their view and like counts, including engagement rate (likes/views ratio).
 
@@ -1080,7 +1080,7 @@ Get posts with their view and like counts, including engagement rate (likes/view
 
 **Example Request:**
 ```
-GET /v1/posts/charts/engagement-comparison?limit=30
+GET /api/posts/charts/engagement-comparison?limit=30
 ```
 
 **Response:**
@@ -1107,7 +1107,7 @@ GET /v1/posts/charts/engagement-comparison?limit=30
 ---
 
 ### 8. My Likes by Month
-**GET** `/v1/posts/charts/my-likes-by-month`
+**GET** `/api/posts/charts/my-likes-by-month`
 
 Count how many likes your posts received in each calendar month. Uses each likeâ€™s `created_at` timestamp; only includes likes on posts you authored (non-deleted posts).
 
@@ -1118,7 +1118,7 @@ Count how many likes your posts received in each calendar month. Uses each likeâ
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/posts/charts/my-likes-by-month?months=24" \
+curl -X GET "/api/posts/charts/my-likes-by-month?months=24" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -1202,21 +1202,21 @@ Errors follow the API-wide shape: flat `success`, `message`, optional `error` (c
 ```typescript
 // Fetch posts with pagination
 async function getPosts(offset = 0, limit = 10): Promise<{ data: Post[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/posts?offset=${offset}&limit=${limit}`);
+  const response = await fetch(`/api/posts?offset=${offset}&limit=${limit}`);
   const result = await response.json();
   return result;
 }
 
 // Get single post by slug
 async function getPostBySlug(slug: string): Promise<Post> {
-  const response = await fetch(`/v1/posts/slug/${slug}`);
+  const response = await fetch(`/api/posts/slug/${slug}`);
   const result = await response.json();
   return result.data;
 }
 
 // Create a new post
 async function createPost(data: PostCreateBody): Promise<Post> {
-  const response = await fetch('/v1/posts', {
+  const response = await fetch('/api/posts', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -1233,7 +1233,7 @@ async function uploadPostImage(file: File): Promise<{ url: string }> {
   const formData = new FormData();
   formData.append('image', file);
 
-  const response = await fetch('/v1/posts/upload/image', {
+  const response = await fetch('/api/posts/upload/image', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -1246,7 +1246,7 @@ async function uploadPostImage(file: File): Promise<{ url: string }> {
 
 // Increment view count (data is a single-element array when updated)
 async function incrementView(postId: string): Promise<number> {
-  const response = await fetch(`/v1/posts/${postId}/view`, {
+  const response = await fetch(`/api/posts/${postId}/view`, {
     method: 'POST'
   });
   const result = await response.json();

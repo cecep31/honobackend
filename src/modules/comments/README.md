@@ -5,7 +5,7 @@ The Comments API allows users to create, read, update, and delete comments on po
 
 ## Base URL
 ```
-/v1/comments
+/api/comments
 ```
 
 ## Endpoints
@@ -13,7 +13,7 @@ The Comments API allows users to create, read, update, and delete comments on po
 ### 1. Create Comment
 Create a new comment on a post.
 
-**Endpoint:** `POST /v1/comments`
+**Endpoint:** `POST /api/comments`
 
 **Authentication:** Required
 
@@ -70,7 +70,7 @@ Create a new comment on a post.
 ### 2. Get Comments by Post
 Retrieve top-level comments for a specific post (paginated).
 
-**Endpoint:** `GET /v1/comments/post/:post_id`
+**Endpoint:** `GET /api/comments/post/:post_id`
 
 **Authentication:** Not required
 
@@ -118,7 +118,7 @@ Retrieve top-level comments for a specific post (paginated).
 ### 3. Get Comment Replies
 Retrieve all replies to a specific comment.
 
-**Endpoint:** `GET /v1/comments/:comment_id/replies`
+**Endpoint:** `GET /api/comments/:comment_id/replies`
 
 **Authentication:** Not required
 
@@ -156,7 +156,7 @@ Retrieve all replies to a specific comment.
 ### 4. Get Single Comment
 Retrieve a specific comment by ID.
 
-**Endpoint:** `GET /v1/comments/:comment_id`
+**Endpoint:** `GET /api/comments/:comment_id`
 
 **Authentication:** Not required
 
@@ -195,7 +195,7 @@ Retrieve a specific comment by ID.
 ### 5. Update Comment
 Update an existing comment (only by the comment owner).
 
-**Endpoint:** `PUT /v1/comments/:comment_id`
+**Endpoint:** `PUT /api/comments/:comment_id`
 
 **Authentication:** Required
 
@@ -247,7 +247,7 @@ Update an existing comment (only by the comment owner).
 ### 6. Delete Comment
 Soft delete a comment (only by the comment owner).
 
-**Endpoint:** `DELETE /v1/comments/:comment_id`
+**Endpoint:** `DELETE /api/comments/:comment_id`
 
 **Authentication:** Required
 
@@ -281,7 +281,7 @@ Soft delete a comment (only by the comment owner).
 ### 7. Get Comments by User
 Retrieve comments made by a specific user (paginated).
 
-**Endpoint:** `GET /v1/comments/user/:user_id`
+**Endpoint:** `GET /api/comments/user/:user_id`
 
 **Authentication:** Not required
 
@@ -354,7 +354,7 @@ List endpoints use **`offset` + `limit`**; `meta` contains `total_items`, `offse
 
 ### Creating a Top-Level Comment
 ```bash
-curl -X POST http://localhost:3001/v1/comments \
+curl -X POST http://localhost:3001/api/comments \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -365,7 +365,7 @@ curl -X POST http://localhost:3001/v1/comments \
 
 ### Creating a Reply
 ```bash
-curl -X POST http://localhost:3001/v1/comments \
+curl -X POST http://localhost:3001/api/comments \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -377,12 +377,12 @@ curl -X POST http://localhost:3001/v1/comments \
 
 ### Getting Comments for a Post
 ```bash
-curl "http://localhost:3001/v1/comments/post/550e8400-e29b-41d4-a716-446655440000?offset=0&limit=20"
+curl "http://localhost:3001/api/comments/post/550e8400-e29b-41d4-a716-446655440000?offset=0&limit=20"
 ```
 
 ### Updating a Comment
 ```bash
-curl -X PUT http://localhost:3001/v1/comments/comment-uuid \
+curl -X PUT http://localhost:3001/api/comments/comment-uuid \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -392,6 +392,6 @@ curl -X PUT http://localhost:3001/v1/comments/comment-uuid \
 
 ### Deleting a Comment
 ```bash
-curl -X DELETE http://localhost:3001/v1/comments/comment-uuid \
+curl -X DELETE http://localhost:3001/api/comments/comment-uuid \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```

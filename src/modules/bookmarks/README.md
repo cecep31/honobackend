@@ -2,7 +2,7 @@
 
 The Bookmarks API provides endpoints for users to bookmark and organize their favorite posts into folders.
 
-**Base URL:** `/v1/bookmarks`
+**Base URL:** `/api/bookmarks`
 
 ---
 
@@ -34,7 +34,7 @@ Add or remove a bookmark for a post. If the post is already bookmarked, it will 
 
 **Example Request:**
 ```bash
-curl -X POST /v1/bookmarks/550e8400-e29b-41d4-a716-446655440001 \
+curl -X POST /api/bookmarks/550e8400-e29b-41d4-a716-446655440001 \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"folder_id": "...", "name": "Important Article"}'
@@ -73,15 +73,15 @@ Retrieve all bookmarks for the authenticated user, optionally filtered by folder
 **Example Request:**
 ```bash
 # All bookmarks
-curl -X GET /v1/bookmarks \
+curl -X GET /api/bookmarks \
   -H "Authorization: Bearer <your_token>"
 
 # Bookmarks in specific folder
-curl -X GET /v1/bookmarks?folder_id=550e8400-e29b-41d4-a716-446655440000 \
+curl -X GET /api/bookmarks?folder_id=550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 
 # Bookmarks without folder
-curl -X GET /v1/bookmarks?folder_id=null \
+curl -X GET /api/bookmarks?folder_id=null \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -142,7 +142,7 @@ Update bookmark name or notes.
 
 **Example Request:**
 ```bash
-curl -X PATCH /v1/bookmarks/550e8400-e29b-41d4-a716-446655440000 \
+curl -X PATCH /api/bookmarks/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"name": "New Name", "notes": "New notes"}'
@@ -166,13 +166,13 @@ Move a bookmark to a different folder.
 **Example Request:**
 ```bash
 # Move to folder
-curl -X PATCH /v1/bookmarks/550e8400-e29b-41d4-a716-446655440000/move \
+curl -X PATCH /api/bookmarks/550e8400-e29b-41d4-a716-446655440000/move \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"folder_id": "550e8400-e29b-41d4-a716-446655440001"}'
 
 # Remove from folder (set to null)
-curl -X PATCH /v1/bookmarks/550e8400-e29b-41d4-a716-446655440000/move \
+curl -X PATCH /api/bookmarks/550e8400-e29b-41d4-a716-446655440000/move \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"folder_id": null}'
@@ -198,7 +198,7 @@ Create a new bookmark folder.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/bookmarks/folders \
+curl -X POST /api/bookmarks/folders \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"name": "Important", "description": "Must read"}'
@@ -231,7 +231,7 @@ Retrieve all folders for the authenticated user with bookmark counts.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/bookmarks/folders \
+curl -X GET /api/bookmarks/folders \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -281,7 +281,7 @@ Update folder name or description.
 
 **Example Request:**
 ```bash
-curl -X PATCH /v1/bookmarks/folders/550e8400-e29b-41d4-a716-446655440000 \
+curl -X PATCH /api/bookmarks/folders/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"name": "Watch Later"}'
@@ -298,7 +298,7 @@ Delete a folder. Bookmarks in the folder will remain but become ungrouped (folde
 
 **Example Request:**
 ```bash
-curl -X DELETE /v1/bookmarks/folders/550e8400-e29b-41d4-a716-446655440000 \
+curl -X DELETE /api/bookmarks/folders/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -383,7 +383,7 @@ curl -X DELETE /v1/bookmarks/folders/550e8400-e29b-41d4-a716-446655440000 \
 ```typescript
 // Create a folder
 const createFolder = async (name: string, description?: string) => {
-  const response = await fetch('/v1/bookmarks/folders', {
+  const response = await fetch('/api/bookmarks/folders', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -400,7 +400,7 @@ const addBookmark = async (
   folderId: string,
   name?: string
 ) => {
-  const response = await fetch(`/v1/bookmarks/${postId}`, {
+  const response = await fetch(`/api/bookmarks/${postId}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -414,8 +414,8 @@ const addBookmark = async (
 // Get bookmarks by folder
 const getBookmarksByFolder = async (folderId?: string) => {
   const url = folderId
-    ? `/v1/bookmarks?folder_id=${folderId}`
-    : '/v1/bookmarks';
+    ? `/api/bookmarks?folder_id=${folderId}`
+    : '/api/bookmarks';
   const response = await fetch(url, {
     headers: { 'Authorization': `Bearer ${token}` }
   });

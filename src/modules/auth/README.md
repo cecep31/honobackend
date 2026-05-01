@@ -2,7 +2,7 @@
 
 The Auth API provides endpoints for user authentication, registration, and token management.
 
-**Base URL:** `/v1/auth`
+**Base URL:** `/api/auth`
 
 ---
 
@@ -71,7 +71,7 @@ You may send **`email`** instead of `identifier` (same rules as identifier); at 
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/login \
+curl -X POST /api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"identifier": "user@example.com", "password": "password123"}'
 ```
@@ -118,7 +118,7 @@ Create a new user account.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/register \
+curl -X POST /api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "johndoe", "email": "user@example.com", "password": "Str0ng!Pass"}'
 ```
@@ -156,7 +156,7 @@ Check if a username is already taken.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/check-username \
+curl -X POST /api/auth/check-username \
   -H "Content-Type: application/json" \
   -d '{"username": "johndoe"}'
 ```
@@ -183,7 +183,7 @@ Check if an email is already registered.
 
 **Example Request:**
 ```
-GET /v1/auth/email/user@example.com
+GET /api/auth/email/user@example.com
 ```
 
 **Response (200):**
@@ -215,7 +215,7 @@ Refresh an expired access token using a refresh token.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/refresh-token \
+curl -X POST /api/auth/refresh-token \
   -H "Content-Type: application/json" \
   -d '{"refresh_token": "your_refresh_token"}'
 ```
@@ -244,7 +244,7 @@ Log out the current user and invalidate the token.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/logout \
+curl -X POST /api/auth/logout \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -282,7 +282,7 @@ Update the user's password.
 
 **Example Request:**
 ```bash
-curl -X PATCH /v1/auth/password \
+curl -X PATCH /api/auth/password \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"old_password": "old123", "new_password": "new123", "confirm_password": "new123"}'
@@ -322,7 +322,7 @@ Request a password reset link.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/forgot-password \
+curl -X POST /api/auth/forgot-password \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com"}'
 ```
@@ -387,7 +387,7 @@ Reset password using a valid reset token.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/auth/reset-password \
+curl -X POST /api/auth/reset-password \
   -H "Content-Type: application/json" \
   -d '{
     "token": "01942f3e-8b7a-7890-b123-456789abcdef",
@@ -432,7 +432,7 @@ curl -X POST /v1/auth/reset-password \
 ---
 
 ### 12. Get Profile (JWT user)
-Return the full user profile for the authenticated JWT (distinct from `GET /v1/users/me`).
+Return the full user profile for the authenticated JWT (distinct from `GET /api/users/me`).
 
 - **URL:** `/profile`
 - **Method:** `GET`

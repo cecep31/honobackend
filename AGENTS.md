@@ -75,7 +75,7 @@ Error shape: `{ success: false, message, request_id, timestamp }` with optional 
 - `src/server/app.ts` — creates Hono app, applies timeout (30s), compression, error handler, middlewares, routes. Exposes `/health` and `/ready` endpoints.
 
 ### Routing
-- All API routes under `/v1`, wired in `src/router/index.ts` via `setupRouter(app)`.
+- All API routes under `/api`, wired in `src/router/index.ts` via `setupRouter(app)`.
 - 14 controllers (13 feature modules): auth, users, posts, tags, likes, writers, chat, holding-types, holdings, bookmarks, comments, notifications, reports.
 - `holdingTypeController` and `holdingController` both use `HoldingService` (no separate HoldingTypeService).
 

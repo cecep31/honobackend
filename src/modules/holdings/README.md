@@ -2,9 +2,9 @@
 
 The Holdings API provides endpoints for managing investment holdings, tracking portfolio value, and analyzing investment trends.
 
-**Base URL:** `/v1/holdings`
+**Base URL:** `/api/holdings`
 
-**Holding types (global catalog, not under `/holdings`):** `GET /v1/holding-types`
+**Holding types (global catalog, not under `/holdings`):** `GET /api/holding-types`
 
 **Note:** Holding `id` values are `bigint` in the database and are serialized as **strings** in JSON responses.
 
@@ -40,7 +40,7 @@ Omitting `month` / `year` returns holdings for **all** periods for the user (not
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/holdings?month=1&year=2026&sortBy=current_value&order=desc" \
+curl -X GET "/api/holdings?month=1&year=2026&sortBy=current_value&order=desc" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -105,7 +105,7 @@ Omitting both aggregates across **all** of the user’s holdings (all months/yea
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/holdings/summary?month=1&year=2026" \
+curl -X GET "/api/holdings/summary?month=1&year=2026" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -160,7 +160,7 @@ Get historical trends of holdings over multiple years.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/holdings/trends?years=2024,2025,2026" \
+curl -X GET "/api/holdings/trends?years=2024,2025,2026" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -205,7 +205,7 @@ Compare holdings between two different months.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/holdings/compare?fromMonth=1&fromYear=2025&toMonth=12&toYear=2025" \
+curl -X GET "/api/holdings/compare?fromMonth=1&fromYear=2025&toMonth=12&toYear=2025" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -261,7 +261,7 @@ If `endMonth` / `endYear` are omitted, the range is a **12-month window**: from 
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/holdings/monthly?startYear=2026&startMonth=4&endYear=2025&endMonth=5" \
+curl -X GET "/api/holdings/monthly?startYear=2026&startMonth=4&endYear=2025&endMonth=5" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -290,13 +290,13 @@ curl -X GET "/v1/holdings/monthly?startYear=2026&startMonth=4&endYear=2025&endMo
 ### 6. Get Holding Types
 Retrieve all available holding types (global catalog, not nested under user holdings).
 
-- **URL:** `/v1/holding-types` (base path `/`, i.e. `GET /v1/holding-types`)
+- **URL:** `/api/holding-types` (base path `/`, i.e. `GET /api/holding-types`)
 - **Method:** `GET`
 - **Authentication:** Required
 
 **Example Request:**
 ```bash
-curl -X GET /v1/holding-types \
+curl -X GET /api/holding-types \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -324,7 +324,7 @@ Retrieve a specific holding by ID.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/holdings/1 \
+curl -X GET /api/holdings/1 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -412,7 +412,7 @@ Create a new holding.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/holdings \
+curl -X POST /api/holdings \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"name":"Apple Inc.","platform":"Robinhood","holding_type_id":1,"currency":"USD","invested_amount":5000,"current_value":5500,"month":1,"year":2026}'
@@ -450,7 +450,7 @@ Fetches latest prices for all holdings in the **current calendar month/year** th
 
 **Example Request:**
 ```bash
-curl -X POST /v1/holdings/sync \
+curl -X POST /api/holdings/sync \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -503,7 +503,7 @@ Duplicate all holdings from one month to another.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/holdings/duplicate \
+curl -X POST /api/holdings/duplicate \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"fromMonth": 1, "fromYear": 2025, "toMonth": 2, "toYear": 2025}'
@@ -545,7 +545,7 @@ Update an existing holding.
 
 **Example Request:**
 ```bash
-curl -X PUT /v1/holdings/1 \
+curl -X PUT /api/holdings/1 \
   -H "Authorization: Bearer <your_token>" \
   -H "Content-Type: application/json" \
   -d '{"current_value": 6000, "current_price": 240}'
@@ -580,7 +580,7 @@ Delete a holding.
 
 **Example Request:**
 ```bash
-curl -X DELETE /v1/holdings/1 \
+curl -X DELETE /api/holdings/1 \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -683,7 +683,7 @@ async function getHoldings(filters: HoldingsFilters): Promise<Holding[]> {
   if (filters.sortBy) params.append('sortBy', filters.sortBy);
   if (filters.order) params.append('order', filters.order);
 
-  const response = await fetch(`/v1/holdings?${params}`, {
+  const response = await fetch(`/api/holdings?${params}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
@@ -692,7 +692,7 @@ async function getHoldings(filters: HoldingsFilters): Promise<Holding[]> {
 
 // Create a new holding (API returns an array from Drizzle `.returning()`)
 async function createHolding(data: HoldingCreate): Promise<Holding> {
-  const response = await fetch('/v1/holdings', {
+  const response = await fetch('/api/holdings', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -706,7 +706,7 @@ async function createHolding(data: HoldingCreate): Promise<Holding> {
 
 // Duplicate holdings to new month
 async function duplicateHoldings(data: DuplicateHoldingPayload): Promise<DuplicateResult> {
-  const response = await fetch('/v1/holdings/duplicate', {
+  const response = await fetch('/api/holdings/duplicate', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

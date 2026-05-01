@@ -2,7 +2,7 @@
 
 The Tags API provides endpoints for retrieving available tags used in posts.
 
-**Base URL:** `/v1/tags`
+**Base URL:** `/api/tags`
 
 ---
 
@@ -26,7 +26,7 @@ Retrieve all available tags used in published posts.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/tags
+curl -X GET /api/tags
 ```
 
 **Response (200):**
@@ -80,7 +80,7 @@ Retrieve all tags in a sitemap-friendly format for SEO purposes.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/tags/sitemap
+curl -X GET /api/tags/sitemap
 ```
 
 **Response (200):**
@@ -124,7 +124,7 @@ Retrieve tags that the authenticated user is following.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/tags/following \
+curl -X GET /api/tags/following \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -215,14 +215,14 @@ curl -X GET /v1/tags/following \
 ```typescript
 // Fetch all tags
 async function getTags(): Promise<Tag[]> {
-  const response = await fetch('/v1/tags');
+  const response = await fetch('/api/tags');
   const result = await response.json();
   return result.data;
 }
 
 // Get popular tags (sorted by post_count)
 async function getPopularTags(limit = 10): Promise<Tag[]> {
-  const response = await fetch('/v1/tags');
+  const response = await fetch('/api/tags');
   const result = await response.json();
   return result.data
     .sort((a: Tag, b: Tag) => b.post_count - a.post_count)
@@ -246,7 +246,7 @@ function TagCloud() {
   const [tags, setTags] = useState<Tag[]>([]);
 
   useEffect(() => {
-    fetch('/v1/tags')
+    fetch('/api/tags')
       .then(res => res.json())
       .then(result => setTags(result.data));
   }, []);
@@ -276,7 +276,7 @@ function TagCloud() {
 Tags are used in posts to categorize content. To fetch posts by tag:
 
 ```bash
-curl -X GET /v1/posts/tag/typescript
+curl -X GET /api/posts/tag/typescript
 ```
 
 See [Posts API](../posts/README.md) for more information.

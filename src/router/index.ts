@@ -33,7 +33,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
   const notificationController = createNotificationController(services.notificationService);
   const reportController = createReportController(services.userService, services.reportService);
 
-  const v1 = new Hono<{ Variables: Variables }>()
+  const api = new Hono<{ Variables: Variables }>()
     .route('/auth', authController)
     .route('/users', userController)
     .route('/posts', postController)
@@ -47,7 +47,7 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
     .route('/notifications', notificationController)
     .route('/reports', reportController);
 
-  app.route('/v1', v1);
+  app.route('/api', api);
 };
 
 export default setupRouter;

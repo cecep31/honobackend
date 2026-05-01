@@ -2,7 +2,7 @@
 
 The Users API provides endpoints for managing user profiles and accounts.
 
-**Base URL:** `/v1/users`
+**Base URL:** `/api/users`
 
 ---
 
@@ -38,7 +38,7 @@ Retrieve a paginated list of all users. Super admin only.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/users?offset=0&limit=10" \
+curl -X GET "/api/users?offset=0&limit=10" \
   -H "Authorization: Bearer <admin_token>"
 ```
 
@@ -85,7 +85,7 @@ Retrieve the authenticated user's profile.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/users/me \
+curl -X GET /api/users/me \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -189,7 +189,7 @@ Retrieve a user by their ID. Super admin only (same as other admin user manageme
 
 **Example Request:**
 ```bash
-curl -X GET /v1/users/550e8400-e29b-41d4-a716-446655440000 \
+curl -X GET /api/users/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <admin_token>"
 ```
 
@@ -255,7 +255,7 @@ Create a new user. Super admin only.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/users \
+curl -X POST /api/users \
   -H "Authorization: Bearer <admin_token>" \
   -H "Content-Type: application/json" \
   -d '{"username": "newuser", "email": "newuser@example.com", "password": "password123"}'
@@ -302,7 +302,7 @@ Soft-delete a user (`deleted_at`). Super admin only.
 
 **Example Request:**
 ```bash
-curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000 \
+curl -X DELETE /api/users/550e8400-e29b-41d4-a716-446655440000 \
   -H "Authorization: Bearer <admin_token>"
 ```
 
@@ -319,7 +319,7 @@ Follow another user.
 
 **Example Request:**
 ```bash
-curl -X POST /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
+curl -X POST /api/users/550e8400-e29b-41d4-a716-446655440000/follow \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -364,7 +364,7 @@ Unfollow a user.
 
 **Example Request:**
 ```bash
-curl -X DELETE /v1/users/550e8400-e29b-41d4-a716-446655440000/follow \
+curl -X DELETE /api/users/550e8400-e29b-41d4-a716-446655440000/follow \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -410,7 +410,7 @@ Get a paginated list of users following to specified user.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/followers?offset=0&limit=10" \
+curl -X GET "/api/users/550e8400-e29b-41d4-a716-446655440000/followers?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -453,7 +453,7 @@ Get a paginated list of users that specified user is following.
 
 **Example Request:**
 ```bash
-curl -X GET "/v1/users/550e8400-e29b-41d4-a716-446655440000/following?offset=0&limit=10" \
+curl -X GET "/api/users/550e8400-e29b-41d4-a716-446655440000/following?offset=0&limit=10" \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -495,7 +495,7 @@ Check if the authenticated user is following another user.
 
 **Example Request:**
 ```bash
-curl -X GET /v1/users/550e8400-e29b-41d4-a716-446655440000/is-following \
+curl -X GET /api/users/550e8400-e29b-41d4-a716-446655440000/is-following \
   -H "Authorization: Bearer <your_token>"
 ```
 
@@ -586,7 +586,7 @@ curl -X GET /v1/users/550e8400-e29b-41d4-a716-446655440000/is-following \
 ```typescript
 // Get current user profile
 async function getMyProfile(extended = false): Promise<UserProfile> {
-  const response = await fetch(`/v1/users/me?profile=${extended}`, {
+  const response = await fetch(`/api/users/me?profile=${extended}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
@@ -595,7 +595,7 @@ async function getMyProfile(extended = false): Promise<UserProfile> {
 
 // Super admin: Get user by ID
 async function getUser(userId: string): Promise<User> {
-  const response = await fetch(`/v1/users/${userId}`, {
+  const response = await fetch(`/api/users/${userId}`, {
     headers: { 'Authorization': `Bearer ${adminToken}` }
   });
   const result = await response.json();
@@ -604,7 +604,7 @@ async function getUser(userId: string): Promise<User> {
 
 // Admin: Get all users
 async function getAllUsers(offset = 0, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/users?offset=${offset}&limit=${limit}`, {
+  const response = await fetch(`/api/users?offset=${offset}&limit=${limit}`, {
     headers: { 'Authorization': `Bearer ${adminToken}` }
   });
   const result = await response.json();
@@ -613,7 +613,7 @@ async function getAllUsers(offset = 0, limit = 10): Promise<{ data: User[]; meta
 
 // Admin: Create user
 async function createUser(data: UserCreateBody): Promise<User> {
-  const response = await fetch('/v1/users', {
+  const response = await fetch('/api/users', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${adminToken}`,
@@ -627,7 +627,7 @@ async function createUser(data: UserCreateBody): Promise<User> {
 
 // Follow a user
 async function followUser(userId: string): Promise<FollowRelationship> {
-  const response = await fetch(`/v1/users/${userId}/follow`, {
+  const response = await fetch(`/api/users/${userId}/follow`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -637,7 +637,7 @@ async function followUser(userId: string): Promise<FollowRelationship> {
 
 // Unfollow a user
 async function unfollowUser(userId: string): Promise<FollowRelationship> {
-  const response = await fetch(`/v1/users/${userId}/follow`, {
+  const response = await fetch(`/api/users/${userId}/follow`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
   });
@@ -647,7 +647,7 @@ async function unfollowUser(userId: string): Promise<FollowRelationship> {
 
 // Get user's followers
 async function getFollowers(userId: string, offset = 0, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/users/${userId}/followers?offset=${offset}&limit=${limit}`, {
+  const response = await fetch(`/api/users/${userId}/followers?offset=${offset}&limit=${limit}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
@@ -656,7 +656,7 @@ async function getFollowers(userId: string, offset = 0, limit = 10): Promise<{ d
 
 // Get users that a user is following
 async function getFollowing(userId: string, offset = 0, limit = 10): Promise<{ data: User[]; meta: PaginationMeta }> {
-  const response = await fetch(`/v1/users/${userId}/following?offset=${offset}&limit=${limit}`, {
+  const response = await fetch(`/api/users/${userId}/following?offset=${offset}&limit=${limit}`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
@@ -665,7 +665,7 @@ async function getFollowing(userId: string, offset = 0, limit = 10): Promise<{ d
 
 // Check if following a user
 async function isFollowing(userId: string): Promise<boolean> {
-  const response = await fetch(`/v1/users/${userId}/is-following`, {
+  const response = await fetch(`/api/users/${userId}/is-following`, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const result = await response.json();
