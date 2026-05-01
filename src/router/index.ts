@@ -11,7 +11,6 @@ import { createPostController } from '../modules/posts/controllers/postControlle
 import { createTagController } from '../modules/tags/controllers/tagController';
 import { createUserController } from '../modules/users/controllers/userController';
 import { createReportController } from '../modules/reports/controllers/reportController';
-import { createWriterController } from '../modules/writers/controllers/writerController';
 import { createServices } from '../services';
 import type { Variables } from '../types/context';
 
@@ -26,7 +25,6 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
   const postController = createPostController(services.postService, services.userService);
   const tagController = createTagController(services.tagService);
   const likeController = createLikeController(services.likeService);
-  const writerController = createWriterController(services.writerService, services.postService);
   const chatController = createChatController(services.chatService);
   const holdingController = createHoldingController(services.holdingService);
   const holdingTypeController = createHoldingTypeController(services.holdingService);
@@ -41,7 +39,6 @@ const setupRouter = (app: Hono<{ Variables: Variables }>) => {
     .route('/posts', postController)
     .route('/tags', tagController)
     .route('/likes', likeController)
-    .route('/writers', writerController)
     .route('/chat', chatController)
     .route('/holding-types', holdingTypeController)
     .route('/holdings', holdingController)

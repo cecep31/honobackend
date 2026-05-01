@@ -11,7 +11,6 @@ import { PostService } from '../modules/posts/services/postService';
 import { ReportService } from '../modules/reports/services/reportService';
 import { TagService } from '../modules/tags/services/tagService';
 import { UserService } from '../modules/users/services/userService';
-import { WriterService } from '../modules/writers/services/writerService';
 
 // Helper for lazy service instantiation with cached bound methods
 function createLazyService<T extends object>(factory: () => T): T {
@@ -44,7 +43,6 @@ export interface AppServices {
   userService: UserService;
   authService: AuthService;
   postService: PostService;
-  writerService: WriterService;
   openrouterService: OpenRouterService;
   chatService: ChatService;
   holdingService: HoldingService;
@@ -62,7 +60,6 @@ export function createServices(): AppServices {
   const userService = createLazyService(() => new UserService(notificationService));
   const authService = createLazyService(() => new AuthService(userService));
   const postService = createLazyService(() => new PostService());
-  const writerService = createLazyService(() => new WriterService());
   const openrouterService = createLazyService(() => new OpenRouterService());
   const chatService = createLazyService(() => new ChatService(openrouterService));
   const holdingService = createLazyService(() => new HoldingService());
@@ -78,7 +75,6 @@ export function createServices(): AppServices {
     userService,
     authService,
     postService,
-    writerService,
     openrouterService,
     chatService,
     holdingService,
@@ -98,7 +94,6 @@ export const {
   userService,
   authService,
   postService,
-  writerService,
   openrouterService,
   chatService,
   holdingService,
