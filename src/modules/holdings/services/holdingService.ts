@@ -42,16 +42,16 @@ export class HoldingService {
 
     // 2. Extract unique symbols
     const symbols = Array.from(
-      new Set(userHoldings.map((h) => h.symbol).filter(Boolean) as string[])
+      new Set(userHoldings.map((h) => h.symbol?.trim().toUpperCase()).filter(Boolean) as string[])
     );
 
     // 3. Fetch current prices
     const latestPrices = await stockPriceService.getMultiplePrices(symbols);
-    const priceMap = new Map(latestPrices.map((p) => [p.symbol, p.price]));
+    const priceMap = new Map(latestPrices.map((p) => [p.symbol.trim().toUpperCase(), p.price]));
 
     // 4. Update each holding
     const updatePromises = userHoldings.map((h) => {
-      const latestPrice = priceMap.get(h.symbol as string);
+      const latestPrice = priceMap.get((h.symbol as string).trim().toUpperCase());
       if (latestPrice === undefined) return null;
 
       const units = Number(h.units || 0);
