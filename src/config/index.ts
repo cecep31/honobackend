@@ -132,7 +132,7 @@ function buildGithubConfig(): GithubConfig {
     clientSecret: getString('GITHUB_CLIENT_SECRET'),
     redirectUri: getString(
       'GITHUB_REDIRECT_URI',
-      'https://hono.pilput.net/auth/oauth/github/callback'
+      'https://hono.pilput.net/api/auth/oauth/github/callback'
     ),
   };
 }
