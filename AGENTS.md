@@ -25,7 +25,7 @@ bun run db:studio          # Open Drizzle Studio
 bun run clean              # Remove dist/ and bin/
 ```
 
-Pre-commit order: `bun run typecheck && bun run lint && bun test`.
+Pre-commit verification order (manual — no automated hook configured): `bun run typecheck && bun run lint && bun test`.
 
 ## Code Style
 
@@ -76,7 +76,7 @@ Error shape: `{ success: false, message, request_id, timestamp }` with optional 
 
 ### Routing
 - All API routes under `/api`, wired in `src/router/index.ts` via `setupRouter(app)`.
-- 14 controllers (13 feature modules): auth, users, posts, tags, likes, writers, chat, holding-types, holdings, bookmarks, comments, notifications, reports.
+- 12 controllers (12 feature modules): auth, users, posts, tags, likes, chat, holding-types, holdings, bookmarks, comments, notifications, reports.
 - `holdingTypeController` and `holdingController` both use `HoldingService` (no separate HoldingTypeService).
 
 ### Module structure
@@ -136,7 +136,7 @@ Migrations table is custom: `my-migrations-table` (see `drizzle.config.ts`). Rel
 ```typescript
 type Variables = { user: jwtPayload; requestId: string };
 ```
-JWT payload: `user_id`, `email`, `is_super_admin`, `exp`. Expiration from `JWT_EXPIRES_IN` env (default `1d`).
+JWT payload: `user_id`, `email`, `is_super_admin`, `exp`. Expiration from `JWT_EXPIRES_IN` env (code default `3h`).
 
 ## Middlewares (`src/middlewares/index.ts`)
 Applied in order: requestId → logging → bodyLimit (default 10MB) → CORS → optional global rate limiter (`RATE_LIMIT_MAX` requests/min per IP; default **0** = off, set **> 0** to enable). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
@@ -172,15 +172,15 @@ For complex queries use `createChainableMock(result)`. For transactions use `set
 
 Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 chars). Config validated at startup in `src/config/index.ts`.
 
-Key optional integrations: GitHub OAuth (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`), S3 storage, OpenRouter AI (`OPENROUTER_API_KEY`, default model `openai/gpt-oss-20b:free`), Resend email for password resets.
+Key optional integrations: GitHub OAuth (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`), S3 storage, OpenRouter AI (`OPENROUTER_API_KEY`, code default model `google/gemma-2-9b-it:free`), Resend email for password resets.
 
-DB pool defaults: `DB_MAX_CONNECTIONS=50`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIMEOUT=5`, `DB_MAX_LIFETIME=1800`.
+DB pool defaults: `DB_MAX_CONNECTIONS=10`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIMEOUT=10`, `DB_MAX_LIFETIME=1800`.
 
 ## Deploy
 
 - Docker image: `cecep31/honobackend` (built from `Dockerfile`, multi-stage, compiles native binary)
-- CI: push to `main` triggers Docker Hub build/push (`.github/workflows/build_deploy.yml`)
-- Runtime: Fly.io (`fly.toml`), region `sin`, 256MB RAM + 128MB swap, port 3001
+- CI: push to `main` triggers Docker Hub build/push (`.github/workflows/build_deploy.yml`); Fly.io deploy step is currently commented out
+- Runtime config: Fly.io (`fly.toml`), region `sin`, 256MB RAM + 128MB swap, port 3001
 - `MAIN_DOMAIN` env defaults to `pilput.net`
 
 ## Repo Quirks
