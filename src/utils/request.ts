@@ -1,5 +1,7 @@
 import type { Context } from 'hono';
 
+import { MAX_QUERY_OFFSET } from './validationLimits';
+
 /**
  * Extract the real client IP address from common proxy/CDN headers.
  *
@@ -31,7 +33,9 @@ export const safeLimit = (v: string | undefined, fallback: number = 10, max: num
  */
 export const safeOffset = (v: string | undefined, fallback: number = 0) => {
   const n = v ? Number(v) : NaN;
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+  return Number.isFinite(n) && n >= 0
+    ? Math.min(MAX_QUERY_OFFSET, Math.floor(n))
+    : fallback;
 };
 
 /**

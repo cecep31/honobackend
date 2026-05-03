@@ -1,9 +1,13 @@
 import { z } from 'zod';
 import { safeLimit, safeOffset } from '../../../utils/request';
+import {
+  MAX_ISO_DATETIME_STRING_LENGTH,
+  MAX_OAUTH_AUTHORIZATION_CODE_LENGTH,
+} from '../../../utils/validationLimits';
 
 /** Query for GET /oauth/github/callback */
 export const githubCallbackQuerySchema = z.object({
-  code: z.string().min(1, 'code is required'),
+  code: z.string().min(1, 'code is required').max(MAX_OAUTH_AUTHORIZATION_CODE_LENGTH),
 });
 
 /** Query for GET /activity-logs */
@@ -46,6 +50,7 @@ const defaultSince = () => new Date(Date.now() - 24 * 60 * 60 * 1000);
 export const failedLoginsQuerySchema = z.object({
   since: z
     .string()
+    .max(MAX_ISO_DATETIME_STRING_LENGTH)
     .optional()
     .transform((v) => {
       if (!v) return defaultSince();

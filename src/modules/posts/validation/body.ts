@@ -1,5 +1,12 @@
 import { z } from 'zod';
 import sanitizeHtml from 'sanitize-html';
+import {
+  MAX_PRESIGNED_FILENAME_LENGTH,
+  MAX_POST_TAGS_COUNT,
+  MAX_TAG_NAME_CHARS,
+  MAX_URL_LENGTH,
+  MAX_ISO_DATETIME_STRING_LENGTH,
+} from '../../../utils/validationLimits';
 
 /** Max length for WYSIWYG/HTML body (tags add ~30–50% overhead vs plain text). */
 const BODY_MAX_LENGTH = 500_000;
@@ -52,6 +59,7 @@ const sanitizeOptions: sanitizeHtml.IOptions = {
 
 const publicationDateSchema = z
   .string()
+  .max(MAX_ISO_DATETIME_STRING_LENGTH)
   .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid published_at datetime');
 
 const publicationRefinement = (
@@ -76,8 +84,12 @@ export const createPostSchema = z
       .max(BODY_MAX_LENGTH)
       .transform((val) => sanitizeHtml(val, sanitizeOptions)),
     slug: z.string().min(5).max(255),
-    tags: z.array(z.string()).optional().default([]),
-    photo_url: z.string().optional().nullable(),
+    tags: z
+      .array(z.string().max(MAX_TAG_NAME_CHARS))
+      .max(MAX_POST_TAGS_COUNT)
+      .optional()
+      .default([]),
+    photo_url: z.string().max(MAX_URL_LENGTH).url().optional().nullable(),
     published: z.boolean().optional().default(true),
     published_at: publicationDateSchema.optional(),
   })
@@ -93,8 +105,8 @@ export const updatePostSchema = z
       .optional()
       .transform((val) => (val ? sanitizeHtml(val, sanitizeOptions) : val)),
     slug: z.string().min(5).max(255).optional(),
-    tags: z.array(z.string()).optional(),
-    photo_url: z.string().optional(),
+    tags: z.array(z.string().max(MAX_TAG_NAME_CHARS)).max(MAX_POST_TAGS_COUNT).optional(),
+    photo_url: z.string().max(MAX_URL_LENGTH).url().optional().nullable(),
     published: z.boolean().optional(),
     published_at: publicationDateSchema.nullable().optional(),
   })
@@ -103,10 +115,11 @@ export const updatePostSchema = z
 export const presignedUrlSchema = z.object({
   contentType: z
     .string()
+    .max(100)
     .refine((type) => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(type), {
       message: 'Invalid content type. Allowed: JPEG, PNG, GIF, WebP',
     }),
-  filename: z.string().optional(),
+  filename: z.string().max(MAX_PRESIGNED_FILENAME_LENGTH).optional(),
   size: z
     .number()
     .int()

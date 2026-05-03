@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_EMAIL_LENGTH, MAX_URL_LENGTH } from '../../../utils/validationLimits';
 
 /** Max size for profile / avatar image uploads (single source of truth for API + service). */
 export const MAX_PROFILE_IMAGE_BYTES = 1 * 1024 * 1024; // 1MB
@@ -16,12 +17,17 @@ export const createUserSchema = z.object({
       /^[a-zA-Z0-9_-]+$/,
       'Username can only contain letters, numbers, underscores, and hyphens'
     ),
-  email: z.string().email('Invalid email format'),
+  email: z.string().email('Invalid email format').max(MAX_EMAIL_LENGTH),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password must be at most 100 characters'),
-  image: z.string().url('Invalid image URL').optional().default('/images/default.jpg'),
+  image: z
+    .string()
+    .max(MAX_URL_LENGTH)
+    .url('Invalid image URL')
+    .optional()
+    .default('/images/default.jpg'),
   is_super_admin: z.boolean().optional().default(false),
 });
 
@@ -37,7 +43,7 @@ export const updateUserSchema = z.object({
       'Username can only contain letters, numbers, underscores, and hyphens'
     )
     .optional(),
-  email: z.string().email('Invalid email format').optional(),
+  email: z.string().email('Invalid email format').max(MAX_EMAIL_LENGTH).optional(),
 });
 
 export const followUserSchema = z.object({

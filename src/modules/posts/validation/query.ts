@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { safeLimit, safeOffset } from '../../../utils/request';
+import {
+  MAX_ORDER_BY_LENGTH,
+  MAX_QUERY_SEARCH_LENGTH,
+} from '../../../utils/validationLimits';
 
 /** Query untuk list posts (paginate): GET /, GET /me, GET /author/:username */
 export const listPostsQuerySchema = z.object({
@@ -11,9 +15,9 @@ export const listPostsQuerySchema = z.object({
     .string()
     .optional()
     .transform((v) => safeLimit(v, 10)),
-  search: z.string().optional(),
-  q: z.string().optional(),
-  orderBy: z.string().optional(),
+  search: z.string().max(MAX_QUERY_SEARCH_LENGTH).optional(),
+  q: z.string().max(MAX_QUERY_SEARCH_LENGTH).optional(),
+  orderBy: z.string().max(MAX_ORDER_BY_LENGTH).optional(),
   orderDirection: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
@@ -21,6 +25,7 @@ export const listPostsQuerySchema = z.object({
 export const postsOverTimeQuerySchema = z.object({
   days: z
     .string()
+    .max(8)
     .optional()
     .default('30')
     .transform((v) =>
@@ -44,6 +49,7 @@ export type PostsOverTimeQuery = z.infer<typeof postsOverTimeQuerySchema>;
 export const myLikesByMonthQuerySchema = z.object({
   months: z
     .string()
+    .max(8)
     .optional()
     .default('12')
     .transform((v) => {

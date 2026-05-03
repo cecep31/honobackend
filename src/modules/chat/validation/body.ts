@@ -1,20 +1,25 @@
 import { z } from 'zod';
+import {
+  MAX_CHAT_CONTENT_LENGTH,
+  MAX_CHAT_ROLE_LENGTH,
+  MAX_MODEL_ID_LENGTH,
+} from '../../../utils/validationLimits';
 
 export const createConversationSchema = z.object({
   title: z.string().min(1).max(255).optional(),
 });
 
 export const createMessageSchema = z.object({
-  content: z.string().min(1),
-  role: z.string().optional().default('user'),
-  model: z.string().optional(),
+  content: z.string().min(1).max(MAX_CHAT_CONTENT_LENGTH),
+  role: z.string().max(MAX_CHAT_ROLE_LENGTH).optional().default('user'),
+  model: z.string().max(MAX_MODEL_ID_LENGTH).optional(),
   temperature: z.number().min(0).max(2).default(0.7),
 });
 
 export const createConversationStreamSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  content: z.string().min(1),
-  model: z.string().optional(),
+  content: z.string().min(1).max(MAX_CHAT_CONTENT_LENGTH),
+  model: z.string().max(MAX_MODEL_ID_LENGTH).optional(),
   temperature: z.number().min(0).max(2).default(0.7),
 });
 

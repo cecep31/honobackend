@@ -1,14 +1,21 @@
 import { z } from 'zod';
 
+import {
+  MAX_ISO_DATETIME_STRING_LENGTH,
+  SERIAL_INT_MAX,
+} from '../../../utils/validationLimits';
+
 export const dateRangeQuerySchema = z.object({
   startDate: z
     .string()
+    .max(MAX_ISO_DATETIME_STRING_LENGTH)
     .optional()
     .refine((val) => !val || !isNaN(Date.parse(val)), {
       message: 'Invalid start date format',
     }),
   endDate: z
     .string()
+    .max(MAX_ISO_DATETIME_STRING_LENGTH)
     .optional()
     .refine((val) => !val || !isNaN(Date.parse(val)), {
       message: 'Invalid end date format',
@@ -26,7 +33,7 @@ export const userReportQuerySchema = dateRangeQuerySchema.extend({
 
 export const postReportQuerySchema = dateRangeQuerySchema.extend({
   limit: z.coerce.number().min(1).max(100).optional().default(10),
-  tagId: z.coerce.number().optional(),
+  tagId: z.coerce.number().int().positive().max(SERIAL_INT_MAX).optional(),
 });
 
 export type DateRangeQuery = z.infer<typeof dateRangeQuerySchema>;

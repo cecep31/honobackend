@@ -6,28 +6,32 @@ import { safeLimit, safeOffset } from '../../../utils/request';
 import { sendSuccess } from '../../../utils/response';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import {
+  MAX_BOOKMARK_NOTES_LENGTH,
+  MAX_FOLDER_DESCRIPTION_LENGTH,
+} from '../../../utils/validationLimits';
 
 type BookmarkService = AppServices['bookmarkService'];
 
 const toggleBookmarkSchema = z.object({
   folder_id: z.string().uuid().optional(),
   name: z.string().max(255).optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(MAX_BOOKMARK_NOTES_LENGTH).optional(),
 });
 
 const createFolderSchema = z.object({
   name: z.string().min(1).max(100),
-  description: z.string().optional(),
+  description: z.string().max(MAX_FOLDER_DESCRIPTION_LENGTH).optional(),
 });
 
 const updateFolderSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  description: z.string().optional(),
+  description: z.string().max(MAX_FOLDER_DESCRIPTION_LENGTH).optional(),
 });
 
 const updateBookmarkSchema = z.object({
   name: z.string().max(255).optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(MAX_BOOKMARK_NOTES_LENGTH).optional(),
 });
 
 const moveBookmarkSchema = z.object({
