@@ -10,9 +10,15 @@ const mockWhereSelect = mock();
 const mockFrom = mock(() => ({ where: mockWhereSelect }));
 
 const mockFindMany = mock();
+const mockFolderFindFirst = mock();
+const mockFolderFindMany = mock();
 const mockQuery = {
   post_bookmarks: {
     findMany: mockFindMany,
+  },
+  bookmark_folders: {
+    findFirst: mockFolderFindFirst,
+    findMany: mockFolderFindMany,
   },
 };
 
@@ -20,6 +26,7 @@ mock.module('../database/drizzle', () => {
   return {
     db: {
       insert: mocks.mockInsert,
+      update: mocks.mockUpdate,
       delete: mocks.mockDelete,
       select: mocks.mockSelect,
       query: mockQuery,
@@ -27,6 +34,7 @@ mock.module('../database/drizzle', () => {
         cb({
           select: mocks.mockSelect,
           insert: mocks.mockInsert,
+          update: mocks.mockUpdate,
           delete: mocks.mockDelete,
         }),
     },
@@ -39,6 +47,8 @@ describe('BookmarkService', () => {
     mockWhereSelect.mockReset();
     mockFrom.mockClear();
     mockFindMany.mockReset();
+    mockFolderFindFirst.mockReset();
+    mockFolderFindMany.mockReset();
     mocks.mockSelect.mockReturnValue({ from: mockFrom });
   });
 
@@ -178,6 +188,201 @@ describe('BookmarkService', () => {
 
       try {
         await bookmarkService.getBookmarksByUser(userId);
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500);
+        expect(error.message).toBe('Internal server error');
+      }
+    });
+  });
+
+  describe('moveToFolder', () => {
+    it('moves bookmark to a folder', async () => {
+      mockFolderFindFirst.mockResolvedValue({ id: 'folder-1', name: 'My Folder' });
+      mocks.mockReturning.mockResolvedValue([{ id: 'bm-1', folder_id: 'folder-1' }]);
+
+      const result = await bookmarkService.moveToFolder('bm-1', 'user-1', 'folder-1');
+
+      expect(result.folder_id).toBe('folder-1');
+      expect(mockFolderFindFirst).toHaveBeenCalled();
+    });
+
+    it('moves bookmark out of folder (null)', async () => {
+      mocks.mockReturning.mockResolvedValue([{ id: 'bm-1', folder_id: null }]);
+
+      const result = await bookmarkService.moveToFolder('bm-1', 'user-1', null);
+
+      expect(result.folder_id).toBeNull();
+      expect(mockFolderFindFirst).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound when folder does not exist', async () => {
+      mockFolderFindFirst.mockResolvedValue(null);
+
+      await expect(bookmarkService.moveToFolder('bm-1', 'user-1', 'folder-999')).rejects.toThrow(
+        'Folder not found'
+      );
+    });
+
+    it('throws NotFound when bookmark not found', async () => {
+      mockFolderFindFirst.mockResolvedValue({ id: 'folder-1' });
+      mocks.mockReturning.mockResolvedValue([]);
+
+      await expect(bookmarkService.moveToFolder('bm-999', 'user-1', 'folder-1')).rejects.toThrow(
+        'Bookmark not found'
+      );
+    });
+  });
+
+  describe('updateBookmark', () => {
+    it('updates bookmark name and notes', async () => {
+      mocks.mockReturning.mockResolvedValue([
+        { id: 'bm-1', name: 'Updated Name', notes: 'Updated notes' },
+      ]);
+
+      const result = await bookmarkService.updateBookmark('bm-1', 'user-1', {
+        name: 'Updated Name',
+        notes: 'Updated notes',
+      });
+
+      expect(result.name).toBe('Updated Name');
+      expect(result.notes).toBe('Updated notes');
+    });
+
+    it('throws NotFound when bookmark not found', async () => {
+      mocks.mockReturning.mockResolvedValue([]);
+
+      await expect(
+        bookmarkService.updateBookmark('bm-999', 'user-1', { name: 'Name' })
+      ).rejects.toThrow('Bookmark not found');
+    });
+
+    it('throws internal server error on db error', async () => {
+      mocks.mockReturning.mockRejectedValue(new Error('DB Error'));
+
+      try {
+        await bookmarkService.updateBookmark('bm-1', 'user-1', { name: 'Name' });
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500);
+        expect(error.message).toBe('Internal server error');
+      }
+    });
+  });
+
+  describe('createFolder', () => {
+    it('creates a folder', async () => {
+      mocks.mockReturning.mockResolvedValue([
+        { id: 'folder-1', name: 'New Folder', description: 'Desc' },
+      ]);
+
+      const result = await bookmarkService.createFolder('user-1', 'New Folder', 'Desc');
+
+      expect(result.name).toBe('New Folder');
+      expect(result.description).toBe('Desc');
+    });
+
+    it('throws internal server error on db error', async () => {
+      mocks.mockReturning.mockRejectedValue(new Error('DB Error'));
+
+      try {
+        await bookmarkService.createFolder('user-1', 'New Folder');
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500);
+        expect(error.message).toBe('Internal server error');
+      }
+    });
+  });
+
+  describe('updateFolder', () => {
+    it('updates folder name and description', async () => {
+      mocks.mockReturning.mockResolvedValue([
+        { id: 'folder-1', name: 'Updated Folder', description: 'Updated Desc' },
+      ]);
+
+      const result = await bookmarkService.updateFolder('folder-1', 'user-1', {
+        name: 'Updated Folder',
+        description: 'Updated Desc',
+      });
+
+      expect(result.name).toBe('Updated Folder');
+    });
+
+    it('throws NotFound when folder not found', async () => {
+      mocks.mockReturning.mockResolvedValue([]);
+
+      await expect(
+        bookmarkService.updateFolder('folder-999', 'user-1', { name: 'Name' })
+      ).rejects.toThrow('Folder not found');
+    });
+
+    it('throws internal server error on db error', async () => {
+      mocks.mockReturning.mockRejectedValue(new Error('DB Error'));
+
+      try {
+        await bookmarkService.updateFolder('folder-1', 'user-1', { name: 'Name' });
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500);
+        expect(error.message).toBe('Internal server error');
+      }
+    });
+  });
+
+  describe('deleteFolder', () => {
+    it('deletes a folder', async () => {
+      mocks.mockReturning.mockResolvedValue([{ id: 'folder-1', name: 'Deleted' }]);
+
+      const result = await bookmarkService.deleteFolder('folder-1', 'user-1');
+
+      expect(result.id).toBe('folder-1');
+    });
+
+    it('throws NotFound when folder not found', async () => {
+      mocks.mockReturning.mockResolvedValue([]);
+
+      await expect(bookmarkService.deleteFolder('folder-999', 'user-1')).rejects.toThrow(
+        'Folder not found'
+      );
+    });
+
+    it('throws internal server error on db error', async () => {
+      mocks.mockReturning.mockRejectedValue(new Error('DB Error'));
+
+      try {
+        await bookmarkService.deleteFolder('folder-1', 'user-1');
+      } catch (error: any) {
+        expect(error.statusCode).toBe(500);
+        expect(error.message).toBe('Internal server error');
+      }
+    });
+  });
+
+  describe('getFoldersByUser', () => {
+    it('returns folders with bookmark counts', async () => {
+      mockFolderFindMany.mockResolvedValue([
+        {
+          id: 'folder-1',
+          name: 'Folder 1',
+          post_bookmarks: [{ id: 'bm-1' }, { id: 'bm-2' }],
+        },
+        {
+          id: 'folder-2',
+          name: 'Folder 2',
+          post_bookmarks: [],
+        },
+      ]);
+
+      const result = await bookmarkService.getFoldersByUser('user-1');
+
+      expect(result).toHaveLength(2);
+      expect(result[0].bookmark_count).toBe(2);
+      expect(result[1].bookmark_count).toBe(0);
+      expect(result[0].post_bookmarks).toBeUndefined();
+    });
+
+    it('throws internal server error on db error', async () => {
+      mockFolderFindMany.mockRejectedValue(new Error('DB Error'));
+
+      try {
+        await bookmarkService.getFoldersByUser('user-1');
       } catch (error: any) {
         expect(error.statusCode).toBe(500);
         expect(error.message).toBe('Internal server error');

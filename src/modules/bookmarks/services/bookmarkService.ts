@@ -1,7 +1,7 @@
 import { post_bookmarks, bookmark_folders } from '../../../database/schemas/postgres/schema';
 import { db } from '../../../database/drizzle';
 import { and, eq, isNull } from 'drizzle-orm';
-import { Errors } from '../../../utils/error';
+import { ApiError, Errors } from '../../../utils/error';
 
 export class BookmarkService {
   async toggleBookmark(
@@ -85,6 +85,7 @@ export class BookmarkService {
       return updated[0];
     } catch (error) {
       console.error('Update bookmark error:', error);
+      if (error instanceof ApiError) throw error;
       throw Errors.InternalServerError();
     }
   }
@@ -161,6 +162,7 @@ export class BookmarkService {
       return updated[0];
     } catch (error) {
       console.error('Update folder error:', error);
+      if (error instanceof ApiError) throw error;
       throw Errors.InternalServerError();
     }
   }
@@ -179,6 +181,7 @@ export class BookmarkService {
       return deleted[0];
     } catch (error) {
       console.error('Delete folder error:', error);
+      if (error instanceof ApiError) throw error;
       throw Errors.InternalServerError();
     }
   }

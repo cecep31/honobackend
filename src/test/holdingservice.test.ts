@@ -482,4 +482,118 @@ describe('HoldingService', () => {
       expect(mockTransaction).not.toHaveBeenCalled();
     });
   });
+
+  describe('getPrice', () => {
+    it('should return stock price', async () => {
+      mock.module('../modules/holdings/services/stockPriceService', () => ({
+        stockPriceService: {
+          getPrice: mock(() => Promise.resolve({ symbol: 'AAPL', price: 150, currency: 'USD' })),
+          getMultiplePrices: mockGetMultiplePrices,
+        },
+      }));
+
+      const result = await holdingService.getPrice('AAPL');
+
+      expect(result.symbol).toBe('AAPL');
+      expect(result.price).toBe(150);
+    });
+
+    it('should normalize symbol to uppercase', async () => {
+      const getPriceMock = mock(() => Promise.resolve({ symbol: 'AAPL', price: 150, currency: 'USD' }));
+      mock.module('../modules/holdings/services/stockPriceService', () => ({
+        stockPriceService: {
+          getPrice: getPriceMock,
+          getMultiplePrices: mockGetMultiplePrices,
+        },
+      }));
+
+      await holdingService.getPrice(' aapl ');
+      expect(getPriceMock).toHaveBeenCalledWith('AAPL');
+    });
+
+    it('should throw NotFound when price not found', async () => {
+      mock.module('../modules/holdings/services/stockPriceService', () => ({
+        stockPriceService: {
+          getPrice: mock(() => Promise.resolve(null)),
+          getMultiplePrices: mockGetMultiplePrices,
+        },
+      }));
+
+      await expect(holdingService.getPrice('UNKNOWN')).rejects.toThrow('Stock price not found');
+    });
+  });
+
+  describe('getMonthly', () => {
+    it('should return monthly data for default range', async () => {
+      const chainMock = createChainableMock([
+        { month: 1, year: 2024, totalInvested: 5000, totalCurrentValue: 5500, holdingsCount: 2 },
+      ]);
+      mocks.mockSelect.mockReturnValue(chainMock);
+
+      const result = await holdingService.getMonthly('user-1');
+
+      expect(result).toBeInstanceOf(Array);
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should return monthly data for custom range', async () => {
+      const chainMock = createChainableMock([
+        { month: 3, year: 2024, totalInvested: 6000, totalCurrentValue: 6500, holdingsCount: 3 },
+      ]);
+      mocks.mockSelect.mockReturnValue(chainMock);
+
+      const result = await holdingService.getMonthly('user-1', 3, 2024, 1, 2024);
+
+      expect(result).toBeInstanceOf(Array);
+    });
+  });
+
+  describe('compareMonths', () => {
+    it('should compare two months', async () => {
+      const chainMock1 = createChainableMock([
+        { totalInvested: 10000, totalCurrentValue: 12000, holdingsCount: 5 },
+      ]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock1);
+      const chainMock2 = createChainableMock([]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock2);
+      const chainMock3 = createChainableMock([]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock3);
+
+      const chainMock4 = createChainableMock([
+        { totalInvested: 8000, totalCurrentValue: 9000, holdingsCount: 4 },
+      ]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock4);
+      const chainMock5 = createChainableMock([]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock5);
+      const chainMock6 = createChainableMock([]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock6);
+
+      const result = await holdingService.compareMonths('user-1', 1, 2024, 2, 2024);
+
+      expect(result.fromMonth.month).toBe(1);
+      expect(result.toMonth.month).toBe(2);
+      expect(result.summary.investedDiff).toBe(-2000);
+    });
+
+    it('should default to current and previous month', async () => {
+      const chainMock1 = createChainableMock([
+        { totalInvested: 10000, totalCurrentValue: 12000, holdingsCount: 5 },
+      ]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock1);
+      mocks.mockSelect.mockReturnValueOnce(createChainableMock([]));
+      mocks.mockSelect.mockReturnValueOnce(createChainableMock([]));
+
+      const chainMock2 = createChainableMock([
+        { totalInvested: 9000, totalCurrentValue: 11000, holdingsCount: 4 },
+      ]);
+      mocks.mockSelect.mockReturnValueOnce(chainMock2);
+      mocks.mockSelect.mockReturnValueOnce(createChainableMock([]));
+      mocks.mockSelect.mockReturnValueOnce(createChainableMock([]));
+
+      const result = await holdingService.compareMonths('user-1');
+
+      expect(result.fromMonth).toBeDefined();
+      expect(result.toMonth).toBeDefined();
+    });
+  });
 });
