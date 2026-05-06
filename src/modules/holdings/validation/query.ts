@@ -17,6 +17,16 @@ function optionalQueryBoundedInt(min: number, max: number, maxDigits: number) {
   ]);
 }
 
+function getDefaultMonthRange() {
+  const now = new Date();
+  const endMonth = now.getMonth() + 1;
+  const endYear = now.getFullYear();
+  const startDate = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+  const startMonth = startDate.getMonth() + 1;
+  const startYear = startDate.getFullYear();
+  return { startMonth, startYear, endMonth, endYear };
+}
+
 export const getHoldingsQuerySchema = z.object({
   month: optionalQueryBoundedInt(1, 12, 2),
   year: optionalQueryBoundedInt(2000, 2100, 4),
@@ -69,12 +79,21 @@ export const getCompareMonthsSchema = z.object({
   toYear: optionalQueryBoundedInt(2000, 2100, 4),
 });
 
-export const getMonthlyQuerySchema = z.object({
-  startMonth: optionalQueryBoundedInt(1, 12, 2),
-  startYear: optionalQueryBoundedInt(2000, 2100, 4),
-  endMonth: optionalQueryBoundedInt(1, 12, 2),
-  endYear: optionalQueryBoundedInt(2000, 2100, 4),
-});
+export const getMonthlyQuerySchema = z
+  .object({
+    startMonth: optionalQueryBoundedInt(1, 12, 2).default(() => getDefaultMonthRange().startMonth),
+    startYear: optionalQueryBoundedInt(2000, 2100, 4).default(() => getDefaultMonthRange().startYear),
+    endMonth: optionalQueryBoundedInt(1, 12, 2).default(() => getDefaultMonthRange().endMonth),
+    endYear: optionalQueryBoundedInt(2000, 2100, 4).default(() => getDefaultMonthRange().endYear),
+  })
+  .refine(
+    ({ startMonth, startYear, endMonth, endYear }) => {
+      const totalStartMonths = startYear * 12 + startMonth;
+      const totalEndMonths = endYear * 12 + endMonth;
+      return totalEndMonths - totalStartMonths <= 36;
+    },
+    { message: 'Date range cannot exceed 3 years (36 months)' }
+  );
 
 export const getPriceQuerySchema = z.object({
   symbol: z
