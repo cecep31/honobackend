@@ -43,12 +43,16 @@ Use `Errors` from `src/utils/error.ts`:
 import { Errors } from '../../../utils/error';
 throw Errors.NotFound('User');
 throw Errors.ValidationFailed([{ field: 'email', message: 'Required' }]);
+throw Errors.InvalidInput('email', 'Invalid email format');
 throw Errors.Unauthorized();
 throw Errors.Forbidden();
 throw Errors.InvalidCredentials();
-throw Errors.TooManyRequests(60);
+throw Errors.DatabaseError(details);
+throw Errors.ExternalServiceError('OpenRouter');
 throw Errors.BusinessRuleViolation('rule');
+throw Errors.TooManyRequests(60);
 throw Errors.InternalServerError();
+throw Errors.ServiceUnavailable();
 ```
 
 Error codes: `AUTH_001`-`003`, `VALID_001`-`002`, `DB_001`-`003`, `EXT_001`-`002`, `BIZ_001`-`002`, `SYS_001`-`002`, `RATE_001`.

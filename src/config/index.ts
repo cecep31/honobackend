@@ -79,6 +79,13 @@ interface FrontendConfig {
   mainDomain: string;
 }
 
+interface CacheConfig {
+  url: string;
+  keyPrefix: string;
+  ttlSeconds: number;
+  connectTimeoutMs: number;
+}
+
 interface RateLimitConfig {
   windowMs: number;
   limit: number;
@@ -103,6 +110,7 @@ interface AppConfig {
   openrouter: OpenRouterConfig;
   email: EmailConfig;
   frontend: FrontendConfig;
+  cache: CacheConfig;
 }
 
 // ------------------------------------------------------------------------------
@@ -170,6 +178,15 @@ function buildFrontendConfig(): FrontendConfig {
   };
 }
 
+function buildCacheConfig(): CacheConfig {
+  return {
+    url: getString('VALKEY_URL', getString('REDIS_URL')),
+    keyPrefix: getString('CACHE_KEY_PREFIX', 'pilput'),
+    ttlSeconds: Math.max(1, getNumber('CACHE_TTL_SECONDS', 60)),
+    connectTimeoutMs: Math.max(100, getNumber('VALKEY_CONNECT_TIMEOUT_MS', 5000)),
+  };
+}
+
 function buildCorsConfig(): CorsConfig {
   const customOrigin = getString('CORS_ORIGIN', '');
   return {
@@ -208,6 +225,7 @@ const config: AppConfig = {
   openrouter: buildOpenRouterConfig(),
   email: buildEmailConfig(),
   frontend: buildFrontendConfig(),
+  cache: buildCacheConfig(),
 };
 
 // ------------------------------------------------------------------------------

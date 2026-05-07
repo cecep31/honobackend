@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { PostService } from '../modules/posts/services/postService';
+import type { CacheService } from '../services/cacheService';
 
 // Mock DB
 const mockFindMany = mock();
@@ -10,6 +11,9 @@ const mockValues = mock(() => ({ returning: mockReturning }));
 const mockInsert = mock(() => ({ values: mockValues }));
 const mockSet = mock(() => ({ where: mock(() => ({ returning: mockReturning })) }));
 const mockUpdate = mock(() => ({ set: mockSet }));
+const mockCacheGet = mock();
+const mockCacheSet = mock();
+const mockCacheDel = mock();
 
 // Mock chainable query builder
 const mockChain = {
@@ -114,9 +118,16 @@ mock.module('../database/drizzle', () => {
 
 describe('PostService', () => {
   let postService: PostService;
+  let cacheService: CacheService;
 
   beforeEach(() => {
-    postService = new PostService();
+    cacheService = {
+      get: mockCacheGet,
+      set: mockCacheSet,
+      del: mockCacheDel,
+      disconnect: mock(async () => {}),
+    };
+    postService = new PostService(cacheService);
     mockFindMany.mockReset();
     mockFindFirst.mockReset();
     mockUsersFindFirst.mockReset();
@@ -126,6 +137,9 @@ describe('PostService', () => {
     mockTransaction.mockClear();
     mockSelect.mockClear();
     mockFrom.mockClear();
+    mockCacheGet.mockReset();
+    mockCacheSet.mockReset();
+    mockCacheDel.mockReset();
     setupSelectMock();
   });
 
@@ -169,6 +183,7 @@ describe('PostService', () => {
       const result = await postService.addPost(auth_id, body);
 
       expect(result).toEqual({ id: 'post1' });
+      expect(mockCacheDel).toHaveBeenCalledWith('posts:random:6');
     });
 
     it('creates a post as draft (unpublished)', async () => {
@@ -214,6 +229,69 @@ describe('PostService', () => {
       expect(result.data).toBeDefined();
       expect(result.meta).toBeDefined();
       expect(result.meta.total_items).toBe(1);
+    });
+  });
+
+  describe('getPostsRandom', () => {
+    it('returns cached random posts when available', async () => {
+      const cachedPosts = [{ id: 'cached-post', title: 'Cached Post' }];
+      mockCacheGet.mockResolvedValue(cachedPosts);
+
+      const result = await postService.getPostsRandom();
+
+      expect(result).toEqual(cachedPosts);
+      expect(mockCacheGet).toHaveBeenCalledWith('posts:random:6');
+      expect(mockSelect).not.toHaveBeenCalled();
+      expect(mockCacheSet).not.toHaveBeenCalled();
+    });
+
+    it('queries database and stores random posts when cache misses', async () => {
+      const randomPosts = [
+        {
+          id: 'post1',
+          title: 'Random Post',
+          slug: 'random-post',
+          body: 'Snippet',
+          created_at: '2024-01-01T00:00:00.000Z',
+          published: true,
+          published_at: '2024-01-01T00:00:00.000Z',
+          user: { id: 'user1', username: 'user1' },
+        },
+      ];
+
+      mockCacheGet.mockResolvedValue(null);
+      mockSelect.mockReturnValue({
+        from: mock(() => ({
+          leftJoin: mock(() => ({
+            where: mock(() => ({
+              orderBy: mock(() => ({
+                limit: mock(() => Promise.resolve(randomPosts)),
+              })),
+            })),
+          })),
+        })),
+      });
+
+      const result = await postService.getPostsRandom();
+
+      expect(result).toEqual([
+        {
+          ...randomPosts[0],
+          body: 'Snippet...',
+          status: 'published',
+        },
+      ]);
+      expect(mockCacheSet).toHaveBeenCalledWith(
+        'posts:random:6',
+        [
+          {
+            ...randomPosts[0],
+            body: 'Snippet...',
+            status: 'published',
+          },
+        ],
+        60
+      );
     });
   });
 

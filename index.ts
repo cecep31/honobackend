@@ -1,5 +1,6 @@
 import { app } from './src/server/app';
 import { shutdownMiddlewares } from './src/middlewares';
+import { shutdownServices } from './src/services';
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -16,10 +17,12 @@ process.on('unhandledRejection', (reason, promise) => {
 // Graceful shutdown handler
 const shutdown = async (signal: string) => {
   console.log(`Received ${signal}. Shutting down server gracefully...`);
-  
+
   // Cleanup rate limiter store to prevent memory leak
   shutdownMiddlewares();
-  
+
+  await shutdownServices();
+
   console.log('Server shutdown complete.');
   process.exit(0);
 };

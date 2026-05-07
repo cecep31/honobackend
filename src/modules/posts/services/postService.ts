@@ -14,13 +14,23 @@ import { PostAnalyticsService } from './postAnalyticsService';
 import type { PostCreateBody, PostUpdateBody } from '../validation';
 import type { GetPaginationParams } from '../../../types/paginate';
 import { getPaginationMetadata } from '../../../utils/paginate';
+import config from '../../../config';
 import { Errors } from '../../../utils/error';
+import type { CacheService } from '../../../services/cacheService';
 
 export class PostService {
   private feedService = new PostFeedService();
   private analyticsService = new PostAnalyticsService();
 
-  constructor() {}
+  constructor(private readonly cacheService?: CacheService) {}
+
+  private getRandomPostsCacheKey(limit = 6) {
+    return `posts:random:${limit}`;
+  }
+
+  private async invalidateRandomPostsCache() {
+    await this.cacheService?.del(this.getRandomPostsCacheKey());
+  }
 
   private resolvePublicationState(
     body: Pick<PostCreateBody | PostUpdateBody, 'published' | 'published_at'>,
@@ -67,8 +77,18 @@ export class PostService {
     return this.feedService.getTrendingPosts(limit);
   }
 
-  async getPostsRandom(limit = 6) {
-    return this.feedService.getPostsRandom(limit);
+  async getPostsRandom(limit = 6, ttlSeconds = config.cache.ttlSeconds) {
+    const cacheKey = this.getRandomPostsCacheKey(limit);
+    const cachedPosts = await this.cacheService?.get<Awaited<ReturnType<PostFeedService['getPostsRandom']>>>(
+      cacheKey
+    );
+    if (cachedPosts) {
+      return cachedPosts;
+    }
+
+    const posts = await this.feedService.getPostsRandom(limit);
+    await this.cacheService?.set(cacheKey, posts, ttlSeconds);
+    return posts;
   }
 
   async getFollowingFeed(followerId: string, params: GetPaginationParams) {
@@ -150,6 +170,7 @@ export class PostService {
         await PostTagManager.updatePostTags(post_id, tags, tx);
       }
 
+      await this.invalidateRandomPostsCache();
       return {
         ...updatedPost,
         status: PostQueryHelpers.getLifecycleStatus(updatedPost),
@@ -204,6 +225,7 @@ export class PostService {
           await PostTagManager.linkTagsToPost(post.id, body.tags, tx);
         }
 
+        await this.invalidateRandomPostsCache();
         return post;
       } catch (error) {
         console.error('Error adding post:', error);
@@ -380,6 +402,8 @@ export class PostService {
     if (!deletedPost[0]) {
       throw Errors.NotFound('Post');
     }
+
+    await this.invalidateRandomPostsCache();
     return deletedPost;
   }
 

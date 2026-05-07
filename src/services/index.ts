@@ -11,6 +11,7 @@ import { PostService } from '../modules/posts/services/postService';
 import { ReportService } from '../modules/reports/services/reportService';
 import { TagService } from '../modules/tags/services/tagService';
 import { UserService } from '../modules/users/services/userService';
+import { RedisCacheService } from './cacheService';
 
 // Helper for lazy service instantiation with cached bound methods
 function createLazyService<T extends object>(factory: () => T): T {
@@ -43,6 +44,7 @@ export interface AppServices {
   userService: UserService;
   authService: AuthService;
   postService: PostService;
+  cacheService: RedisCacheService;
   openrouterService: OpenRouterService;
   chatService: ChatService;
   holdingService: HoldingService;
@@ -54,12 +56,13 @@ export interface AppServices {
 }
 
 export function createServices(): AppServices {
+  const cacheService = createLazyService(() => new RedisCacheService());
   const notificationService = createLazyService(() => new NotificationService());
   const activityService = createLazyService(() => new AuthActivityService());
   const tagService = createLazyService(() => new TagService());
   const userService = createLazyService(() => new UserService(notificationService));
   const authService = createLazyService(() => new AuthService(userService));
-  const postService = createLazyService(() => new PostService());
+  const postService = createLazyService(() => new PostService(cacheService));
   const openrouterService = createLazyService(() => new OpenRouterService());
   const chatService = createLazyService(() => new ChatService(openrouterService));
   const holdingService = createLazyService(() => new HoldingService());
@@ -69,6 +72,7 @@ export function createServices(): AppServices {
   const reportService = createLazyService(() => new ReportService());
 
   return {
+    cacheService,
     notificationService,
     activityService,
     tagService,
@@ -87,7 +91,12 @@ export function createServices(): AppServices {
 
 const defaultServices = createServices();
 
+export async function shutdownServices() {
+  await defaultServices.cacheService.disconnect();
+}
+
 export const {
+  cacheService,
   notificationService,
   activityService,
   tagService,
