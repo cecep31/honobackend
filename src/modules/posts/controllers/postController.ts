@@ -43,7 +43,7 @@ export const createPostController = (postService: PostService, userService: User
 
   postController.get(
     '/random',
-    createRateLimiter(5 * 60 * 1000, 20),
+    createRateLimiter(5 * 60 * 1000, 100),
     async (c) => {
       const posts = await postService.getPostsRandom();
       return sendSuccess(c, posts, 'Random posts fetched successfully');
