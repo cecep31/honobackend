@@ -16,6 +16,9 @@ mock.module('../config', () => ({
     frontend: {
       resetPasswordUrl: 'http://localhost:3000/reset-password',
     },
+    cache: {
+      ttlSeconds: 60,
+    },
   },
 }));
 

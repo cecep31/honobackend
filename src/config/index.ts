@@ -60,6 +60,7 @@ interface S3Config {
   accessKeyId: string;
   secretAccessKey: string;
   bucketName: string;
+  privateBucketName: string;
 }
 
 interface OpenRouterConfig {
@@ -146,12 +147,14 @@ function buildGithubConfig(): GithubConfig {
 }
 
 function buildS3Config(): S3Config {
+  const publicBucketName = getString('S3_PUBLIC_BUCKET_NAME', getString('S3_BUCKET_NAME'));
   return {
     endpoint: getString('S3_ENDPOINT'),
     region: getString('S3_REGION'),
     accessKeyId: getString('S3_ACCESS_KEY_ID'),
     secretAccessKey: getString('S3_SECRET_ACCESS_KEY'),
-    bucketName: getString('S3_BUCKET_NAME'),
+    bucketName: publicBucketName,
+    privateBucketName: getString('S3_PRIVATE_BUCKET_NAME', publicBucketName),
   };
 }
 

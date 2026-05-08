@@ -52,9 +52,9 @@ export class CommentService {
           : Promise.resolve(undefined),
       ]);
 
-      if (!postMeta) throw Errors.NotFound('Post not found');
+      if (!postMeta) throw Errors.NotFound('Post');
       if (data.parent_comment_id && !parentComment) {
-        throw Errors.NotFound('Parent comment not found');
+        throw Errors.NotFound('Parent comment');
       }
 
       const [comment] = await db
@@ -169,7 +169,7 @@ export class CommentService {
       });
 
       if (!comment) {
-        throw Errors.NotFound('Comment not found');
+        throw Errors.NotFound('Comment');
       }
 
       return comment;
@@ -194,7 +194,7 @@ export class CommentService {
         .where(and(eq(post_comments.id, comment_id), isNull(post_comments.deleted_at)));
 
       if (existingComment.length === 0) {
-        throw Errors.NotFound('Comment not found');
+        throw Errors.NotFound('Comment');
       }
 
       if (existingComment[0].created_by !== user_id) {
@@ -241,7 +241,7 @@ export class CommentService {
         .where(and(eq(post_comments.id, comment_id), isNull(post_comments.deleted_at)));
 
       if (existingComment.length === 0) {
-        throw Errors.NotFound('Comment not found');
+        throw Errors.NotFound('Comment');
       }
 
       if (existingComment[0].created_by !== user_id) {

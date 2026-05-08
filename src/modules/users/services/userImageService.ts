@@ -70,7 +70,7 @@ export class UserImageService {
       });
 
       if (!user) {
-        throw Errors.NotFound('User not found');
+        throw Errors.NotFound('User');
       }
 
       // If user has an old image, delete it from S3

@@ -149,7 +149,7 @@ export class PostService {
       });
 
       if (!existingPost) {
-        throw Errors.NotFound('Post not found or unauthorized');
+        throw Errors.NotFound('Post');
       }
 
       const { tags, ...updateFields } = body;

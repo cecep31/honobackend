@@ -7,11 +7,19 @@ interface S3HelperConfig {
   accessKeyId?: string;
   secretAccessKey?: string;
   bucketName?: string;
+  privateBucketName?: string;
 }
 
 type ResolvedS3Config = Required<S3HelperConfig>;
 type UploadBody = Parameters<S3Client['write']>[1];
 type FileStat = Awaited<ReturnType<S3Client['stat']>>;
+export type StorageAccessType = 'public' | 'private';
+
+export interface UploadFileOptions {
+  accessType?: StorageAccessType;
+}
+
+type AccessScopedOptions = UploadFileOptions;
 
 class S3HelperError extends Error {
   constructor(message: string) {
@@ -45,6 +53,7 @@ class S3Helper {
       accessKeyId: config?.accessKeyId ?? globalS3Config.accessKeyId,
       secretAccessKey: config?.secretAccessKey ?? globalS3Config.secretAccessKey,
       bucketName: config?.bucketName ?? globalS3Config.bucketName,
+      privateBucketName: config?.privateBucketName ?? globalS3Config.privateBucketName,
     };
 
     const resolved: ResolvedS3Config = {
@@ -53,6 +62,7 @@ class S3Helper {
       accessKeyId: (merged.accessKeyId ?? '').trim(),
       secretAccessKey: (merged.secretAccessKey ?? '').trim(),
       bucketName: S3Helper.normalizeBucketName(merged.bucketName),
+      privateBucketName: S3Helper.normalizeBucketName(merged.privateBucketName),
     };
 
     const missing = Object.entries(resolved)
@@ -82,8 +92,17 @@ class S3Helper {
     return normalizedKey;
   }
 
-  private toFullPath(key: string): string {
-    return `${this.config.bucketName}/${this.normalizeKey(key)}`;
+  private resolveAccessType(accessType?: StorageAccessType): StorageAccessType {
+    return accessType ?? 'public';
+  }
+
+  private resolveBucketName(accessType?: StorageAccessType): string {
+    const resolvedAccessType = this.resolveAccessType(accessType);
+    return resolvedAccessType === 'private' ? this.config.privateBucketName : this.config.bucketName;
+  }
+
+  private toFullPath(key: string, accessType?: StorageAccessType): string {
+    return `${this.resolveBucketName(accessType)}/${this.normalizeKey(key)}`;
   }
 
   private handleError(action: string, key: string, error: unknown): never {
@@ -97,10 +116,15 @@ class S3Helper {
    * @param body The file content (Buffer, Blob, string, etc.)
    * @returns The S3 object URL
    */
-  async uploadFile(key: string, body: UploadBody): Promise<string> {
-    const fullPath = this.toFullPath(key);
+  async uploadFile(key: string, body: UploadBody, options?: UploadFileOptions): Promise<string> {
+    const fullPath = this.toFullPath(key, options?.accessType);
+    const accessType = this.resolveAccessType(options?.accessType);
 
     try {
+      // Access-specific storage behavior is centralized here so bucket/policy routing can
+      // evolve later without changing upload call sites. Public/private already resolve to
+      // different buckets, while the shared client config remains reusable.
+      void accessType;
       await this.client.write(fullPath, body);
       return key;
     } catch (error) {
@@ -113,8 +137,8 @@ class S3Helper {
    * @param key The key/name of the file in S3
    * @returns The file content as ArrayBuffer
    */
-  async downloadFile(key: string): Promise<ArrayBuffer> {
-    const fullPath = this.toFullPath(key);
+  async downloadFile(key: string, options?: AccessScopedOptions): Promise<ArrayBuffer> {
+    const fullPath = this.toFullPath(key, options?.accessType);
 
     try {
       const file = await this.client.file(fullPath);
@@ -129,8 +153,8 @@ class S3Helper {
    * @param key The key/name of the file in S3
    * @returns True if deletion was successful
    */
-  async deleteFile(key: string): Promise<boolean> {
-    const fullPath = this.toFullPath(key);
+  async deleteFile(key: string, options?: AccessScopedOptions): Promise<boolean> {
+    const fullPath = this.toFullPath(key, options?.accessType);
 
     try {
       await this.client.delete(fullPath);
@@ -145,8 +169,8 @@ class S3Helper {
    * @param key The key/name of the file in S3
    * @returns True if the file exists
    */
-  async fileExists(key: string): Promise<boolean> {
-    const fullPath = this.toFullPath(key);
+  async fileExists(key: string, options?: AccessScopedOptions): Promise<boolean> {
+    const fullPath = this.toFullPath(key, options?.accessType);
 
     try {
       return await this.client.exists(fullPath);
@@ -160,8 +184,8 @@ class S3Helper {
    * @param key The key/name of the file in S3
    * @returns File size in bytes
    */
-  async getFileSize(key: string): Promise<number> {
-    const fullPath = this.toFullPath(key);
+  async getFileSize(key: string, options?: AccessScopedOptions): Promise<number> {
+    const fullPath = this.toFullPath(key, options?.accessType);
 
     try {
       return await this.client.size(fullPath);
@@ -175,8 +199,8 @@ class S3Helper {
    * @param key The key/name of the file in S3
    * @returns File stats object
    */
-  async getFileStats(key: string): Promise<FileStat> {
-    const fullPath = this.toFullPath(key);
+  async getFileStats(key: string, options?: AccessScopedOptions): Promise<FileStat> {
+    const fullPath = this.toFullPath(key, options?.accessType);
 
     try {
       return await this.client.stat(fullPath);
@@ -191,11 +215,17 @@ class S3Helper {
    * @param expiresIn Expiration time in seconds
    * @returns Presigned URL
    */
-  async generatePresignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
-    const fullPath = this.toFullPath(key);
+  async generatePresignedUrl(
+    key: string,
+    expiresIn: number = 3600,
+    options?: UploadFileOptions
+  ): Promise<string> {
+    const fullPath = this.toFullPath(key, options?.accessType);
     const safeExpiresIn = Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn : 3600;
+    const accessType = this.resolveAccessType(options?.accessType);
 
     try {
+      void accessType;
       return await this.client.presign(fullPath, { expiresIn: safeExpiresIn });
     } catch (error) {
       return this.handleError('generate presigned URL for', key, error);
@@ -207,9 +237,9 @@ class S3Helper {
    * @param key The key/name of the file in S3
    * @returns Public URL
    */
-  getPublicUrl(key: string): string {
+  getPublicUrl(key: string, options?: AccessScopedOptions): string {
     const normalizedKey = this.normalizeKey(key);
-    return `${this.endpointBase}/${this.config.bucketName}/${normalizedKey}`;
+    return `${this.endpointBase}/${this.resolveBucketName(options?.accessType)}/${normalizedKey}`;
   }
 
   /**

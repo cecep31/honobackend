@@ -16,12 +16,6 @@ mock.module('../database/drizzle', () => ({
   },
 }));
 
-mock.module('../modules/posts/services/postQueryHelpers', () => ({
-  PostQueryHelpers: {
-    buildPublishedVisibilityClause: () => ({}),
-  },
-}));
-
 describe('PostAnalyticsService', () => {
   let service: PostAnalyticsService;
 

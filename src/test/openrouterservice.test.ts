@@ -10,6 +10,9 @@ mock.module('../config', () => {
         apiKey: 'test-api-key',
         defaultModel: 'openai/gpt-3.5-turbo',
       },
+      cache: {
+        ttlSeconds: 60,
+      },
     },
   };
 });

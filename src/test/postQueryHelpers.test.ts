@@ -1,4 +1,13 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, mock } from 'bun:test';
+
+// Prevent mock contamination from other test files that globally mock '../database/drizzle'
+mock.module('../database/drizzle', () => ({
+  db: {
+    query: {},
+    select: mock(() => ({ from: mock(() => ({ where: mock(() => [{ count: 0 }]) })) })),
+  },
+}));
+
 import { PostQueryHelpers } from '../modules/posts/services/postQueryHelpers';
 
 describe('PostQueryHelpers', () => {

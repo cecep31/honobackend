@@ -23,6 +23,7 @@ import {
 
 type PostService = AppServices['postService'];
 type UserService = AppServices['userService'];
+const POST_UPLOAD_ACCESS_TYPE = 'public';
 
 export const createPostController = (postService: PostService, userService: UserService) => {
   const superAdminMiddleware = createSuperAdminMiddleware(userService);
@@ -344,8 +345,10 @@ export const createPostController = (postService: PostService, userService: User
       const key = `posts/${authUser.user_id}/${keyName}.${extension}`;
 
       const s3 = getS3Helper();
-      const presignedUrl = await s3.generatePresignedUrl(key, 300); // 5 minutes
-      const publicUrl = s3.getPublicUrl(key);
+      const presignedUrl = await s3.generatePresignedUrl(key, 300, {
+        accessType: POST_UPLOAD_ACCESS_TYPE,
+      }); // 5 minutes
+      const publicUrl = s3.getPublicUrl(key, { accessType: POST_UPLOAD_ACCESS_TYPE });
 
       return sendSuccess(
         c,
@@ -399,7 +402,7 @@ export const createPostController = (postService: PostService, userService: User
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const s3 = getS3Helper();
-    const url = await s3.uploadFile(key, buffer);
+    const url = await s3.uploadFile(key, buffer, { accessType: POST_UPLOAD_ACCESS_TYPE });
 
     return sendSuccess(c, { url }, 'Image uploaded successfully', 201);
   });
