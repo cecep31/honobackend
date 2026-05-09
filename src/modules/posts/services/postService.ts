@@ -28,8 +28,16 @@ export class PostService {
     return `posts:random:${limit}`;
   }
 
+  private getTrendingPostsCacheKey(limit = 5) {
+    return `posts:trending:${limit}`;
+  }
+
   private async invalidateRandomPostsCache() {
     await this.cacheService?.del(this.getRandomPostsCacheKey());
+  }
+
+  private async invalidateTrendingPostsCache() {
+    await this.cacheService?.del(this.getTrendingPostsCacheKey());
   }
 
   private resolvePublicationState(
@@ -73,8 +81,16 @@ export class PostService {
   }
 
   // ===== Feed delegation =====
-  async getTrendingPosts(limit = 5) {
-    return this.feedService.getTrendingPosts(limit);
+  async getTrendingPosts(limit = 5, ttlSeconds = config.cache.ttlSeconds) {
+    const cacheKey = this.getTrendingPostsCacheKey(limit);
+    const cached = await this.cacheService?.get<Awaited<ReturnType<PostFeedService['getTrendingPosts']>>>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const posts = await this.feedService.getTrendingPosts(limit);
+    await this.cacheService?.set(cacheKey, posts, ttlSeconds);
+    return posts;
   }
 
   async getPostsRandom(limit = 6, ttlSeconds = config.cache.ttlSeconds) {
@@ -170,7 +186,7 @@ export class PostService {
         await PostTagManager.updatePostTags(post_id, tags, tx);
       }
 
-      await this.invalidateRandomPostsCache();
+      await Promise.all([this.invalidateRandomPostsCache(), this.invalidateTrendingPostsCache()]);
       return {
         ...updatedPost,
         status: PostQueryHelpers.getLifecycleStatus(updatedPost),
@@ -225,7 +241,7 @@ export class PostService {
           await PostTagManager.linkTagsToPost(post.id, body.tags, tx);
         }
 
-        await this.invalidateRandomPostsCache();
+        await Promise.all([this.invalidateRandomPostsCache(), this.invalidateTrendingPostsCache()]);
         return post;
       } catch (error) {
         console.error('Error adding post:', error);
@@ -403,7 +419,7 @@ export class PostService {
       throw Errors.NotFound('Post');
     }
 
-    await this.invalidateRandomPostsCache();
+    await Promise.all([this.invalidateRandomPostsCache(), this.invalidateTrendingPostsCache()]);
     return deletedPost;
   }
 
