@@ -5,13 +5,13 @@
     "": {
       "name": "honobackend",
       "dependencies": {
-        "@hono/zod-validator": "^0.7.6",
+        "@hono/zod-validator": "^0.8.0",
         "drizzle-orm": "^0.45.2",
-        "hono": "^4.12.17",
+        "hono": "^4.12.18",
         "hono-rate-limiter": "^0.5.3",
         "postgres": "^3.4.9",
-        "redis": "^5.9.0",
-        "resend": "^6.12.2",
+        "redis": "^5.12.1",
+        "resend": "^6.12.3",
         "sanitize-html": "^2.17.3",
         "zod": "^4.4.3",
       },
@@ -103,7 +103,7 @@
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.7.1", "", { "dependencies": { "@eslint/core": "^1.2.1", "levn": "^0.4.1" } }, "sha512-rZAP3aVgB9ds9KOeUSL+zZ21hPmo8dh6fnIFwRQj5EAZl9gzR7wxYbYXYysAM8CTqGmUGyp2S4kUdV17MnGuWQ=="],
 
-    "@hono/zod-validator": ["@hono/zod-validator@0.7.6", "", { "peerDependencies": { "hono": ">=3.9.0", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw=="],
+    "@hono/zod-validator": ["@hono/zod-validator@0.8.0", "", { "peerDependencies": { "hono": ">=4.10.0", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-5uS4S1/LKtZQYvD4BtpPUFkOv8d1wNxHHrChm26buMiEYc1FrHWvDUaKVBwkiVtvSExHSpLGDvcnpI2Copyj9w=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
