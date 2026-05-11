@@ -9,10 +9,7 @@ describe('errorHandler middleware', () => {
       return new Response(JSON.stringify(data), { status: status || 200 });
     });
     return {
-      get: mock((key: string) => {
-        if (key === 'requestId') return 'test-req-id';
-        return undefined;
-      }),
+      get: mock(() => undefined),
       req: {
         method: 'GET',
         path: '/test',
@@ -34,7 +31,6 @@ describe('errorHandler middleware', () => {
     expect(body.success).toBe(false);
     expect(body.message).toBe('User not found');
     expect(body.error).toBe('DB_001');
-    expect(body.request_id).toBe('test-req-id');
   });
 
   it('handles VALID_001 with errors array', async () => {
@@ -85,7 +81,7 @@ describe('errorHandler middleware', () => {
 
 describe('withErrorHandling', () => {
   const createMockContext = () => ({
-    get: mock((key: string) => (key === 'requestId' ? 'req-123' : undefined)),
+    get: mock(() => undefined),
     req: { method: 'GET', path: '/', header: mock(() => '') },
     json: mock((data: any, status?: number) => new Response(JSON.stringify(data), { status: status || 200 })),
   } as any);

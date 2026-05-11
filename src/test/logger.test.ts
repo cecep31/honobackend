@@ -11,7 +11,7 @@ describe('Logger', () => {
     const consoleError = mock(() => {});
     const original = console.error;
     console.error = consoleError;
-    logger.error('Something broke', { requestId: 'req-1' }, new Error('Detail'));
+    logger.error('Something broke', { method: 'GET' }, new Error('Detail'));
     expect(consoleError).toHaveBeenCalled();
     console.error = original;
   });
@@ -20,7 +20,7 @@ describe('Logger', () => {
     const consoleWarn = mock(() => {});
     const original = console.warn;
     console.warn = consoleWarn;
-    logger.warn('Warning message', { requestId: 'req-1' });
+    logger.warn('Warning message', { method: 'GET' });
     expect(consoleWarn).toHaveBeenCalled();
     console.warn = original;
   });
@@ -29,7 +29,7 @@ describe('Logger', () => {
     const consoleLog = mock(() => {});
     const original = console.log;
     console.log = consoleLog;
-    logger.info('Info message', { requestId: 'req-1' });
+    logger.info('Info message', { method: 'GET' });
     expect(consoleLog).toHaveBeenCalled();
     console.log = original;
   });
@@ -38,7 +38,7 @@ describe('Logger', () => {
     const consoleLog = mock(() => {});
     const original = console.log;
     console.log = consoleLog;
-    logger.http('HTTP message', { requestId: 'req-1' });
+    logger.http('HTTP message', { method: 'GET' });
     expect(consoleLog).toHaveBeenCalled();
     console.log = original;
   });
@@ -47,7 +47,7 @@ describe('Logger', () => {
     const consoleLog = mock(() => {});
     const original = console.log;
     console.log = consoleLog;
-    logger.debug('Debug message', { requestId: 'req-1' });
+    logger.debug('Debug message', { method: 'GET' });
     expect(consoleLog).toHaveBeenCalled();
     console.log = original;
   });
@@ -63,7 +63,7 @@ describe('Logger', () => {
   });
 
   it('creates contextual logger with withContext', () => {
-    const contextual = logger.withContext({ service: 'test' });
+    const contextual = logger.withContext({ userId: 'test' });
     const consoleLog = mock(() => {});
     const original = console.log;
     console.log = consoleLog;
@@ -73,7 +73,7 @@ describe('Logger', () => {
   });
 
   it('getLogger returns contextual logger when context provided', () => {
-    const contextual = getLogger({ requestId: 'req-1' });
+    const contextual = getLogger({ method: 'GET' });
     const consoleLog = mock(() => {});
     const original = console.log;
     console.log = consoleLog;

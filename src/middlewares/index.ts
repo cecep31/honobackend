@@ -1,7 +1,6 @@
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import type { Hono } from 'hono';
-import { requestId } from 'hono/request-id';
 import { rateLimiter } from 'hono-rate-limiter';
 import { bodyLimitConfig, originList, rateLimitConfig } from '../config';
 import type { Variables } from '../types/context';
@@ -18,7 +17,6 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
   const maxBodySizeBytes = bodyLimitConfig.maxSizeMB * 1024 * 1024;
 
   app
-    .use(requestId())
     .use(loggingMiddleware)
     .use(
       bodyLimit({
@@ -38,13 +36,8 @@ export function setupMiddlewares(app: Hono<{ Variables: Variables }>) {
       cors({
         origin: originList,
         allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
-        exposeHeaders: [
-          'X-Request-ID',
-          'RateLimit-Limit',
-          'RateLimit-Remaining',
-          'RateLimit-Reset',
-        ],
+        allowHeaders: ['Content-Type', 'Authorization'],
+        exposeHeaders: ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
         credentials: true,
         maxAge: 86400, // 24 hours preflight cache
       })

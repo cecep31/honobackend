@@ -14,7 +14,6 @@ interface SuccessResponse<T> {
   data: T;
   message: string;
   meta?: PaginationMeta | Record<string, unknown>;
-  request_id: string;
   timestamp: string;
 }
 
@@ -28,13 +27,11 @@ export function sendSuccess<T>(
   status: StatusCode = 200,
   meta?: PaginationMeta | Record<string, unknown>
 ) {
-  const requestId = c.get('requestId') || 'unknown';
   const response: SuccessResponse<T> = {
     success: true,
     data,
     message,
     meta,
-    request_id: requestId,
     timestamp: new Date().toISOString(),
   };
 

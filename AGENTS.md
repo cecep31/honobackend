@@ -69,8 +69,8 @@ return sendSuccess(c, { user }, 'User created', 201);
 return sendSuccess(c, items, 'OK', 200, { total, limit, offset, hasMore });
 ```
 
-Response shape: `{ success, data, message, request_id, timestamp, meta? }`.
-Error shape: `{ success: false, message, request_id, timestamp }` with optional flat fields: `error` (classification code string), `details`, and `errors` (validation issues when `VALID_001`).
+Response shape: `{ success, data, message, timestamp, meta? }`.
+Error shape: `{ success: false, message, timestamp }` with optional flat fields: `error` (classification code string), `details`, and `errors` (validation issues when `VALID_001`).
 
 ## Architecture
 
@@ -138,12 +138,12 @@ Migrations table is custom: `my-migrations-table` (see `drizzle.config.ts`). Rel
 
 ### Context variables (`src/types/context.ts`)
 ```typescript
-type Variables = { user: jwtPayload; requestId: string };
+type Variables = { user: jwtPayload };
 ```
 JWT payload: `user_id`, `email`, `is_super_admin`, `exp`. Expiration from `JWT_EXPIRES_IN` env (code default `3h`).
 
 ## Middlewares (`src/middlewares/index.ts`)
-Applied in order: requestId → logging → bodyLimit (default 10MB) → CORS → optional global rate limiter (`RATE_LIMIT_MAX` requests/min per IP; default **0** = off, set **> 0** to enable). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
+Applied in order: logging → bodyLimit (default 10MB) → CORS → optional global rate limiter (`RATE_LIMIT_MAX` requests/min per IP; default **0** = off, set **> 0** to enable). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
 
 ## Testing
 

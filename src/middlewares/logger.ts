@@ -3,7 +3,6 @@ import { createMiddleware } from 'hono/factory';
 export type LogLevel = 'error' | 'warn' | 'info' | 'http' | 'debug';
 
 export interface LogContext {
-  requestId?: string;
   userId?: string;
   method?: string;
   path?: string;
@@ -117,16 +116,12 @@ export const getLogger = (context?: LogContext): Logger => {
 
 export const loggingMiddleware = createMiddleware(async (c, next) => {
   const start = Date.now();
-  const requestId =
-    c.get('requestId') || `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  c.set('requestId', requestId);
 
   const path = c.req.path;
   const method = c.req.method;
   const userAgent = c.req.header('user-agent');
 
   const requestContext: LogContext = {
-    requestId,
     method,
     path,
     userAgent,

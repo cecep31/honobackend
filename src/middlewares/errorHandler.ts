@@ -1,4 +1,4 @@
-import type { Context, Next } from 'hono';
+import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { ApiError, createErrorResponse } from '../utils/error';
 import { getLogger } from './logger';
@@ -9,13 +9,11 @@ import { getLogger } from './logger';
  */
 export const errorHandler = () => {
   return async (err: unknown, c: Context) => {
-    const requestId = c.get('requestId') || 'unknown';
-
     // Log the error with context
-    logError(err, c, requestId, getLogger());
+    logError(err, c, getLogger());
 
     // Create standardized error response
-    const errorResponse = createErrorResponse(err, requestId);
+    const errorResponse = createErrorResponse(err);
 
     // Determine status code
     let statusCode = 500;
@@ -33,9 +31,8 @@ export const errorHandler = () => {
 /**
  * Log error with context for debugging and monitoring
  */
-function logError(err: unknown, c: Context, requestId: string, logger: any) {
+function logError(err: unknown, c: Context, logger: any) {
   const errorContext = {
-    requestId,
     method: c.req.method,
     path: c.req.path,
     timestamp: new Date().toISOString(),
