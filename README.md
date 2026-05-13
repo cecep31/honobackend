@@ -1,56 +1,117 @@
-# Hono Backend
+# 🚀 Hono Backend
 
-A high-performance backend API built with **Hono** running on the **Bun** runtime, featuring **PostgreSQL** with **Drizzle ORM**.
+A high-performance, type-safe REST API built with [Hono](https://hono.dev/) running on the [Bun](https://bun.sh/) runtime. This project follows a modular, service-oriented architecture (SOA) and uses [Drizzle ORM](https://orm.drizzle.team/) with PostgreSQL for robust data management.
 
-## Features
+## ✨ Key Features
 
-- **Authentication:** Secure user auth flows.
-- **Content Management:** Posts, Tags, and Likes.
-- **Social Features:** Bookmarks and Chat (via OpenRouter).
-- **Service-Oriented Architecture:** Business logic and data access integrated in the service layer.
-- **Validation:** Type-safe request validation with Zod.
-- **Documentation:** API documentation in the `docs/` folder.
+- **🛡️ Comprehensive Authentication:** JWT-based flows, session management, password resets via Resend, and GitHub OAuth integration.
+- **📝 Content Ecosystem:** Full CRUD for Posts (with snippets, publication states, and slugs), Comments, Likes, and Tags.
+- **💬 Real-time Interaction:** Chat system with multi-conversation support and AI integration via OpenRouter.
+- **📊 Advanced Analytics:** Dedicated report service for user growth, post performance, and engagement metrics.
+- **🏷️ Specialized Modules:** Holding management (financial/asset tracking), Bookmarks with folder organization, and a robust Notification system.
+- **⚡ Performance Optimized:** Redis/Valkey caching for trending content and frequently accessed feeds.
+- **✅ Type-safe & Validated:** Global request validation using Zod and strict TypeScript configuration.
+- **🔍 SEO Ready:** Built-in support for sitemap data and search-friendly URL structures.
 
-## Requirements
+## 🛠️ Tech Stack
 
-- [Bun](https://bun.sh/) runtime
-- PostgreSQL database
+- **Runtime:** [Bun](https://bun.sh/)
+- **Framework:** [Hono](https://hono.dev/)
+- **Database:** [PostgreSQL](https://www.postgresql.org/)
+- **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
+- **Cache:** [Redis](https://redis.io/) / [Valkey](https://valkey.io/)
+- **Validation:** [Zod](https://zod.dev/)
+- **Email:** [Resend](https://resend.com/)
+- **AI:** [OpenRouter](https://openrouter.ai/)
 
-## Setup
+## 🏗️ Architecture
 
-1. **Install dependencies:**
+The project is organized into domain-driven modules under `src/modules/`:
+
+```text
+src/modules/<feature>/
+  ├── controllers/     # Hono route handlers & entry points
+  ├── services/        # Business logic & DB interactions
+  └── validation/      # Zod schemas for request validation
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) (latest version)
+- PostgreSQL
+- Redis/Valkey (optional, but recommended for caching)
+
+### Installation
+
+1. **Clone the repository:**
+   ```sh
+   git clone <repository-url>
+   cd honobackend
+   ```
+
+2. **Install dependencies:**
    ```sh
    bun install
    ```
 
-2. **Configure environment:**
-   Copy `.env.example` to `.env` and fill in your database credentials and other secrets.
+3. **Environment Setup:**
+   Copy the example environment file and fill in your credentials:
+   ```sh
+   cp .env.example .env
+   ```
 
-3. **Run development server:**
+4. **Database Migration:**
+   ```sh
+   bun run db:push
+   # OR for formal migrations:
+   bun run db:generate
+   bun run db:migrate
+   ```
+
+5. **Start Development Server:**
    ```sh
    bun run dev
    ```
-   Access at: http://localhost:3001
+   The API will be available at `http://localhost:3001/api`.
 
-## Database Management
+## 📜 Available Scripts
 
-This project uses Drizzle ORM for database migrations and management.
+| Command | Description |
+| :--- | :--- |
+| `bun run dev` | Starts the development server with hot reload |
+| `bun test` | Runs the test suite |
+| `bun run typecheck` | Runs TypeScript type checking |
+| `bun run lint` | Lints the codebase |
+| `bun run format` | Formats code using Prettier |
+| `bun run build` | Builds the project for production (dist/) |
+| `bun run build:compile` | Compiles a native binary for production (bin/) |
+| `bun run db:studio` | Opens Drizzle Studio UI |
+| `bun run clean` | Removes build artifacts |
 
-- **Generate migrations:** `bun run db:generate`
-- **Apply migrations:** `bun run db:migrate`
-- **Push schema changes:** `bun run db:push`
-- **Database Studio:** `bun run studio` (Visualizes your data)
+## 🐳 Docker & Deployment
 
-## Testing
+The project includes a multi-stage `Dockerfile` that compiles a native binary for maximum performance and minimal image size.
 
-Run the test suite using Bun's built-in test runner:
-
+**Build Image:**
 ```sh
-bun test
+docker build -t cecep31/honobackend:latest .
 ```
 
-## Build & Production
+**Run Container:**
+```sh
+docker run -p 3001:3001 --env-file .env cecep31/honobackend:latest
+```
 
-- **Typecheck:** `bun run typecheck`
-- **Build:** `bun run build`
-- **Start Production:** `bun run start:prod`
+Deployment is configured for [Fly.io](https://fly.io/) via `fly.toml`.
+
+## 📖 Documentation
+
+- API routes and endpoints are wired in `src/router/index.ts`.
+- Detailed module documentation can be found in the respective `src/modules/*/README.md` files (if available).
+- Project guidelines and agent-specific notes are in `AGENTS.md` and `GEMINI.md`.
+
+## 📄 License
+
+This project is licensed under the MIT License.
