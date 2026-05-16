@@ -27,22 +27,6 @@ describe('ReportService', () => {
     mockExecute.mockReset();
   });
 
-  const setupCountSelectMock = (countValue: number) => {
-    mocks.mockSelect.mockReturnValueOnce({
-      from: mock(() => ({
-        where: mock(() => Promise.resolve([{ count: countValue }])),
-      })),
-    });
-  };
-
-  const setupSumSelectMock = (totalValue: number) => {
-    mocks.mockSelect.mockReturnValueOnce({
-      from: mock(() => ({
-        where: mock(() => Promise.resolve([{ total: totalValue }])),
-      })),
-    });
-  };
-
   describe('getOverviewStats', () => {
     it('returns overview stats successfully', async () => {
       let callCount = 0;

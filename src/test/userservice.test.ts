@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 // Mock the database before importing services
 const mockReturning = mock();
 const mockValues = mock(() => ({ returning: mockReturning }));
-const mockInsert = mock((model: any) => ({ values: mockValues }));
+const mockInsert = mock((_model: any) => ({ values: mockValues }));
 const mockWhere = mock(() => ({ returning: mockReturning }));
 const mockSet = mock(() => ({ where: mockWhere }));
 const mockUpdate = mock(() => ({ set: mockSet }));
@@ -17,17 +17,6 @@ const mockCreateNotification = mock();
 
 // Ensure mockValues always returns the correct structure
 mockValues.mockImplementation(() => ({ returning: mockReturning }));
-
-// Create mock functions for complex query chains
-const createMockSelectChain = (result: any) => {
-  const mockOffset = mock(() => Promise.resolve(result));
-  const mockLimit = mock(() => ({ offset: mockOffset }));
-  const mockOrderBy = mock(() => ({ limit: mockLimit }));
-  const mockWhereClause = mock(() => ({ orderBy: mockOrderBy }));
-  const mockInnerJoin = mock(() => ({ where: mockWhereClause }));
-  const mockFromFollows = mock(() => ({ innerJoin: mockInnerJoin }));
-  return { mockFromFollows, mockCountResult };
-};
 
 mock.module('../database/drizzle', () => {
   return {

@@ -11,11 +11,14 @@ import { createPostController } from '../modules/posts/controllers/postControlle
 import { createTagController } from '../modules/tags/controllers/tagController';
 import { createUserController } from '../modules/users/controllers/userController';
 import { createReportController } from '../modules/reports/controllers/reportController';
-import { createServices } from '../services';
+import { defaultServices } from '../services';
+import type { AppServices } from '../services';
 import type { Variables } from '../types/context';
 
-const setupRouter = (app: Hono<{ Variables: Variables }>) => {
-  const services = createServices();
+const setupRouter = (
+  app: Hono<{ Variables: Variables }>,
+  services: AppServices = defaultServices
+) => {
   const authController = createAuthController(
     services.authService,
     services.userService,

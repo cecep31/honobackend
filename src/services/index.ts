@@ -89,7 +89,7 @@ export function createServices(): AppServices {
   };
 }
 
-const defaultServices = createServices();
+export const defaultServices = createServices();
 
 export async function shutdownServices() {
   await defaultServices.cacheService.disconnect();

@@ -48,7 +48,7 @@ export class OpenRouterService {
     });
 
     if (!response.ok) {
-      let errorText = '';
+      let errorText: string;
       try {
         errorText = await response.text();
       } catch {
@@ -121,7 +121,7 @@ export class OpenRouterService {
               if (delta) {
                 yield delta;
               }
-            } catch (e) {
+            } catch (_e) {
               // Ignore parsing errors
             }
           }

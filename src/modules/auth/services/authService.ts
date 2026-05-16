@@ -298,7 +298,7 @@ export class AuthService {
       );
 
       return tokenResponse.data.access_token;
-    } catch (error) {
+    } catch (_error) {
       console.error('Failed to get GitHub token');
       throw Errors.ExternalServiceError('GitHub');
     }
@@ -388,7 +388,6 @@ export class AuthService {
     return await db.transaction(async (tx) => {
       const user = await this.userService.getUserByEmailRaw(email);
 
-      const message = 'If the email exists, a password reset link has been sent';
       const result: { token?: string; resetLink?: string } = {};
 
       if (user) {

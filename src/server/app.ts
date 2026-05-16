@@ -7,7 +7,6 @@ import setupRouter from '../router';
 import type { Variables } from '../types/context';
 import { db } from '../database/drizzle';
 import { sql } from 'drizzle-orm';
-import { runStartupChecks } from './startupCheck';
 
 // BigInt serialization fix for JSON.stringify
 (BigInt.prototype as any).toJSON = function () {
@@ -24,9 +23,6 @@ app.onError(errorHandler());
 // Setup middlewares and routes
 setupMiddlewares(app);
 setupRouter(app);
-
-// Run startup connectivity checks
-runStartupChecks();
 
 app.get('/', async (c) => {
   return c.json({ message: 'hello world' });
@@ -48,7 +44,7 @@ app.get('/health', async (c) => {
         database: 'connected',
       },
     });
-  } catch (error) {
+  } catch (_error) {
     return c.json(
       {
         status: 'unhealthy',
@@ -74,7 +70,7 @@ app.get('/ready', async (c) => {
       ready: true,
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (_error) {
     return c.json(
       {
         ready: false,

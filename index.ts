@@ -1,6 +1,10 @@
 import { app } from './src/server/app';
+import { shutdownDatabase } from './src/database/drizzle';
 import { shutdownMiddlewares } from './src/middlewares';
 import { shutdownServices } from './src/services';
+import { runStartupChecks } from './src/server/startupCheck';
+
+await runStartupChecks();
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -22,6 +26,7 @@ const shutdown = async (signal: string) => {
   shutdownMiddlewares();
 
   await shutdownServices();
+  await shutdownDatabase();
 
   console.log('Server shutdown complete.');
   process.exit(0);
@@ -42,4 +47,3 @@ export default {
   // Maximum number of requests per socket
   maxRequestsPerSocket: 100,
 };
-

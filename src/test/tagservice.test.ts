@@ -146,7 +146,7 @@ describe('TagService', () => {
         { id: 3, name: 'angular' },
       ]);
 
-      const result = await tagService.addTagsBatch(tags);
+      await tagService.addTagsBatch(tags);
 
       expect(mocks.mockInsert).toHaveBeenCalled();
       expect(mocks.mockValues).toHaveBeenCalledWith([

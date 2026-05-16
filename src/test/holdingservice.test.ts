@@ -89,10 +89,6 @@ describe('HoldingService', () => {
   describe('syncCurrentMonthPrices', () => {
     it('should sync prices for current month holdings with symbols', async () => {
       const userId = 'user-1';
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      const year = now.getFullYear();
-
       const mockHoldings = [
         { id: BigInt(1), symbol: 'AAPL', units: '10', current_price: '150', current_value: '1500' },
         { id: BigInt(2), symbol: 'MSFT', units: '5', current_price: '300', current_value: '1500' },
@@ -369,9 +365,7 @@ describe('HoldingService', () => {
         },
       ];
 
-      mockHoldingsFindMany
-        .mockResolvedValueOnce(mockSourceHoldings)
-        .mockResolvedValueOnce([]);
+      mockHoldingsFindMany.mockResolvedValueOnce(mockSourceHoldings).mockResolvedValueOnce([]);
 
       mocks.mockReturning.mockResolvedValue(
         mockSourceHoldings.map((h, i) => ({ ...h, id: BigInt(i + 10), month: 12 }))
@@ -468,7 +462,9 @@ describe('HoldingService', () => {
         },
       ];
 
-      mockHoldingsFindMany.mockResolvedValueOnce(mockSourceHoldings).mockResolvedValueOnce(mockExistingTarget);
+      mockHoldingsFindMany
+        .mockResolvedValueOnce(mockSourceHoldings)
+        .mockResolvedValueOnce(mockExistingTarget);
 
       await expect(
         holdingService.duplicateHoldingsByMonth('user-1', {
@@ -499,7 +495,9 @@ describe('HoldingService', () => {
     });
 
     it('should normalize symbol to uppercase', async () => {
-      const getPriceMock = mock(() => Promise.resolve({ symbol: 'AAPL', price: 150, currency: 'USD' }));
+      const getPriceMock = mock(() =>
+        Promise.resolve({ symbol: 'AAPL', price: 150, currency: 'USD' })
+      );
       mock.module('../modules/holdings/services/stockPriceService', () => ({
         stockPriceService: {
           getPrice: getPriceMock,
