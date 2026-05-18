@@ -148,7 +148,15 @@ export class AuthService {
 
         await this.updateLastLoggedAt(user.id, tx);
 
-        return { access_token: token, refresh_token: session.refresh_token };
+        return {
+          access_token: token,
+          refresh_token: session.refresh_token,
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+          },
+        };
       } catch (error) {
         if (!(error instanceof ApiError)) {
           await this.activityService.logActivity(
