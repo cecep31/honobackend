@@ -6,7 +6,7 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 
 ```bash
 bun run typecheck          # tsc --noEmit
-bun run lint               # ESLint (ignores dist/, bin/, drizzle/, *.config.*)
+bun run lint               # ESLint (ignores dist/, bin/, drizzle/, node_modules/, *.config.js, *.config.ts)
 bun run lint:fix           # ESLint with auto-fix
 bun run format             # Prettier — ONLY src/**/*.ts (does not format root/config/tests)
 bun test                   # Run all tests
@@ -25,7 +25,9 @@ bun run db:studio          # Open Drizzle Studio
 bun run clean              # Remove dist/ and bin/
 ```
 
-Pre-commit verification order (manual — no automated hook configured): `bun run typecheck && bun run lint && bun test`.
+Pre-commit verification order: `bun run typecheck && bun run lint && bun test`. CI runs the same order on push to `main`.
+
+**`bunfig.toml`** sets `minimumReleaseAge = 86400` — `bun install` will reject packages published < 24h ago. If you need a brand-new version, temporarily comment this out.
 
 ## Code Style
 
@@ -75,8 +77,8 @@ Error shape: `{ success: false, message, timestamp }` with optional flat fields:
 ## Architecture
 
 ### Entry point
-- `index.ts` — exports default server config for `bun.serve()` (port from `PORT` env, default 3001). Handles graceful shutdown, uncaught exceptions.
-- `src/server/app.ts` — creates Hono app, applies timeout (30s), compression, error handler, middlewares, routes. Exposes `/health` and `/ready` endpoints.
+- `index.ts` — exports default server config for `bun.serve()` (port from `PORT` env, default 3001). Runs `runStartupChecks()` before serving. Handles graceful shutdown: `shutdownMiddlewares() → shutdownServices() → shutdownDatabase()`.
+- `src/server/app.ts` — creates Hono app, applies timeout (30s), compression, error handler, middlewares, routes. Exposes `/health` and `/ready` endpoints (both probe the database).
 
 ### Routing
 - All API routes under `/api`, wired in `src/router/index.ts` via `setupRouter(app)`.
@@ -96,7 +98,13 @@ Services use **lazy-loading proxy** via `createLazyService()`. Import pre-create
 ```typescript
 import { authService, userService } from '../services';
 ```
-Services receive dependencies via constructor. Dependency graph is wired in `createServices()`. Key dependencies: `userService → notificationService`, `authService → userService`, `chatService → openrouterService`, `commentService → notificationService`.
+Services receive dependencies via constructor. Dependency graph is wired in `createServices()`:
+- `userService → notificationService`
+- `authService → userService` (authController also receives `activityService`)
+- `postService → cacheService` (Redis/Valkey)
+- `chatService → openrouterService`
+- `commentService → notificationService`
+- `cacheService` — standalone `RedisCacheService` (backed by `VALKEY_URL` or `REDIS_URL` env)
 
 ### Controllers
 Factory functions that receive services and return Hono route apps:
@@ -121,7 +129,7 @@ Protected routes use `auth` middleware from `src/middlewares/auth.ts`:
 import { auth } from '../../middlewares/auth';
 app.get('/', auth, handler);
 ```
-The middleware validates Bearer JWT and sets `c.set('user', userPayload)`.
+The middleware validates Bearer JWT (HS256) and sets `c.set('user', userPayload)`.
 
 ### Database (Drizzle ORM)
 ```typescript
@@ -140,10 +148,13 @@ Migrations table is custom: `my-migrations-table` (see `drizzle.config.ts`). Rel
 ```typescript
 type Variables = { user: jwtPayload };
 ```
-JWT payload: `user_id`, `email`, `is_super_admin`, `exp`. Expiration from `JWT_EXPIRES_IN` env (code default `3h`).
+JWT payload: `user_id`, `email`, `is_super_admin` (TypeScript type in `src/types/auth.ts`). JWT `exp` is handled by the library but not included in the app-level type.
 
 ## Middlewares (`src/middlewares/index.ts`)
 Applied in order: logging → bodyLimit (default 10MB) → CORS → optional global rate limiter (`RATE_LIMIT_MAX` requests/min per IP; default **0** = off, set **> 0** to enable). Rate limiter uses `CleanupStore` with automatic cleanup — call `shutdownMiddlewares()` on graceful shutdown.
+
+## Startup Checks
+`index.ts` calls `runStartupChecks()` (from `src/server/startupCheck.ts`) before serving. It probes database, Valkey/Redis cache, S3, OpenRouter, and Resend email — logging pass/fail/skip. Missing optional services are logged as skipped (not fatal); database failure will surface at request time.
 
 ## Testing
 
@@ -176,14 +187,16 @@ For complex queries use `createChainableMock(result)`. For transactions use `set
 
 Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 chars). Config validated at startup in `src/config/index.ts`.
 
-Key optional integrations: GitHub OAuth (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`), S3 storage, OpenRouter AI (`OPENROUTER_API_KEY`, code default model `google/gemma-2-9b-it:free`), Resend email for password resets.
+Key optional integrations: GitHub OAuth (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`), S3 storage, OpenRouter AI (`OPENROUTER_API_KEY`, code default model `google/gemma-2-9b-it:free`), Resend email for password resets, Valkey/Redis cache (`VALKEY_URL`; falls back to `REDIS_URL`).
 
-DB pool defaults: `DB_MAX_CONNECTIONS=10`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIMEOUT=10`, `DB_MAX_LIFETIME=1800`.
+DB pool defaults (code): `DB_MAX_CONNECTIONS=10`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIMEOUT=10`, `DB_MAX_LIFETIME=1800`.
+
+Note: `.env.example` shows `PORT=3000` but code default is 3001. Similarly `.env.example` shows `DB_MAX_CONNECTIONS=50` but code default is 10. The code defaults win when env vars are unset.
 
 ## Deploy
 
 - Docker image: `cecep31/honobackend` (built from `Dockerfile`, multi-stage, compiles native binary)
-- CI: push to `main` triggers Docker Hub build/push (`.github/workflows/build_deploy.yml`); Fly.io deploy step is currently commented out
+- CI: push to `main` triggers quality gate (typecheck → lint → test) then Docker Hub build/push (`.github/workflows/build_deploy.yml`); Fly.io deploy step is currently commented out
 - Runtime config: Fly.io (`fly.toml`), region `sin`, 256MB RAM + 128MB swap, port 3001
 - `MAIN_DOMAIN` env defaults to `pilput.net`
 
@@ -194,3 +207,4 @@ DB pool defaults: `DB_MAX_CONNECTIONS=10`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIM
 - `bun --hot` used for dev (not nodemon or similar).
 - `sanitize-html` dependency used for HTML sanitization (posts, comments).
 - `resend` package for transactional email (password reset flows).
+- `redis` package used for Valkey/Redis caching (`RedisCacheService` in `src/services/cacheService.ts`).
