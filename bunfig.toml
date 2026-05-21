@@ -1,0 +1,3 @@
+[install]
+# Filter out package versions published less than 1 day ago during new resolution.
+minimumReleaseAge = 86400
