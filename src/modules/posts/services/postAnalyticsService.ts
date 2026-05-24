@@ -8,6 +8,7 @@ import {
   tags as tagsModel,
 } from '../../../database/schemas/postgres/schema';
 import { PostQueryHelpers } from './postQueryHelpers';
+import { USER_RELATION_COLUMNS } from '../../users/userRelationColumns';
 
 export class PostAnalyticsService {
   /**
@@ -116,12 +117,7 @@ export class PostAnalyticsService {
       },
       with: {
         user: {
-          columns: {
-            id: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-          },
+          columns: USER_RELATION_COLUMNS,
         },
       },
       orderBy: desc(column),

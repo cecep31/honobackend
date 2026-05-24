@@ -10,6 +10,7 @@ import {
 import { PostQueryHelpers } from './postQueryHelpers';
 import type { GetPaginationParams } from '../../../types/paginate';
 import { getPaginationMetadata } from '../../../utils/paginate';
+import { USER_RELATION_COLUMNS, userRelationSelect } from '../../users/userRelationColumns';
 
 export class PostFeedService {
   /** User ids and tag ids the viewer follows (for feeds). */
@@ -107,7 +108,7 @@ export class PostFeedService {
         body: sql<string>`substring(${postsModel.body} from 1 for 200)`.as('body'),
       },
       with: {
-        user: { columns: { username: true } },
+        user: { columns: USER_RELATION_COLUMNS },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
       limit: limit,
@@ -131,14 +132,7 @@ export class PostFeedService {
         created_at: postsModel.created_at,
         published: postsModel.published,
         published_at: postsModel.published_at,
-        user: {
-          id: usersModel.id,
-          username: usersModel.username,
-          email: usersModel.email,
-          first_name: usersModel.first_name,
-          last_name: usersModel.last_name,
-          image: usersModel.image,
-        },
+        user: userRelationSelect,
       })
       .from(postsModel)
       .leftJoin(usersModel, eq(postsModel.created_by, usersModel.id))
@@ -215,7 +209,7 @@ export class PostFeedService {
         },
         with: {
           user: {
-            columns: { password: false, github_id: false, last_logged_at: false },
+            columns: USER_RELATION_COLUMNS,
           },
           posts_to_tags: { columns: {}, with: { tag: true } },
         },
@@ -267,7 +261,7 @@ export class PostFeedService {
         },
         with: {
           user: {
-            columns: { password: false, github_id: false, last_logged_at: false },
+            columns: USER_RELATION_COLUMNS,
           },
           posts_to_tags: { columns: {}, with: { tag: true } },
         },

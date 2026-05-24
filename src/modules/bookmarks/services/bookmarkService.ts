@@ -2,6 +2,7 @@ import { post_bookmarks, bookmark_folders } from '../../../database/schemas/post
 import { db } from '../../../database/drizzle';
 import { and, eq, isNull } from 'drizzle-orm';
 import { ApiError, Errors } from '../../../utils/error';
+import { USER_RELATION_COLUMNS } from '../../users/userRelationColumns';
 
 export class BookmarkService {
   async toggleBookmark(
@@ -114,7 +115,7 @@ export class BookmarkService {
           post: {
             with: {
               user: {
-                columns: { password: false },
+                columns: USER_RELATION_COLUMNS,
               },
             },
           },

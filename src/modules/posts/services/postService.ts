@@ -16,6 +16,7 @@ import type { GetPaginationParams } from '../../../types/paginate';
 import { getPaginationMetadata } from '../../../utils/paginate';
 import config from '../../../config';
 import { Errors } from '../../../utils/error';
+import { USER_RELATION_COLUMNS, userRelationSelect } from '../../users/userRelationColumns';
 import type { CacheService } from '../../../services/cacheService';
 
 export class PostService {
@@ -209,7 +210,7 @@ export class PostService {
         orderBy: desc(postsModel.created_at),
         with: {
           user: {
-            columns: { password: false, github_id: false, last_logged_at: false },
+            columns: USER_RELATION_COLUMNS,
           },
           posts_to_tags: { columns: {}, with: { tag: true } },
         },
@@ -269,15 +270,7 @@ export class PostService {
       ),
       with: {
         user: {
-          columns: {
-            id: true,
-            username: true,
-            email: true,
-            first_name: true,
-            last_name: true,
-            image: true,
-            is_super_admin: true,
-          },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: {
           columns: {},
@@ -320,7 +313,7 @@ export class PostService {
         },
         with: {
           user: {
-            columns: { password: false, github_id: false, last_logged_at: false },
+            columns: USER_RELATION_COLUMNS,
           },
           posts_to_tags: { columns: {}, with: { tag: true } },
         },
@@ -360,7 +353,7 @@ export class PostService {
       ),
       with: {
         user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
@@ -381,7 +374,7 @@ export class PostService {
       ),
       with: {
         user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
@@ -399,7 +392,7 @@ export class PostService {
       ),
       with: {
         user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
@@ -438,7 +431,7 @@ export class PostService {
         },
         with: {
           user: {
-            columns: { password: false, github_id: false, last_logged_at: false },
+            columns: USER_RELATION_COLUMNS,
           },
           posts_to_tags: { columns: {}, with: { tag: true } },
         },
@@ -482,14 +475,7 @@ export class PostService {
           view_count: postsModel.view_count,
           like_count: postsModel.like_count,
           bookmark_count: postsModel.bookmark_count,
-          user: {
-            id: usersModel.id,
-            username: usersModel.username,
-            email: usersModel.email,
-            first_name: usersModel.first_name,
-            last_name: usersModel.last_name,
-            image: usersModel.image,
-          },
+          user: userRelationSelect,
         })
         .from(postsModel)
         .innerJoin(usersModel, eq(postsModel.created_by, usersModel.id))
@@ -545,7 +531,7 @@ export class PostService {
         },
         with: {
           user: {
-            columns: { password: false, github_id: false, last_logged_at: false },
+            columns: USER_RELATION_COLUMNS,
           },
           posts_to_tags: { columns: {}, with: { tag: true } },
         },
@@ -588,14 +574,7 @@ export class PostService {
           view_count: postsModel.view_count,
           like_count: postsModel.like_count,
           bookmark_count: postsModel.bookmark_count,
-          user: {
-            id: usersModel.id,
-            username: usersModel.username,
-            email: usersModel.email,
-            first_name: usersModel.first_name,
-            last_name: usersModel.last_name,
-            image: usersModel.image,
-          },
+          user: userRelationSelect,
         })
         .from(postsModel)
         .innerJoin(posts_to_tags, eq(postsModel.id, posts_to_tags.post_id))

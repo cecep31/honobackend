@@ -1,6 +1,7 @@
 import { and, eq, isNull, desc, asc, ilike, or, count, lte, sql } from 'drizzle-orm';
 import { db } from '../../../database/drizzle';
 import { posts as postsModel } from '../../../database/schemas/postgres/schema';
+import { USER_RELATION_COLUMNS } from '../../users/userRelationColumns';
 
 export class PostQueryHelpers {
   static buildPublishedVisibilityClause() {
@@ -27,7 +28,7 @@ export class PostQueryHelpers {
       where: isNull(postsModel.deleted_at),
       with: {
         user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
@@ -39,7 +40,7 @@ export class PostQueryHelpers {
       where: and(isNull(postsModel.deleted_at), this.buildPublishedVisibilityClause()),
       with: {
         user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },
@@ -54,7 +55,7 @@ export class PostQueryHelpers {
       },
       with: {
         user: {
-          columns: { password: false, github_id: false, last_logged_at: false },
+          columns: USER_RELATION_COLUMNS,
         },
         posts_to_tags: { columns: {}, with: { tag: true } },
       },

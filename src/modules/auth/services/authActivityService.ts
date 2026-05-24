@@ -2,6 +2,7 @@ import { db } from '../../../database/drizzle';
 import { auth_activity_logs } from '../../../database/schemas/postgres/schema';
 import { eq, desc, and, gte, lte, count } from 'drizzle-orm';
 import { randomUUIDv7 } from 'bun';
+import { USER_RELATION_COLUMNS } from '../../users/userRelationColumns';
 
 export type ActivityType =
   | 'login'
@@ -103,13 +104,7 @@ export class AuthActivityService {
       offset,
       with: {
         user: {
-          columns: {
-            id: true,
-            email: true,
-            username: true,
-            first_name: true,
-            last_name: true,
-          },
+          columns: USER_RELATION_COLUMNS,
         },
       },
     });

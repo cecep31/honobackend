@@ -6,15 +6,7 @@ import { randomUUIDv7 } from 'bun';
 import { getPaginationMetadata } from '../../../utils/paginate';
 import type { CreateCommentInput, UpdateCommentInput } from '../validation';
 import type { NotificationService } from '../../notifications/services/notificationService';
-
-/** Reusable column selection for public user info on comments */
-const COMMENT_USER_COLUMNS = {
-  id: true,
-  username: true,
-  first_name: true,
-  last_name: true,
-  image: true,
-} as const;
+import { USER_RELATION_COLUMNS } from '../../users/userRelationColumns';
 
 export class CommentService {
   constructor(private notificationService?: NotificationService) {}
@@ -101,7 +93,7 @@ export class CommentService {
 
       const commentWithUser = await db.query.post_comments.findFirst({
         where: eq(post_comments.id, comment.id),
-        with: { user: { columns: COMMENT_USER_COLUMNS } },
+        with: { user: { columns: USER_RELATION_COLUMNS } },
       });
 
       return commentWithUser;
@@ -125,7 +117,7 @@ export class CommentService {
       const [comments, [totalResult]] = await Promise.all([
         db.query.post_comments.findMany({
           where: whereClause,
-          with: { user: { columns: COMMENT_USER_COLUMNS } },
+          with: { user: { columns: USER_RELATION_COLUMNS } },
           orderBy: [desc(post_comments.created_at)],
           limit,
           offset,
@@ -150,7 +142,7 @@ export class CommentService {
           eq(post_comments.parent_comment_id, parent_comment_id),
           isNull(post_comments.deleted_at)
         ),
-        with: { user: { columns: COMMENT_USER_COLUMNS } },
+        with: { user: { columns: USER_RELATION_COLUMNS } },
         orderBy: [desc(post_comments.created_at)],
       });
 
@@ -165,7 +157,7 @@ export class CommentService {
     try {
       const comment = await db.query.post_comments.findFirst({
         where: and(eq(post_comments.id, comment_id), isNull(post_comments.deleted_at)),
-        with: { user: { columns: COMMENT_USER_COLUMNS } },
+        with: { user: { columns: USER_RELATION_COLUMNS } },
       });
 
       if (!comment) {
@@ -213,7 +205,7 @@ export class CommentService {
       // Fetch updated comment with user details
       const commentWithUser = await db.query.post_comments.findFirst({
         where: eq(post_comments.id, updated[0].id),
-        with: { user: { columns: COMMENT_USER_COLUMNS } },
+        with: { user: { columns: USER_RELATION_COLUMNS } },
       });
 
       return commentWithUser;
@@ -281,7 +273,7 @@ export class CommentService {
         db.query.post_comments.findMany({
           where: whereClause,
           with: {
-            user: { columns: COMMENT_USER_COLUMNS },
+            user: { columns: USER_RELATION_COLUMNS },
             post: { columns: { id: true, title: true, slug: true } },
           },
           orderBy: [desc(post_comments.created_at)],
