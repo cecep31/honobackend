@@ -27,11 +27,11 @@
   "dependencies": {
     "@hono/zod-validator": "^0.8.0",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.21",
+    "hono": "^4.12.23",
     "hono-rate-limiter": "^0.5.3",
     "postgres": "^3.4.9",
     "redis": "^5.12.1",
-    "resend": "^6.12.3",
+    "resend": "^6.12.4",
     "sanitize-html": "^2.17.4",
     "zod": "^4.4.3"
   },
@@ -44,7 +44,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.4"
+    "typescript-eslint": "^8.60.0"
   },
   "keywords": [
     "hono",
