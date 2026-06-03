@@ -1,7 +1,7 @@
-import { createClient } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 import config from '../config';
 
-type RedisConnection = ReturnType<typeof createClient>;
+type RedisConnection = RedisClientType;
 
 export interface CacheService {
   get<T>(key: string): Promise<T | null>;
