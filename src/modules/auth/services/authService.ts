@@ -388,6 +388,49 @@ export class AuthService {
     });
   }
 
+  /**
+   * Log a user out by revoking their server-side session(s).
+   *
+   * When a specific refresh token is supplied (e.g. from the `refresh_token`
+   * cookie) only that session is revoked. When none is available — as is the
+   * case for clients that keep the access token client-side and send no
+   * cookie — all of the user's sessions are revoked so logout is never a
+   * silent no-op.
+   */
+  async logout(
+    userId: string,
+    refreshToken?: string,
+    ip_address?: string,
+    user_agent?: string
+  ) {
+    return await db.transaction(async (tx) => {
+      if (refreshToken) {
+        const hashedRefreshToken = this.hashRefreshToken(refreshToken);
+        await tx
+          .delete(sessionModel)
+          .where(
+            and(
+              eq(sessionModel.refresh_token, hashedRefreshToken),
+              eq(sessionModel.user_id, userId)
+            )
+          );
+      } else {
+        await tx.delete(sessionModel).where(eq(sessionModel.user_id, userId));
+      }
+
+      await this.activityService.logActivity(
+        {
+          userId,
+          activityType: 'logout',
+          ipAddress: ip_address,
+          userAgent: user_agent,
+          status: 'success',
+        },
+        tx
+      );
+    });
+  }
+
   async requestPasswordReset(
     email: string,
     ip_address?: string,

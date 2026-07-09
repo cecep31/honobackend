@@ -1,4 +1,4 @@
-import { deleteCookie, setCookie } from 'hono/cookie';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { Hono } from 'hono';
 import config from '../../../config';
 import { auth } from '../../../middlewares/auth';
@@ -209,10 +209,22 @@ export const createAuthController = (
   );
 
   authController.post('/logout', auth, async (c) => {
-    deleteCookie(c, 'token', {
-      ...(config.frontend.mainDomain && { domain: config.frontend.mainDomain }),
+    const user = c.get('user');
+    const refreshToken = getCookie(c, 'refresh_token');
+    const ipAddress = getClientIp(c);
+    const userAgent = c.req.header('User-Agent');
+
+    await authService.logout(user.user_id, refreshToken, ipAddress, userAgent);
+
+    // Cookies were set on the `.${mainDomain}` scope during OAuth, so they must
+    // be cleared with the same domain to actually be removed by the browser.
+    const cookieOptions = {
+      ...(config.frontend.mainDomain && { domain: `.${config.frontend.mainDomain}` }),
       path: '/',
-    });
+    };
+    deleteCookie(c, 'token', cookieOptions);
+    deleteCookie(c, 'refresh_token', cookieOptions);
+
     return sendSuccess(c, null, 'Logged out successfully');
   });
 
