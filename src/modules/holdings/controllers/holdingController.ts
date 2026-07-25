@@ -7,6 +7,7 @@ import { sendSuccess } from '../../../utils/response';
 import {
   createHoldingSchema,
   duplicateHoldingSchema,
+  getCalendarQuerySchema,
   getCompareMonthsSchema,
   getHoldingsQuerySchema,
   getMonthlyQuerySchema,
@@ -18,8 +19,12 @@ import {
 } from '../validation';
 
 type HoldingService = AppServices['holdingService'];
+type CorporateActionService = AppServices['corporateActionService'];
 
-export const createHoldingController = (holdingService: HoldingService) =>
+export const createHoldingController = (
+  holdingService: HoldingService,
+  corporateActionService: CorporateActionService
+) =>
   new Hono<{ Variables: Variables }>()
     .get('/', auth, validateRequest('query', getHoldingsQuerySchema), async (c) => {
       const authUser = c.get('user');
@@ -73,6 +78,11 @@ export const createHoldingController = (holdingService: HoldingService) =>
       const { symbol } = c.req.valid('query');
       const price = await holdingService.getPrice(symbol);
       return sendSuccess(c, price, 'Price fetched successfully');
+    })
+    .get('/calendar', auth, validateRequest('query', getCalendarQuerySchema), async (c) => {
+      const { month, year } = c.req.valid('query');
+      const calendar = await corporateActionService.getCalendar(year, month);
+      return sendSuccess(c, calendar, 'Corporate actions calendar fetched successfully');
     })
     .post('/', auth, validateRequest('json', createHoldingSchema), async (c) => {
       const authUser = c.get('user');

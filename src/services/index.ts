@@ -4,10 +4,13 @@ import { BookmarkService } from '../modules/bookmarks/services/bookmarkService';
 import { ChatService } from '../modules/chat/services/chatService';
 import { OpenRouterService } from '../modules/chat/services/openrouterService';
 import { CommentService } from '../modules/comments/services/commentService';
+import { CorporateActionService } from '../modules/holdings/services/corporateActionService';
+import { ExchangeRateService } from '../modules/exchange-rates/services/exchangeRateService';
 import { HoldingService } from '../modules/holdings/services/holdingService';
 import { LikeService } from '../modules/likes/services/likeService';
 import { NotificationService } from '../modules/notifications/services/notificationService';
 import { PostService } from '../modules/posts/services/postService';
+import { PostViewService } from '../modules/posts/services/postViewService';
 import { ReportService } from '../modules/reports/services/reportService';
 import { TagService } from '../modules/tags/services/tagService';
 import { UserService } from '../modules/users/services/userService';
@@ -44,10 +47,13 @@ export interface AppServices {
   userService: UserService;
   authService: AuthService;
   postService: PostService;
+  postViewService: PostViewService;
   cacheService: RedisCacheService;
   openrouterService: OpenRouterService;
   chatService: ChatService;
   holdingService: HoldingService;
+  corporateActionService: CorporateActionService;
+  exchangeRateService: ExchangeRateService;
   likeService: LikeService;
   bookmarkService: BookmarkService;
   commentService: CommentService;
@@ -63,9 +69,12 @@ export function createServices(): AppServices {
   const userService = createLazyService(() => new UserService(notificationService));
   const authService = createLazyService(() => new AuthService(userService));
   const postService = createLazyService(() => new PostService(cacheService));
+  const postViewService = createLazyService(() => new PostViewService());
   const openrouterService = createLazyService(() => new OpenRouterService());
   const chatService = createLazyService(() => new ChatService(openrouterService));
   const holdingService = createLazyService(() => new HoldingService());
+  const corporateActionService = createLazyService(() => new CorporateActionService());
+  const exchangeRateService = createLazyService(() => new ExchangeRateService(cacheService));
   const likeService = createLazyService(() => new LikeService());
   const bookmarkService = createLazyService(() => new BookmarkService());
   const commentService = createLazyService(() => new CommentService(notificationService));
@@ -79,9 +88,12 @@ export function createServices(): AppServices {
     userService,
     authService,
     postService,
+    postViewService,
     openrouterService,
     chatService,
     holdingService,
+    corporateActionService,
+    exchangeRateService,
     likeService,
     bookmarkService,
     commentService,
@@ -103,9 +115,12 @@ export const {
   userService,
   authService,
   postService,
+  postViewService,
   openrouterService,
   chatService,
   holdingService,
+  corporateActionService,
+  exchangeRateService,
   likeService,
   bookmarkService,
   commentService,

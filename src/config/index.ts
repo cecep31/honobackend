@@ -87,6 +87,15 @@ interface CacheConfig {
   connectTimeoutMs: number;
 }
 
+interface MarketDataConfig {
+  /**
+   * X-RapidAPI-Key for the Indonesia Stock Exchange (IDX) API.
+   * Required to fetch IDX dividend and RUPS calendar data.
+   * Leave empty to disable IDX corporate-action fetching (returns empty results).
+   */
+  rapidApiIdxKey: string;
+}
+
 interface RateLimitConfig {
   windowMs: number;
   limit: number;
@@ -112,6 +121,7 @@ interface AppConfig {
   email: EmailConfig;
   frontend: FrontendConfig;
   cache: CacheConfig;
+  marketData: MarketDataConfig;
 }
 
 // ------------------------------------------------------------------------------
@@ -190,6 +200,12 @@ function buildCacheConfig(): CacheConfig {
   };
 }
 
+function buildMarketDataConfig(): MarketDataConfig {
+  return {
+    rapidApiIdxKey: getString('RAPIDAPI_IDX_KEY'),
+  };
+}
+
 function buildCorsConfig(): CorsConfig {
   const customOrigin = getString('CORS_ORIGIN', '');
   return {
@@ -229,6 +245,7 @@ const config: AppConfig = {
   email: buildEmailConfig(),
   frontend: buildFrontendConfig(),
   cache: buildCacheConfig(),
+  marketData: buildMarketDataConfig(),
 };
 
 // ------------------------------------------------------------------------------

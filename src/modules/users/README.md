@@ -397,7 +397,7 @@ Get a paginated list of users following to specified user.
 
 - **URL:** `/:id/followers`
 - **Method:** `GET`
-- **Authentication:** Required
+- **Authentication:** Not required (public)
 - **Query Parameters:**
 
 | Parameter | Type | Required | Default | Description |
@@ -448,7 +448,7 @@ Get a paginated list of users that specified user is following.
 
 - **URL:** `/:id/following`
 - **Method:** `GET`
-- **Authentication:** Required
+- **Authentication:** Not required (public)
 - **Query Parameters:** Same as followers (`offset`, `limit`, `search`/`q`, `orderBy`, `orderDirection`).
 
 **Example Request:**
@@ -507,6 +507,97 @@ curl -X GET /api/users/550e8400-e29b-41d4-a716-446655440000/is-following \
     "isFollowing": true
   },
   "message": "Follow status checked successfully"
+}
+```
+
+---
+
+### 16. Get Follow Stats
+Get follower and following counts for a user (mirrors echobackend's `GET /api/users/:id/follow-stats`).
+
+- **URL:** `/:id/follow-stats`
+- **Method:** `GET`
+- **Authentication:** Not required (public)
+
+**Example Request:**
+```bash
+curl -X GET /api/users/550e8400-e29b-41d4-a716-446655440000/follow-stats
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "followers_count": 128,
+    "following_count": 75
+  },
+  "message": "Follow statistics fetched successfully"
+}
+```
+
+---
+
+### 17. Get Mutual Follows
+Get the users that both the authenticated user and the specified user follow (mirrors echobackend's `GET /api/users/:id/mutual-follows`).
+
+- **URL:** `/:id/mutual-follows`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X GET /api/users/550e8400-e29b-41d4-a716-446655440000/mutual-follows \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440009",
+      "first_name": "Shared",
+      "last_name": "Friend",
+      "username": "sharedfriend",
+      "email": "shared@example.com",
+      "image": null,
+      "followers_count": 10,
+      "following_count": 12
+    }
+  ],
+  "message": "Mutual follows fetched successfully"
+}
+```
+
+---
+
+### 18. Restore User (Admin)
+Restore a soft-deleted user. Fails with `409` if the email or username is already taken by another active user (mirrors echobackend's `POST /api/users/:id/restore`).
+
+- **URL:** `/:id/restore`
+- **Method:** `POST`
+- **Authentication:** Required (super admin)
+
+**Example Request:**
+```bash
+curl -X POST /api/users/550e8400-e29b-41d4-a716-446655440000/restore \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "username": "restoreduser",
+    "email": "restored@example.com",
+    "deleted_at": null
+  },
+  "message": "User restored successfully"
 }
 ```
 

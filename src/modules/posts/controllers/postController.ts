@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import { auth } from '../../../middlewares/auth';
+import { optionalAuth } from '../../../middlewares/optionalAuth';
 import { createSuperAdminMiddleware } from '../../../middlewares/superAdmin';
 import { validateRequest } from '../../../middlewares/validateRequest';
 import type { AppServices } from '../../../services';
 import type { jwtPayload } from '../../../types/auth';
 import type { Variables } from '../../../types/context';
 import { Errors } from '../../../utils/error';
+import { getClientIp } from '../../../utils/request';
 import { sendSuccess } from '../../../utils/response';
 import { getS3Helper } from '../../../utils/s3';
 import { createRateLimiter } from '../../../utils/rateLimiter';
@@ -13,6 +15,7 @@ import {
   chartLimitQuerySchema,
   createPostSchema,
   listPostsQuerySchema,
+  myAnalyticsQuerySchema,
   myLikesByMonthQuerySchema,
   postByUsernameSlugSchema,
   postIdSchema,
@@ -22,10 +25,15 @@ import {
 } from '../validation';
 
 type PostService = AppServices['postService'];
+type PostViewService = AppServices['postViewService'];
 type UserService = AppServices['userService'];
 const POST_UPLOAD_ACCESS_TYPE = 'public';
 
-export const createPostController = (postService: PostService, userService: UserService) => {
+export const createPostController = (
+  postService: PostService,
+  userService: UserService,
+  postViewService: PostViewService
+) => {
   const superAdminMiddleware = createSuperAdminMiddleware(userService);
   const postController = new Hono<{ Variables: Variables }>();
 
@@ -84,6 +92,22 @@ export const createPostController = (postService: PostService, userService: User
     const { data, meta } = await postService.getLikedPostsByUser(authUser.user_id, params);
     return sendSuccess(c, data, 'Liked posts fetched successfully', 200, meta);
   });
+
+  postController.get(
+    '/me/analytics',
+    auth,
+    validateRequest('query', myAnalyticsQuerySchema),
+    async (c) => {
+      const { start_date, end_date } = c.req.valid('query');
+      const authUser = c.get('user');
+      const analytics = await postViewService.getMyPostsAnalytics(
+        authUser.user_id,
+        start_date,
+        end_date
+      );
+      return sendSuccess(c, analytics, 'Successfully retrieved post analytics');
+    }
+  );
 
   postController.get(
     '/feed/following',
@@ -306,13 +330,46 @@ export const createPostController = (postService: PostService, userService: User
   postController.post(
     '/:id/view',
     createRateLimiter(60 * 1000, 60),
+    optionalAuth,
     validateRequest('param', postIdSchema),
     async (c) => {
       const id = c.req.param('id');
-      const result = await postService.incrementView(id);
-      return sendSuccess(c, result, 'Post view incremented');
+      const user = c.get('user');
+      const result = await postViewService.recordView(
+        id,
+        user?.user_id ?? null,
+        getClientIp(c),
+        c.req.header('User-Agent')
+      );
+      return sendSuccess(c, result, 'View recorded successfully');
     }
   );
+
+  postController.get(
+    '/:id/views',
+    auth,
+    validateRequest('param', postIdSchema),
+    validateRequest('query', listPostsQuerySchema),
+    async (c) => {
+      const id = c.req.param('id');
+      const q = c.req.valid('query');
+      const { data, meta } = await postViewService.getViewsByPostId(id, q.limit, q.offset);
+      return sendSuccess(c, data, 'Successfully retrieved post views', 200, meta);
+    }
+  );
+
+  postController.get('/:id/view-stats', validateRequest('param', postIdSchema), async (c) => {
+    const id = c.req.param('id');
+    const stats = await postViewService.getViewStats(id);
+    return sendSuccess(c, stats, 'Successfully retrieved view statistics');
+  });
+
+  postController.get('/:id/viewed', auth, validateRequest('param', postIdSchema), async (c) => {
+    const id = c.req.param('id');
+    const authUser = c.get('user');
+    const hasViewed = await postViewService.hasUserViewed(id, authUser.user_id);
+    return sendSuccess(c, { has_viewed: hasViewed }, 'Successfully checked view status');
+  });
 
   postController.delete('/:id', auth, async (c) => {
     const id = c.req.param('id');

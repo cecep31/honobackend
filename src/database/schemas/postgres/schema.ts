@@ -19,6 +19,8 @@ import {
   smallint,
   char,
   numeric,
+  date,
+
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm/relations';
 import { sql } from 'drizzle-orm';
@@ -916,6 +918,50 @@ export const holdings = pgTable(
     check('chk_holdings_valid_year', sql`year >= 2000`),
   ]
 );
+/**
+ * Corporate actions (dividend & RUPS) calendar persisted from the IDX
+ * market data provider. Rows are shared across users (market-wide data),
+ * upserted on (symbol, type, event_date).
+ */
+export const corporate_actions = pgTable(
+  'corporate_actions',
+  {
+    id: bigserial({ mode: 'bigint' }).primaryKey().notNull(),
+    symbol: text().notNull(),
+    name: text(),
+    type: text().notNull(), // "dividend" | "rups"
+    event_date: date('event_date', { mode: 'string' }).notNull(),
+    pay_date: date('pay_date', { mode: 'string' }),
+    amount: numeric('amount', { precision: 18, scale: 4 }),
+    currency: text(),
+    note: text(),
+    market: text().default('IDX').notNull(),
+    created_at: timestamp('created_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updated_at: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('uq_corporate_actions_symbol_type_date').using(
+      'btree',
+      table.symbol.asc().nullsLast().op('text_ops'),
+      table.type.asc().nullsLast().op('text_ops'),
+      table.event_date.asc().nullsLast().op('date_ops')
+    ),
+    index('idx_corporate_actions_event_date').using(
+      'btree',
+      table.event_date.asc().nullsLast().op('date_ops')
+    ),
+    index('idx_corporate_actions_symbol').using(
+      'btree',
+      table.symbol.asc().nullsLast().op('text_ops')
+    ),
+  ]
+);
+
+
 
 export const notifications = pgTable(
   'notifications',

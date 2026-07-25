@@ -579,35 +579,129 @@ curl -X PATCH /api/posts/550e8400-e29b-41d4-a716-446655440000 \
 
 ---
 
-### 14. Increment View Count
-Increment the view count of a post.
+### 14. Record Post View
+Record a view for a post. A row is inserted into `post_views` (with user id, IP address, and user agent) and the post's `view_count` is incremented. Authenticated users are deduplicated: a user who already viewed the post does not create another row (mirrors echobackend's `POST /api/posts/:id/view`).
 
 - **URL:** `/:id/view`
 - **Method:** `POST`
-- **Authentication:** Not required
+- **Authentication:** Optional (recorded anonymously when absent)
+- **Rate limit:** 60 requests/minute
 - **Query Parameters:** None
 
 **Example Request:**
 ```bash
-curl -X POST /api/posts/550e8400-e29b-41d4-a716-446655440000/view
+curl -X POST /api/posts/550e8400-e29b-41d4-a716-446655440000/view \
+  -H "Authorization: Bearer <your_token>"
 ```
 
-**Response (200):** `data` is an array from the DB `RETURNING` clause (one row when the post exists).
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "recorded": true
+  },
+  "message": "View recorded successfully"
+}
+```
 
+`recorded` is `false` when the authenticated user has already viewed the post. Returns `404` when the post does not exist.
+
+---
+
+### 14.1 Get Post Views
+Retrieve the paginated list of view records for a post, newest first (mirrors echobackend's `GET /api/posts/:id/views`).
+
+- **URL:** `/:id/views`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:** `offset` (default 0), `limit` (default 10, max 100)
+
+**Example Request:**
+```bash
+curl -X GET "/api/posts/550e8400-e29b-41d4-a716-446655440000/views?limit=10&offset=0" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
 ```json
 {
   "success": true,
   "data": [
     {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "view_count": 1251
+      "id": "550e8400-e29b-41d4-a716-4466554400aa",
+      "post_id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_id": "550e8400-e29b-41d4-a716-446655440002",
+      "ip_address": "103.142.21.10",
+      "user_agent": "Mozilla/5.0",
+      "created_at": "2026-07-20T10:30:00.000Z",
+      "updated_at": "2026-07-20T10:30:00.000Z"
     }
   ],
-  "message": "Post view incremented"
+  "message": "Successfully retrieved post views",
+  "meta": {
+    "total_items": 152,
+    "offset": 0,
+    "limit": 10,
+    "total_pages": 16
+  }
 }
 ```
 
-If no row matched the id, `data` may be an empty array.
+---
+
+### 14.2 Get Post View Stats
+Retrieve aggregated view statistics for a post (mirrors echobackend's `GET /api/posts/:id/view-stats`).
+
+- **URL:** `/:id/view-stats`
+- **Method:** `GET`
+- **Authentication:** Not required (public)
+
+**Example Request:**
+```bash
+curl -X GET /api/posts/550e8400-e29b-41d4-a716-446655440000/view-stats
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "post_id": "550e8400-e29b-41d4-a716-446655440000",
+    "total_views": 152,
+    "unique_views": 98,
+    "anonymous_views": 20,
+    "authenticated_views": 132
+  },
+  "message": "Successfully retrieved view statistics"
+}
+```
+
+---
+
+### 14.3 Check User Viewed
+Check whether the authenticated user has viewed a post (mirrors echobackend's `GET /api/posts/:id/viewed`).
+
+- **URL:** `/:id/viewed`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X GET /api/posts/550e8400-e29b-41d4-a716-446655440000/viewed \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "has_viewed": true
+  },
+  "message": "Successfully checked view status"
+}
+```
 
 ---
 
@@ -839,6 +933,56 @@ curl -X GET /api/posts/me/550e8400-e29b-41d4-a716-446655440000 \
 ```
 
 **Response (200):** Same as Get Post by Slug
+
+---
+
+### 22. Get My Posts Analytics
+Retrieve analytics for the authenticated user's posts: summary stats, a daily view trend with cumulative views, and top performing posts (mirrors echobackend's `GET /api/posts/me/analytics`).
+
+- **URL:** `/me/analytics`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| start_date | string (YYYY-MM-DD) | No | 30 days ago | Range start (inclusive) |
+| end_date | string (YYYY-MM-DD) | No | today | Range end (inclusive) |
+
+**Example Request:**
+```bash
+curl -X GET "/api/posts/me/analytics?start_date=2026-07-01&end_date=2026-07-25" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "total_posts": 12,
+      "published_posts": 10,
+      "total_views": 5320,
+      "total_likes": 214
+    },
+    "view_trend": [
+      { "date": "2026-07-01", "views": 12, "cumulative_views": 4810 },
+      { "date": "2026-07-02", "views": 25, "cumulative_views": 4835 }
+    ],
+    "top_posts": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "title": "My best post",
+        "slug": "my-best-post",
+        "view_count": 1251,
+        "like_count": 64
+      }
+    ]
+  },
+  "message": "Successfully retrieved post analytics"
+}
+```
 
 ---
 

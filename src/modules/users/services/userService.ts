@@ -1,6 +1,6 @@
 import { randomUUIDv7 } from 'bun';
 import { db } from '../../../database/drizzle';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, ne, or } from 'drizzle-orm';
 import {
   profiles,
   users as usersModel,
@@ -47,6 +47,14 @@ export class UserService {
 
   async isFollowing(follower_id: string, following_id: string) {
     return this.followService.isFollowing(follower_id, following_id);
+  }
+
+  async getFollowStats(userId: string) {
+    return this.followService.getFollowStats(userId);
+  }
+
+  async getMutualFollows(userId: string, otherUserId: string) {
+    return this.followService.getMutualFollows(userId, otherUserId);
   }
 
   // ===== Image delegation =====
@@ -170,6 +178,62 @@ export class UserService {
       }
       console.error('Error deleting user:', error);
       throw Errors.DatabaseError({ message: 'Failed to delete user', error });
+    }
+  }
+
+  /**
+   * Restore a soft-deleted user (mirrors echobackend's
+   * `POST /api/users/:id/restore`). Fails with a conflict when the email or
+   * username is already taken by another active user.
+   * @param userId ID of the deleted user to restore
+   */
+  async restoreUser(userId: string) {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(usersModel.id, userId),
+      });
+
+      if (!user || !user.deleted_at) {
+        throw Errors.NotFound('Deleted user');
+      }
+
+      const conflictConditions = [eq(usersModel.email, user.email)];
+      if (user.username) {
+        conflictConditions.push(eq(usersModel.username, user.username));
+      }
+
+      const conflict = await db.query.users.findFirst({
+        columns: { id: true },
+        where: and(
+          isNull(usersModel.deleted_at),
+          ne(usersModel.id, userId),
+          or(...conflictConditions)
+        ),
+      });
+
+      if (conflict) {
+        throw Errors.BusinessRuleViolation(
+          'Cannot restore user: email or username already taken by another active user'
+        );
+      }
+
+      const [restored] = await db
+        .update(usersModel)
+        .set({ deleted_at: null, updated_at: new Date().toISOString() })
+        .where(eq(usersModel.id, userId))
+        .returning();
+
+      const { password: _password, ...userWithoutPassword } = restored;
+      return userWithoutPassword;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('not found') || error.message.includes('Cannot restore'))
+      ) {
+        throw error;
+      }
+      console.error('Error restoring user:', error);
+      throw Errors.DatabaseError({ message: 'Failed to restore user', error });
     }
   }
 

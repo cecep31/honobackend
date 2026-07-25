@@ -61,3 +61,17 @@ export const myLikesByMonthQuerySchema = z.object({
 
 export type ChartLimitQuery = z.infer<typeof chartLimitQuerySchema>;
 export type MyLikesByMonthQuery = z.infer<typeof myLikesByMonthQuerySchema>;
+
+/** Query untuk GET /me/analytics (default: 30 hari terakhir) */
+export const myAnalyticsQuerySchema = z.object({
+  start_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'start_date must be in YYYY-MM-DD format')
+    .optional(),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be in YYYY-MM-DD format')
+    .optional(),
+});
+
+export type MyAnalyticsQuery = z.infer<typeof myAnalyticsQuerySchema>;

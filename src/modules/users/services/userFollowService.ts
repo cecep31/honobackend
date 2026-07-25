@@ -1,6 +1,6 @@
 import { randomUUIDv7 } from 'bun';
 import { db } from '../../../database/drizzle';
-import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
+import { aliasedTable, and, count, desc, eq, isNull, sql } from 'drizzle-orm';
 import {
   users as usersModel,
   user_follows,
@@ -284,6 +284,88 @@ export class UserFollowService {
       console.error('Error checking follow status:', error);
       throw Errors.DatabaseError({
         message: 'Failed to check follow status',
+        error,
+      });
+    }
+  }
+
+  /**
+   * Get follower/following counts for a user (mirrors echobackend's
+   * `GET /api/users/:id/follow-stats`)
+   * @param userId User ID
+   */
+  async getFollowStats(userId: string) {
+    try {
+      const [followersResult, followingResult] = await Promise.all([
+        db
+          .select({ count: count() })
+          .from(user_follows)
+          .where(and(eq(user_follows.following_id, userId), isNull(user_follows.deleted_at))),
+        db
+          .select({ count: count() })
+          .from(user_follows)
+          .where(and(eq(user_follows.follower_id, userId), isNull(user_follows.deleted_at))),
+      ]);
+
+      return {
+        user_id: userId,
+        followers_count: followersResult[0]?.count ?? 0,
+        following_count: followingResult[0]?.count ?? 0,
+      };
+    } catch (error) {
+      console.error('Error fetching follow stats:', error);
+      throw Errors.DatabaseError({
+        message: 'Failed to fetch follow stats',
+        error,
+      });
+    }
+  }
+
+  /**
+   * Get users that both the given user and another user follow
+   * (mirrors echobackend's `GET /api/users/:id/mutual-follows`)
+   * @param userId ID of the authenticated user
+   * @param otherUserId ID of the other user
+   */
+  async getMutualFollows(userId: string, otherUserId: string) {
+    try {
+      const uf2 = aliasedTable(user_follows, 'uf2');
+
+      const mutuals = await db
+        .select({
+          id: usersModel.id,
+          first_name: usersModel.first_name,
+          last_name: usersModel.last_name,
+          username: usersModel.username,
+          email: usersModel.email,
+          image: usersModel.image,
+          followers_count: usersModel.followers_count,
+          following_count: usersModel.following_count,
+        })
+        .from(usersModel)
+        .innerJoin(
+          user_follows,
+          and(
+            eq(usersModel.id, user_follows.following_id),
+            eq(user_follows.follower_id, userId),
+            isNull(user_follows.deleted_at)
+          )
+        )
+        .innerJoin(
+          uf2,
+          and(
+            eq(usersModel.id, uf2.following_id),
+            eq(uf2.follower_id, otherUserId),
+            isNull(uf2.deleted_at)
+          )
+        )
+        .where(isNull(usersModel.deleted_at));
+
+      return mutuals;
+    } catch (error) {
+      console.error('Error fetching mutual follows:', error);
+      throw Errors.DatabaseError({
+        message: 'Failed to fetch mutual follows',
         error,
       });
     }

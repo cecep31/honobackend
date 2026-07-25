@@ -3,6 +3,7 @@ import { createAuthController } from '../modules/auth/controllers/authController
 import { createBookmarkController } from '../modules/bookmarks/controllers/bookmarkController';
 import { createChatController } from '../modules/chat/controllers/chatController';
 import { createCommentController } from '../modules/comments/controllers/commentController';
+import { createExchangeRateController } from '../modules/exchange-rates/controllers/exchangeRateController';
 import { createHoldingTypeController } from '../modules/holding-types/controllers/holdingTypeController';
 import { createHoldingController } from '../modules/holdings/controllers/holdingController';
 import { createLikeController } from '../modules/likes/controllers/likeController';
@@ -25,12 +26,20 @@ const setupRouter = (
     services.activityService
   );
   const userController = createUserController(services.userService);
-  const postController = createPostController(services.postService, services.userService);
+  const postController = createPostController(
+    services.postService,
+    services.userService,
+    services.postViewService
+  );
   const tagController = createTagController(services.tagService);
   const likeController = createLikeController(services.likeService);
   const chatController = createChatController(services.chatService);
-  const holdingController = createHoldingController(services.holdingService);
+  const holdingController = createHoldingController(
+    services.holdingService,
+    services.corporateActionService
+  );
   const holdingTypeController = createHoldingTypeController(services.holdingService);
+  const exchangeRateController = createExchangeRateController(services.exchangeRateService);
   const bookmarkController = createBookmarkController(services.bookmarkService);
   const commentController = createCommentController(services.commentService);
   const notificationController = createNotificationController(services.notificationService);
@@ -45,6 +54,7 @@ const setupRouter = (
     .route('/chat', chatController)
     .route('/holding-types', holdingTypeController)
     .route('/holdings', holdingController)
+    .route('/exchange-rates', exchangeRateController)
     .route('/bookmarks', bookmarkController)
     .route('/comments', commentController)
     .route('/notifications', notificationController)

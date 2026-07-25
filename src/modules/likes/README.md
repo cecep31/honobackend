@@ -71,12 +71,11 @@ Retrieve the list of likes for a post.
 
 - **URL:** `/:post_id`
 - **Method:** `GET`
-- **Authentication:** Required
+- **Authentication:** Not required (public)
 
 **Example Request:**
 ```bash
-curl -X GET /api/likes/550e8400-e29b-41d4-a716-446655440000 \
-  -H "Authorization: Bearer <your_token>"
+curl -X GET /api/likes/550e8400-e29b-41d4-a716-446655440000
 ```
 
 **Response (200):**
@@ -94,6 +93,64 @@ curl -X GET /api/likes/550e8400-e29b-41d4-a716-446655440000 \
     }
   ],
   "message": "Likes fetched successfully",
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T11:30:00.000Z"
+}
+```
+
+---
+
+### 3. Get Like Stats
+Retrieve aggregated like statistics for a post (mirrors echobackend's `GET /api/posts/:id/like-stats`).
+
+- **URL:** `/:post_id/stats`
+- **Method:** `GET`
+- **Authentication:** Not required (public)
+
+**Example Request:**
+```bash
+curl -X GET /api/likes/550e8400-e29b-41d4-a716-446655440000/stats
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "post_id": "550e8400-e29b-41d4-a716-446655440000",
+    "total_likes": 42
+  },
+  "message": "Like stats retrieved successfully",
+  "request_id": "abc-123",
+  "timestamp": "2026-04-08T11:30:00.000Z"
+}
+```
+
+---
+
+### 4. Check Like Status
+Check whether the authenticated user has liked a post (mirrors echobackend's `GET /api/posts/:id/liked`).
+
+- **URL:** `/:post_id/check`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Example Request:**
+```bash
+curl -X GET /api/likes/550e8400-e29b-41d4-a716-446655440000/check \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "has_liked": true,
+    "post_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_id": "550e8400-e29b-41d4-a716-446655440002"
+  },
+  "message": "Like status retrieved successfully",
   "request_id": "abc-123",
   "timestamp": "2026-04-08T11:30:00.000Z"
 }

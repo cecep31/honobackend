@@ -197,6 +197,13 @@
       "when": 1777769289342,
       "tag": "0027_safe_morg",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1784945306322,
+      "tag": "0028_add_corporate_actions",
+      "breakpoints": true
     }
   ]
 }

@@ -63,12 +63,7 @@ src/modules/<feature>/
    ```
 
 4. **Database Migration:**
-   ```sh
-   bun run db:push
-   # OR for formal migrations:
-   bun run db:generate
-   bun run db:migrate
-   ```
+   Database migrations are managed outside this package (see the `echobackend/migrations` directory). This package does not ship migration scripts.
 
 5. **Start Development Server:**
    ```sh
@@ -87,7 +82,6 @@ src/modules/<feature>/
 | `bun run format` | Formats code using Prettier |
 | `bun run build` | Builds the project for production (dist/) |
 | `bun run build:compile` | Compiles a native binary for production (bin/) |
-| `bun run db:studio` | Opens Drizzle Studio UI |
 | `bun run clean` | Removes build artifacts |
 
 ## 🐳 Docker & Deployment

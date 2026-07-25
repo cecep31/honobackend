@@ -102,3 +102,9 @@ export const getPriceQuerySchema = z.object({
     .min(1)
     .max(MAX_PRICE_SYMBOL_QUERY_CHARS),
 });
+
+/** Query untuk GET /calendar (corporate actions): default bulan & tahun berjalan */
+export const getCalendarQuerySchema = z.object({
+  month: optionalQueryBoundedInt(1, 12, 2).default(() => new Date().getMonth() + 1),
+  year: optionalQueryBoundedInt(2000, 2100, 4).default(() => new Date().getFullYear()),
+});

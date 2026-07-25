@@ -38,10 +38,10 @@ All API responses follow a consistent format:
   "success": true,
   "data": [...],
   "meta": {
-    "total": 100,
-    "page": 1,
+    "total_items": 100,
+    "offset": 0,
     "limit": 10,
-    "totalPages": 10
+    "total_pages": 10
   },
   "message": "Data fetched successfully"
 }
@@ -68,12 +68,15 @@ Each module has its own README.md with detailed documentation:
 | Auth | [`src/modules/auth/README.md`](../src/modules/auth/README.md) | User authentication and authorization |
 | Posts | [`src/modules/posts/README.md`](../src/modules/posts/README.md) | Blog post management |
 | Users | [`src/modules/users/README.md`](../src/modules/users/README.md) | User profile management |
-| Writers | [`src/modules/writers/README.md`](../src/modules/writers/README.md) | Public writer profiles |
 | Tags | [`src/modules/tags/README.md`](../src/modules/tags/README.md) | Tag retrieval |
 | Likes | [`src/modules/likes/README.md`](../src/modules/likes/README.md) | Post like management |
 | Bookmarks | [`src/modules/bookmarks/README.md`](../src/modules/bookmarks/README.md) | Post bookmark management |
 | Comments | [`src/modules/comments/README.md`](../src/modules/comments/README.md) | Comment management |
-| Holdings | [`src/modules/holdings/README.md`](../src/modules/holdings/README.md) | Investment portfolio tracking |
+| Holdings | [`src/modules/holdings/README.md`](../src/modules/holdings/README.md) | Investment portfolio tracking & corporate actions calendar |
+| Holding Types | [`src/modules/holding-types/README.md`](../src/modules/holding-types/README.md) | Holding type catalog |
+| Exchange Rates | [`src/modules/exchange-rates/README.md`](../src/modules/exchange-rates/README.md) | Foreign exchange rates (Yahoo Finance) |
+| Notifications | [`src/modules/notifications/README.md`](../src/modules/notifications/README.md) | User notifications |
+| Reports | [`src/modules/reports/README.md`](../src/modules/reports/README.md) | Admin analytics reports |
 | Chat | [`src/modules/chat/README.md`](../src/modules/chat/README.md) | AI-powered chat |
 
 ---
@@ -105,6 +108,11 @@ Each module has its own README.md with detailed documentation:
 | `/posts/trending` | GET | Get trending posts | No |
 | `/posts/me` | GET | Get user's posts | Yes |
 | `/posts/me/liked` | GET | Get posts liked by user | Yes |
+| `/posts/me/:id` | GET | Get own post by ID (owner) | Yes |
+| `/posts/me/analytics` | GET | Get own posts analytics (summary, view trend, top posts) | Yes |
+| `/posts/feed/following` | GET | Get following feed | Yes |
+| `/posts/feed/for-you` | GET | Get personalized for-you feed | Yes |
+| `/posts/sitemap` | GET | Get posts for sitemap | No |
 | `/posts/tag/:tag` | GET | Get posts by tag | No |
 | `/posts/author/:username` | GET | Get posts by author | No |
 | `/posts/slug/:slug` | GET | Get post by slug | No |
@@ -113,9 +121,13 @@ Each module has its own README.md with detailed documentation:
 | `/posts/:id` | GET | Get post by ID | No |
 | `/posts` | POST | Create post | Yes |
 | `/posts/:id` | PATCH | Update post | Yes |
-| `/posts/:id/view` | POST | Increment view count | No |
+| `/posts/:id/view` | POST | Record post view (deduped per user) | Optional |
+| `/posts/:id/views` | GET | Get post view records (paginated) | Yes |
+| `/posts/:id/view-stats` | GET | Get post view statistics | No |
+| `/posts/:id/viewed` | GET | Check if current user viewed post | Yes |
 | `/posts/:id` | DELETE | Delete post | Yes |
 | `/posts/upload/image` | POST | Upload post image | Yes |
+| `/posts/upload/presigned-url` | POST | Generate presigned upload URL | Yes |
 
 ### Users Endpoints
 
@@ -123,21 +135,22 @@ Each module has its own README.md with detailed documentation:
 |----------|--------|-------------|---------------|
 | `/users` | GET | Get all users | Yes (Super Admin) |
 | `/users/me` | GET | Get current user profile | Yes |
+| `/users/me` | PATCH | Update current user (core fields) | Yes |
+| `/users/me/profile` | PATCH | Update current user profile fields | Yes |
+| `/users/me/image` | PATCH | Update profile image | Yes |
+| `/users/username/:username` | GET | Get user by username | No |
 | `/users/:id` | GET | Get user by ID | Yes (Super Admin) |
 | `/users` | POST | Create user | Yes (Super Admin) |
-| `/users/:id` | DELETE | Delete user | Yes (Super Admin) |
+| `/users/:id` | PATCH | Update user | Yes (Super Admin) |
+| `/users/:id` | DELETE | Delete user (soft delete) | Yes (Super Admin) |
+| `/users/:id/restore` | POST | Restore soft-deleted user | Yes (Super Admin) |
 | `/users/:id/follow` | POST | Follow user | Yes |
 | `/users/:id/follow` | DELETE | Unfollow user | Yes |
-| `/users/:id/followers` | GET | Get user followers | Yes |
-| `/users/:id/following` | GET | Get user following | Yes |
+| `/users/:id/followers` | GET | Get user followers | No |
+| `/users/:id/following` | GET | Get user following | No |
+| `/users/:id/follow-stats` | GET | Get follower/following counts | No |
+| `/users/:id/mutual-follows` | GET | Get mutual follows with current user | Yes |
 | `/users/:id/is-following` | GET | Check follow status | Yes |
-
-### Writers Endpoints
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/writers/:username` | GET | Get writer profile | No |
-| `/writers/:username/posts` | GET | Get writer's posts | No |
 
 ### Tags Endpoints
 
@@ -150,7 +163,9 @@ Each module has its own README.md with detailed documentation:
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/likes/:post_id` | POST | Toggle like | Yes |
-| `/likes/:post_id` | GET | Get post likes | Yes |
+| `/likes/:post_id` | GET | Get post likes | No |
+| `/likes/:post_id/stats` | GET | Get post like statistics | No |
+| `/likes/:post_id/check` | GET | Check if current user liked post | Yes |
 
 ### Bookmarks Endpoints
 
@@ -185,11 +200,39 @@ Each module has its own README.md with detailed documentation:
 | `/holdings/summary` | GET | Get holdings summary | Yes |
 | `/holdings/trends` | GET | Get holdings trends | Yes |
 | `/holdings/compare` | GET | Compare months | Yes |
+| `/holdings/monthly` | GET | Get monthly holdings data | Yes |
+| `/holdings/calendar` | GET | Get corporate actions calendar (dividend & RUPS) | Yes |
+| `/holdings/price` | GET | Get current price for a symbol | Yes |
 | `/holdings/:id` | GET | Get single holding | Yes |
 | `/holdings` | POST | Create holding | Yes |
 | `/holdings/duplicate` | POST | Duplicate holdings | Yes |
+| `/holdings/sync` | POST | Sync current month prices | Yes |
 | `/holdings/:id` | PUT | Update holding | Yes |
 | `/holdings/:id` | DELETE | Delete holding | Yes |
+
+### Exchange Rates Endpoints
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/exchange-rates?from=USD&to=IDR` | GET | Get exchange rate for a currency pair (cached 15 min) | Yes |
+
+### Notifications Endpoints
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/notifications` | GET | Get user notifications (paginated) | Yes |
+| `/notifications/unread-count` | GET | Get unread notification count | Yes |
+| `/notifications/:id/read` | PATCH | Mark notification as read | Yes |
+| `/notifications/read-all` | PATCH | Mark all notifications as read | Yes |
+
+### Reports Endpoints
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/reports/overview` | GET | Get overview report | Yes (Super Admin) |
+| `/reports/users` | GET | Get user report | Yes (Super Admin) |
+| `/reports/posts` | GET | Get post report | Yes (Super Admin) |
+| `/reports/engagement` | GET | Get engagement metrics | Yes (Super Admin) |
 
 ### Chat Endpoints
 
@@ -211,8 +254,8 @@ Each module has its own README.md with detailed documentation:
 
 ### Pagination
 Used in list endpoints:
-- `page` (number, default: 1) - Page number
-- `limit` (number, default: 10) - Items per page
+- `offset` (number, default: 0) - Number of items to skip
+- `limit` (number, default: 10, max: 100) - Items per page
 
 ### Sorting
 Used in holdings and similar endpoints:
@@ -261,7 +304,7 @@ For image uploads (e.g., post images):
 
 **Requirements:**
 - Content-Type: `multipart/form-data`
-- Max file size: 5MB
+- Max file size: 1MB
 - Allowed types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
 
 ---
@@ -289,6 +332,17 @@ data: {"type": "ai_complete", "message": {...}}
 ---
 
 ## Changelog
+
+### v1.1.0
+- Synchronized with echobackend feature set:
+  - New `exchange-rates` module (`GET /exchange-rates`) backed by Yahoo Finance with 15-minute caching
+  - Corporate actions calendar (`GET /holdings/calendar`) with IDX dividend & RUPS events
+  - Post view tracking: `GET /posts/:id/views`, `GET /posts/:id/view-stats`, `GET /posts/:id/viewed`; `POST /posts/:id/view` now records per-user view rows with deduplication
+  - Like statistics: `GET /likes/:post_id/stats`, `GET /likes/:post_id/check`; `GET /likes/:post_id` is now public
+  - Follow statistics: `GET /users/:id/follow-stats`, `GET /users/:id/mutual-follows`; followers/following lists are now public
+  - User restore: `POST /users/:id/restore` (Super Admin)
+  - Author analytics: `GET /posts/me/analytics`
+- Documentation: added Notifications, Reports, Holding Types, and Exchange Rates modules to the reference
 
 ### v1.0.0
 - Initial API release

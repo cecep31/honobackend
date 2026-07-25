@@ -640,6 +640,64 @@ Errors follow the global API shape: flat `success`, `message`, optional `error` 
 
 ---
 
+## Corporate Actions Calendar
+
+### Get Corporate Actions Calendar
+Retrieve dividend and RUPS (General Meeting of Shareholders) events for a given month, backed by the IDX market data provider and persisted in Postgres (mirrors echobackend's `GET /api/holdings/calendar`).
+
+- **URL:** `/calendar`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| month | string (digits) | No | current month | Calendar month (1-12) |
+| year | string (digits) | No | current year | Calendar year (2000-2100) |
+
+If the requested month already has stored rows, they are served directly (`"cached": true`) without calling the IDX provider again. Otherwise the provider is queried and results are upserted. Fetching requires the `RAPIDAPI_IDX_KEY` environment variable; without it the endpoint returns an empty `actions` list.
+
+**Example Request:**
+```bash
+curl -X GET "/api/holdings/calendar?month=7&year=2026" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "from": "2026-07-01",
+    "to": "2026-07-31",
+    "total": 2,
+    "cached": false,
+    "actions": [
+      {
+        "symbol": "BBCA",
+        "type": "dividend",
+        "date": "2026-07-15",
+        "pay_date": "2026-08-01",
+        "amount": 205.5,
+        "currency": "IDR",
+        "market": "IDX"
+      },
+      {
+        "symbol": "TLKM",
+        "name": "Telkom Indonesia",
+        "type": "rups",
+        "date": "2026-07-20",
+        "note": "Tempat: Jakarta",
+        "market": "IDX"
+      }
+    ]
+  },
+  "message": "Corporate actions calendar fetched successfully"
+}
+```
+
+---
+
 ## Data Models
 
 ### Holding Object

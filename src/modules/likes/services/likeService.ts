@@ -1,6 +1,6 @@
 import { post_likes } from '../../../database/schemas/postgres/schema';
 import { db } from '../../../database/drizzle';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { Errors } from '../../../utils/error';
 
 export class LikeService {
@@ -41,5 +41,39 @@ export class LikeService {
       .from(post_likes)
       .where(eq(post_likes.post_id, post_id));
     return like;
+  }
+
+  /**
+   * Aggregated like statistics for a post (mirrors echobackend's
+   * `GET /api/posts/:id/like-stats`).
+   */
+  async getLikeStats(post_id: string) {
+    const rows = await db
+      .select({ total_likes: count() })
+      .from(post_likes)
+      .where(eq(post_likes.post_id, post_id));
+
+    return {
+      post_id,
+      total_likes: rows[0]?.total_likes ?? 0,
+    };
+  }
+
+  /**
+   * Check whether a user has liked a post (mirrors echobackend's
+   * `GET /api/posts/:id/liked`).
+   */
+  async hasUserLiked(post_id: string, user_id: string) {
+    const rows = await db
+      .select({ id: post_likes.id })
+      .from(post_likes)
+      .where(and(eq(post_likes.post_id, post_id), eq(post_likes.user_id, user_id)))
+      .limit(1);
+
+    return {
+      has_liked: rows.length > 0,
+      post_id,
+      user_id,
+    };
   }
 }

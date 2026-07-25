@@ -144,7 +144,6 @@ export const createUserController = (userService: UserService) => {
     })
     .get(
       '/:id/followers',
-      auth,
       validateRequest('param', userIdSchema),
       validateRequest('query', listUsersQuerySchema),
       async (c) => {
@@ -163,7 +162,6 @@ export const createUserController = (userService: UserService) => {
     )
     .get(
       '/:id/following',
-      auth,
       validateRequest('param', userIdSchema),
       validateRequest('query', listUsersQuerySchema),
       async (c) => {
@@ -180,10 +178,32 @@ export const createUserController = (userService: UserService) => {
         return sendSuccess(c, data, 'Following fetched successfully', 200, meta);
       }
     )
+    .get('/:id/follow-stats', validateRequest('param', userIdSchema), async (c) => {
+      const { id } = c.req.valid('param');
+      const stats = await userService.getFollowStats(id);
+      return sendSuccess(c, stats, 'Follow statistics fetched successfully');
+    })
+    .get('/:id/mutual-follows', auth, validateRequest('param', userIdSchema), async (c) => {
+      const authUser = c.get('user');
+      const { id } = c.req.valid('param');
+      const mutuals = await userService.getMutualFollows(authUser.user_id, id);
+      return sendSuccess(c, mutuals, 'Mutual follows fetched successfully');
+    })
     .get('/:id/is-following', auth, validateRequest('param', userIdSchema), async (c) => {
       const authUser = c.get('user');
       const { id: following_id } = c.req.valid('param');
       const isFollowing = await userService.isFollowing(authUser.user_id, following_id);
       return sendSuccess(c, { isFollowing }, 'Follow status checked successfully');
-    });
+    })
+    .post(
+      '/:id/restore',
+      auth,
+      superAdminMiddleware,
+      validateRequest('param', userIdSchema),
+      async (c) => {
+        const { id } = c.req.valid('param');
+        const user = await userService.restoreUser(id);
+        return sendSuccess(c, user, 'User restored successfully');
+      }
+    );
 };
