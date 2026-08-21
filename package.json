@@ -22,12 +22,12 @@
   "dependencies": {
     "@hono/zod-validator": "^0.9.0",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.1",
+    "hono": "^4.13.3",
     "hono-rate-limiter": "^0.5.3",
     "postgres": "^3.4.9",
-    "redis": "^6.2.0",
-    "resend": "^6.18.1",
-    "sanitize-html": "^2.17.6",
+    "redis": "^6.2.1",
+    "resend": "^6.20.0",
+    "sanitize-html": "^2.17.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -37,9 +37,9 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.9.0",
+    "globals": "^17.11.0",
     "typescript": "^7.0.2",
-    "typescript-eslint": "^8.66.0"
+    "typescript-eslint": "^8.67.0"
   },
   "keywords": [
     "hono",
