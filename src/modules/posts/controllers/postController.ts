@@ -327,6 +327,21 @@ export const createPostController = (
     }
   );
 
+  const deletePostHandler = async (c: any) => {
+    const id = c.req.param('id');
+    const authUser = c.get('user') as jwtPayload;
+    const post = await postService.deletePost(id, authUser.user_id);
+    return sendSuccess(c, post, 'Post deleted successfully');
+  };
+
+  const updatePostHandler = async (c: any) => {
+    const id = c.req.param('id');
+    const authUser = c.get('user') as jwtPayload;
+    const body = c.req.valid('json');
+    const post = await postService.updatePost(id, authUser.user_id, body);
+    return sendSuccess(c, post, 'Post updated successfully');
+  };
+
   postController.get('/me/:id', auth, validateRequest('param', postIdSchema), async (c) => {
     const id = c.req.param('id');
     const authUser = c.get('user');
@@ -336,6 +351,16 @@ export const createPostController = (
     }
     return sendSuccess(c, post, 'Post fetched successfully');
   });
+
+  postController.put(
+    '/me/:id',
+    auth,
+    validateRequest('param', postIdSchema),
+    validateRequest('json', updatePostSchema),
+    updatePostHandler
+  );
+
+  postController.delete('/me/:id', auth, validateRequest('param', postIdSchema), deletePostHandler);
 
   postController.get('/:id', validateRequest('param', postIdSchema), async (c) => {
     const id = c.req.param('id');
@@ -358,14 +383,18 @@ export const createPostController = (
     auth,
     validateRequest('param', postIdSchema),
     validateRequest('json', updatePostSchema),
-    async (c) => {
-      const id = c.req.param('id');
-      const authUser = c.get('user') as jwtPayload;
-      const body = c.req.valid('json');
-      const post = await postService.updatePost(id, authUser.user_id, body);
-      return sendSuccess(c, post, 'Post updated successfully');
-    }
+    updatePostHandler
   );
+
+  postController.put(
+    '/:id',
+    auth,
+    validateRequest('param', postIdSchema),
+    validateRequest('json', updatePostSchema),
+    updatePostHandler
+  );
+
+  postController.delete('/:id', auth, validateRequest('param', postIdSchema), deletePostHandler);
 
   postController.post(
     '/:id/view',
@@ -521,13 +550,6 @@ export const createPostController = (
       return sendSuccess(c, deleted, 'Comment deleted successfully');
     }
   );
-
-  postController.delete('/:id', auth, async (c) => {
-    const id = c.req.param('id');
-    const authUser = c.get('user') as jwtPayload;
-    const post = await postService.deletePost(id, authUser.user_id);
-    return sendSuccess(c, post, 'Post deleted successfully');
-  });
 
   postController.post(
     '/upload/presigned-url',
