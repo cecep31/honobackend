@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { ExchangeRateService } from '../modules/exchange-rates/services/exchangeRateService';
-import type { StockPrice } from '../modules/holdings/services/stockPriceService';
 
 const createCacheMock = () => ({
   get: mock(),
@@ -10,6 +9,7 @@ const createCacheMock = () => ({
 });
 
 const createStockPriceServiceMock = () => ({
+  getQuotes: mock(),
   getMultiplePrices: mock(),
   getPrice: mock(),
 });
@@ -28,8 +28,7 @@ describe('ExchangeRateService', () => {
   });
 
   it('returns the direct rate when the direct symbol is available', async () => {
-    const quotes: StockPrice[] = [{ symbol: 'USDIDR=X', price: 16250.5, currency: 'IDR' }];
-    stockPrices.getMultiplePrices.mockResolvedValue(quotes);
+    stockPrices.getQuotes.mockResolvedValue({ 'USDIDR=X': 16250.5 });
 
     const result = await service.getRate('usd', 'idr');
 
@@ -37,15 +36,14 @@ describe('ExchangeRateService', () => {
     expect(result.to).toBe('IDR');
     expect(result.symbol).toBe('USDIDR=X');
     expect(result.rate).toBe(16250.5);
-    expect(result.source).toBe('Yahoo Finance');
+    expect(result.source).toBe('RapidAPI');
     expect(result.cached).toBe(false);
-    expect(stockPrices.getMultiplePrices).toHaveBeenCalledWith(['USDIDR=X', 'IDRUSD=X']);
+    expect(stockPrices.getQuotes).toHaveBeenCalledWith(['USDIDR=X', 'IDRUSD=X']);
     expect(cache.set).toHaveBeenCalled();
   });
 
   it('inverts the rate when only the inverse symbol is available', async () => {
-    const quotes: StockPrice[] = [{ symbol: 'IDRUSD=X', price: 0.0000615385, currency: 'USD' }];
-    stockPrices.getMultiplePrices.mockResolvedValue(quotes);
+    stockPrices.getQuotes.mockResolvedValue({ 'IDRUSD=X': 0.0000615385 });
 
     const result = await service.getRate('USD', 'IDR');
 
@@ -58,7 +56,7 @@ describe('ExchangeRateService', () => {
 
     expect(result.rate).toBe(1);
     expect(result.symbol).toBe('USDUSD=X');
-    expect(stockPrices.getMultiplePrices).not.toHaveBeenCalled();
+    expect(stockPrices.getQuotes).not.toHaveBeenCalled();
   });
 
   it('returns cached results with cached=true', async () => {
@@ -67,7 +65,7 @@ describe('ExchangeRateService', () => {
       to: 'IDR',
       symbol: 'USDIDR=X',
       rate: 16000,
-      source: 'Yahoo Finance',
+      source: 'RapidAPI',
       cached: false,
       fetchedAt: '2026-07-25T00:00:00.000Z',
     });
@@ -76,7 +74,7 @@ describe('ExchangeRateService', () => {
 
     expect(result.cached).toBe(true);
     expect(result.rate).toBe(16000);
-    expect(stockPrices.getMultiplePrices).not.toHaveBeenCalled();
+    expect(stockPrices.getQuotes).not.toHaveBeenCalled();
     expect(cache.set).not.toHaveBeenCalled();
   });
 
@@ -90,7 +88,7 @@ describe('ExchangeRateService', () => {
   });
 
   it('throws an external service error when no quote is found', async () => {
-    stockPrices.getMultiplePrices.mockResolvedValue([]);
+    stockPrices.getQuotes.mockResolvedValue({});
 
     await expect(service.getRate('USD', 'IDR')).rejects.toMatchObject({
       statusCode: 503,

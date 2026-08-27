@@ -11,6 +11,7 @@ import { getClientIp } from '../../../utils/request';
 import { sendSuccess } from '../../../utils/response';
 import { getS3Helper } from '../../../utils/s3';
 import { createRateLimiter } from '../../../utils/rateLimiter';
+import { z } from 'zod';
 import {
   chartLimitQuerySchema,
   createPostSchema,
@@ -27,12 +28,31 @@ import {
 type PostService = AppServices['postService'];
 type PostViewService = AppServices['postViewService'];
 type UserService = AppServices['userService'];
+type CommentService = AppServices['commentService'];
+type LikeService = AppServices['likeService'];
+
 const POST_UPLOAD_ACCESS_TYPE = 'public';
+
+const postCommentBodySchema = z.object({
+  text: z.string().trim().min(1, 'Comment text is required').max(1000, 'Comment is too long'),
+  parent_comment_id: z.string().uuid().optional(),
+});
+
+const updateCommentBodySchema = z.object({
+  text: z.string().trim().min(1, 'Comment text is required').max(1000, 'Comment is too long'),
+});
+
+const postCommentParamsSchema = z.object({
+  id: z.string().uuid(),
+  comment_id: z.string().uuid(),
+});
 
 export const createPostController = (
   postService: PostService,
   userService: UserService,
-  postViewService: PostViewService
+  postViewService: PostViewService,
+  commentService?: CommentService,
+  likeService?: LikeService
 ) => {
   const superAdminMiddleware = createSuperAdminMiddleware(userService);
   const postController = new Hono<{ Variables: Variables }>();
@@ -110,6 +130,18 @@ export const createPostController = (
   );
 
   postController.get(
+    '/me/analytics/likes-by-month',
+    auth,
+    validateRequest('query', myLikesByMonthQuerySchema),
+    async (c) => {
+      const { months } = c.req.valid('query');
+      const { user_id } = c.get('user');
+      const data = await postService.getMyLikesByMonth(user_id, months);
+      return sendSuccess(c, data, 'Monthly likes on your posts fetched successfully');
+    }
+  );
+
+  postController.get(
     '/feed/following',
     auth,
     validateRequest('query', listPostsQuerySchema),
@@ -153,26 +185,34 @@ export const createPostController = (
     return sendSuccess(c, data, 'Posts by tag fetched successfully', 200, meta);
   });
 
+  const getPostsByAuthorHandler = async (c: any) => {
+    const username = c.req.param('username');
+    const q = c.req.valid('query');
+    const params = {
+      offset: q.offset,
+      limit: q.limit,
+      search: q.search ?? q.q,
+      orderBy: q.orderBy,
+      orderDirection: q.orderDirection,
+    };
+    const { data, meta } = await postService.getPostsByUsername(
+      username,
+      params.limit,
+      params.offset
+    );
+    return sendSuccess(c, data, `Posts by ${username} fetched successfully`, 200, meta);
+  };
+
   postController.get(
     '/author/:username',
     validateRequest('query', listPostsQuerySchema),
-    async (c) => {
-      const username = c.req.param('username');
-      const q = c.req.valid('query');
-      const params = {
-        offset: q.offset,
-        limit: q.limit,
-        search: q.search ?? q.q,
-        orderBy: q.orderBy,
-        orderDirection: q.orderDirection,
-      };
-      const { data, meta } = await postService.getPostsByUsername(
-        username,
-        params.limit,
-        params.offset
-      );
-      return sendSuccess(c, data, `Posts by ${username} fetched successfully`, 200, meta);
-    }
+    getPostsByAuthorHandler
+  );
+
+  postController.get(
+    '/username/:username',
+    validateRequest('query', listPostsQuerySchema),
+    getPostsByAuthorHandler
   );
 
   postController.get('/slug/:slug', async (c) => {
@@ -371,6 +411,117 @@ export const createPostController = (
     return sendSuccess(c, { has_viewed: hasViewed }, 'Successfully checked view status');
   });
 
+  // ---------------------------------------------------------------------------
+  // Post Like Sub-routes
+  // ---------------------------------------------------------------------------
+  postController.post('/:id/like', auth, validateRequest('param', postIdSchema), async (c) => {
+    if (!likeService) throw Errors.InternalServerError();
+    const { id } = c.req.valid('param');
+    const authUser = c.get('user');
+    const result = await likeService.likePost(id, authUser.user_id);
+    return sendSuccess(c, result, 'Post liked successfully', 200);
+  });
+
+  postController.delete('/:id/like', auth, validateRequest('param', postIdSchema), async (c) => {
+    if (!likeService) throw Errors.InternalServerError();
+    const { id } = c.req.valid('param');
+    const authUser = c.get('user');
+    const result = await likeService.unlikePost(id, authUser.user_id);
+    return sendSuccess(c, result, 'Post unliked successfully', 200);
+  });
+
+  postController.get('/:id/likes', validateRequest('param', postIdSchema), async (c) => {
+    if (!likeService) throw Errors.InternalServerError();
+    const { id } = c.req.valid('param');
+    const likes = await likeService.getLikes(id);
+    return sendSuccess(c, likes, 'Successfully retrieved post likes');
+  });
+
+  postController.get('/:id/like-stats', validateRequest('param', postIdSchema), async (c) => {
+    if (!likeService) throw Errors.InternalServerError();
+    const { id } = c.req.valid('param');
+    const stats = await likeService.getLikeStats(id);
+    return sendSuccess(c, stats, 'Successfully retrieved like statistics');
+  });
+
+  postController.get('/:id/liked', auth, validateRequest('param', postIdSchema), async (c) => {
+    if (!likeService) throw Errors.InternalServerError();
+    const { id } = c.req.valid('param');
+    const authUser = c.get('user');
+    const result = await likeService.hasUserLiked(id, authUser.user_id);
+    return sendSuccess(c, result, 'Successfully checked liked status');
+  });
+
+  // ---------------------------------------------------------------------------
+  // Post Comments Sub-routes
+  // ---------------------------------------------------------------------------
+  postController.get(
+    '/:id/comments',
+    validateRequest('param', postIdSchema),
+    validateRequest('query', listPostsQuerySchema),
+    async (c) => {
+      if (!commentService) throw Errors.InternalServerError();
+      const { id } = c.req.valid('param');
+      const q = c.req.valid('query');
+      const { data, meta } = await commentService.getCommentsByPost(id, q.offset, q.limit);
+      return sendSuccess(c, data, 'Successfully retrieved comments', 200, meta);
+    }
+  );
+
+  postController.post(
+    '/:id/comments',
+    auth,
+    validateRequest('param', postIdSchema),
+    validateRequest('json', postCommentBodySchema),
+    async (c) => {
+      if (!commentService) throw Errors.InternalServerError();
+      const { id } = c.req.valid('param');
+      const authUser = c.get('user');
+      const body = c.req.valid('json');
+      const comment = await commentService.createComment(
+        {
+          post_id: id,
+          text: body.text,
+          parent_comment_id: body.parent_comment_id,
+        },
+        authUser.user_id
+      );
+      return sendSuccess(c, comment, 'Comment created successfully', 201);
+    }
+  );
+
+  postController.put(
+    '/:id/comments/:comment_id',
+    auth,
+    validateRequest('param', postCommentParamsSchema),
+    validateRequest('json', updateCommentBodySchema),
+    async (c) => {
+      if (!commentService) throw Errors.InternalServerError();
+      const { comment_id } = c.req.valid('param');
+      const authUser = c.get('user');
+      const body = c.req.valid('json');
+      const updated = await commentService.updateComment(
+        comment_id,
+        { text: body.text },
+        authUser.user_id
+      );
+      return sendSuccess(c, updated, 'Comment updated successfully');
+    }
+  );
+
+  postController.delete(
+    '/:id/comments/:comment_id',
+    auth,
+    validateRequest('param', postCommentParamsSchema),
+    async (c) => {
+      if (!commentService) throw Errors.InternalServerError();
+      const { comment_id } = c.req.valid('param');
+      const authUser = c.get('user');
+      const deleted = await commentService.deleteComment(comment_id, authUser.user_id);
+      return sendSuccess(c, deleted, 'Comment deleted successfully');
+    }
+  );
+
   postController.delete('/:id', auth, async (c) => {
     const id = c.req.param('id');
     const authUser = c.get('user') as jwtPayload;
@@ -423,7 +574,7 @@ export const createPostController = (
     }
   );
 
-  postController.post('/upload/image', auth, async (c) => {
+  const uploadImageHandler = async (c: any) => {
     const authUser = c.get('user') as jwtPayload;
     const formData = await c.req.formData();
     const file = formData.get('image') as File;
@@ -462,7 +613,10 @@ export const createPostController = (
     const url = await s3.uploadFile(key, buffer, { accessType: POST_UPLOAD_ACCESS_TYPE });
 
     return sendSuccess(c, { url }, 'Image uploaded successfully', 201);
-  });
+  };
+
+  postController.post('/upload/image', auth, uploadImageHandler);
+  postController.post('/image', auth, uploadImageHandler);
 
   return postController;
 };

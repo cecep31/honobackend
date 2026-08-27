@@ -1,5 +1,6 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { Hono } from 'hono';
+import { z } from 'zod';
 import config from '../../../config';
 import { auth } from '../../../middlewares/auth';
 import { validateRequest } from '../../../middlewares/validateRequest';
@@ -31,6 +32,10 @@ import {
 type AuthService = AppServices['authService'];
 type UserService = AppServices['userService'];
 type ActivityService = AppServices['activityService'];
+
+const oauthExchangeSchema = z.object({
+  code: z.string().trim().min(1, 'Exchange code is required'),
+});
 
 export const createAuthController = (
   authService: AuthService,
@@ -90,6 +95,13 @@ export const createAuthController = (
         const ipAddress = getClientIp(c);
         const userAgent = c.req.header('User-Agent');
         const jwtToken = await authService.signInWithGithub(githubUserData, ipAddress, userAgent);
+
+        const exchangeCode = await authService.createOAuthExchangeCode(
+          jwtToken.access_token,
+          jwtToken.refresh_token,
+          jwtToken.user ?? { id: '', email: githubUserData.email ?? '', username: githubUserData.login ?? null }
+        );
+
         setCookie(c, 'token', jwtToken.access_token, {
           domain: `.${config.frontend.mainDomain}`,
           maxAge: parseExpiresIn(config.jwt.expiresIn),
@@ -97,11 +109,17 @@ export const createAuthController = (
         });
         setCookie(c, 'refresh_token', jwtToken.refresh_token, {
           domain: `.${config.frontend.mainDomain}`,
-          maxAge: 24 * 60 * 60,
+          maxAge: (config.jwt.refreshTokenExpiryDays || 7) * 24 * 60 * 60,
           sameSite: 'Strict',
           httpOnly: true,
         });
-        return c.redirect(config.frontend.url);
+
+        const frontendCallbackUrl =
+          process.env.FRONTEND_OAUTH_CALLBACK_URL || `${config.frontend.url}/auth/callback`;
+        const redirectUrl = new URL(frontendCallbackUrl);
+        redirectUrl.searchParams.set('code', exchangeCode);
+
+        return c.redirect(redirectUrl.toString());
       } catch (error) {
         console.error('Github OAuth error:', error);
         if (error instanceof Error && error.message.includes('already registered')) {
@@ -109,6 +127,17 @@ export const createAuthController = (
         }
         throw Errors.Unauthorized();
       }
+    }
+  );
+
+  authController.post(
+    '/oauth/exchange',
+    createRateLimiter(15 * 60 * 1000, 20),
+    validateRequest('json', oauthExchangeSchema),
+    async (c) => {
+      const { code } = c.req.valid('json');
+      const result = await authService.exchangeOAuthCode(code);
+      return sendSuccess(c, result, 'OAuth code exchanged successfully');
     }
   );
 
@@ -162,17 +191,26 @@ export const createAuthController = (
     }
   );
 
+  const refreshTokenHandler = async (c: any) => {
+    const { refresh_token: refreshToken } = c.req.valid('json');
+    const ipAddress = getClientIp(c);
+    const userAgent = c.req.header('User-Agent');
+    const result = await authService.refreshToken(refreshToken, ipAddress, userAgent);
+    return sendSuccess(c, result, 'Token refreshed successfully');
+  };
+
   authController.post(
     '/refresh-token',
     createRateLimiter(15 * 60 * 1000, 10),
     validateRequest('json', refreshTokenSchema),
-    async (c) => {
-      const { refresh_token: refreshToken } = c.req.valid('json');
-      const ipAddress = getClientIp(c);
-      const userAgent = c.req.header('User-Agent');
-      const result = await authService.refreshToken(refreshToken, ipAddress, userAgent);
-      return sendSuccess(c, result, 'Token refreshed successfully');
-    }
+    refreshTokenHandler
+  );
+
+  authController.post(
+    '/refresh',
+    createRateLimiter(15 * 60 * 1000, 10),
+    validateRequest('json', refreshTokenSchema),
+    refreshTokenHandler
   );
 
   authController.post(

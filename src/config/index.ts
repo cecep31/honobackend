@@ -46,6 +46,7 @@ interface DatabaseConfig {
 interface JwtConfig {
   secret: string;
   expiresIn: string;
+  refreshTokenExpiryDays: number;
 }
 
 interface GithubConfig {
@@ -89,9 +90,12 @@ interface CacheConfig {
 
 interface MarketDataConfig {
   /**
-   * X-RapidAPI-Key for the Indonesia Stock Exchange (IDX) API.
-   * Required to fetch IDX dividend and RUPS calendar data.
-   * Leave empty to disable IDX corporate-action fetching (returns empty results).
+   * X-RapidAPI-Key used for RapidAPI providers (IDX calendar, YH Finance quotes).
+   * Leave empty to disable external market data fetching.
+   */
+  rapidApiKey: string;
+  /**
+   * Alias / fallback for the IDX corporate actions API key.
    */
   rapidApiIdxKey: string;
 }
@@ -131,10 +135,10 @@ interface AppConfig {
 function buildDatabaseConfig(): DatabaseConfig {
   return {
     url: requireString('DATABASE_URL'),
-    maxConnections: getNumber('DB_MAX_CONNECTIONS', 10),
-    idleTimeout: getNumber('DB_IDLE_TIMEOUT', 30),
+    maxConnections: getNumber('DB_MAX_CONNECTIONS', getNumber('DB_POOL_MAX_OPEN', 25)),
+    idleTimeout: getNumber('DB_IDLE_TIMEOUT', getNumber('DB_POOL_MAX_IDLE', 25)),
     connectTimeout: getNumber('DB_CONNECT_TIMEOUT', 10),
-    maxLifetime: getNumber('DB_MAX_LIFETIME', 1800),
+    maxLifetime: getNumber('DB_MAX_LIFETIME', getNumber('DB_POOL_CONN_LIFETIME', 900)),
   };
 }
 
@@ -142,6 +146,7 @@ function buildJwtConfig(): JwtConfig {
   return {
     secret: requireJwtSecret(),
     expiresIn: getString('JWT_EXPIRES_IN', '3h'),
+    refreshTokenExpiryDays: getNumber('REFRESH_TOKEN_EXPIRY_DAYS', 7),
   };
 }
 
@@ -193,16 +198,24 @@ function buildFrontendConfig(): FrontendConfig {
 
 function buildCacheConfig(): CacheConfig {
   return {
-    url: getString('VALKEY_URL', getString('REDIS_URL')),
+    url: getString('REDIS_URL', getString('VALKEY_URL')),
     keyPrefix: getString('CACHE_KEY_PREFIX', 'pilput'),
     ttlSeconds: Math.max(1, getNumber('CACHE_TTL_SECONDS', 60)),
-    connectTimeoutMs: Math.max(100, getNumber('VALKEY_CONNECT_TIMEOUT_MS', 5000)),
+    connectTimeoutMs: Math.max(
+      100,
+      getNumber('REDIS_CONNECT_TIMEOUT_MS', getNumber('VALKEY_CONNECT_TIMEOUT_MS', 2000))
+    ),
   };
 }
 
 function buildMarketDataConfig(): MarketDataConfig {
+  const rapidApiKey = getString(
+    'RAPIDAPI_KEY',
+    getString('RAPIDAPI_IDX_KEY', getString('RAPIDAPI_QUOTE_KEY'))
+  );
   return {
-    rapidApiIdxKey: getString('RAPIDAPI_IDX_KEY'),
+    rapidApiKey,
+    rapidApiIdxKey: getString('RAPIDAPI_IDX_KEY', rapidApiKey),
   };
 }
 

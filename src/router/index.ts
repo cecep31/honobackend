@@ -29,9 +29,11 @@ const setupRouter = (
   const postController = createPostController(
     services.postService,
     services.userService,
-    services.postViewService
+    services.postViewService,
+    services.commentService,
+    services.likeService
   );
-  const tagController = createTagController(services.tagService);
+  const tagController = createTagController(services.tagService, services.userService);
   const likeController = createLikeController(services.likeService);
   const chatController = createChatController(services.chatService);
   const holdingController = createHoldingController(

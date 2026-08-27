@@ -5,6 +5,10 @@ import {
   MAX_TRENDS_YEARS_PARAM_CHARS,
 } from '../../../utils/validationLimits';
 
+const MIN_HOLDING_YEAR = 1990;
+const MAX_HOLDING_YEAR = new Date().getFullYear() + 1;
+const MAX_MONTHLY_RANGE_MONTHS = 240; // 20 years
+
 function optionalQueryBoundedInt(min: number, max: number, maxDigits: number) {
   return z.union([
     z.undefined(),
@@ -29,7 +33,7 @@ function getDefaultMonthRange() {
 
 export const getHoldingsQuerySchema = z.object({
   month: optionalQueryBoundedInt(1, 12, 2),
-  year: optionalQueryBoundedInt(2000, 2100, 4),
+  year: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4),
   sortBy: z
     .enum([
       'created_at',
@@ -47,7 +51,7 @@ export const getHoldingsQuerySchema = z.object({
 
 export const getSummaryQuerySchema = z.object({
   month: optionalQueryBoundedInt(1, 12, 2),
-  year: optionalQueryBoundedInt(2000, 2100, 4),
+  year: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4),
 });
 
 export const getTrendsQuerySchema = z.object({
@@ -65,7 +69,7 @@ export const getTrendsQuerySchema = z.object({
       const nums = parts
         .map((s) => Number(s))
         .filter(
-          (n) => Number.isFinite(n) && Number.isInteger(n) && n >= 1900 && n <= 2100
+          (n) => Number.isFinite(n) && Number.isInteger(n) && n >= MIN_HOLDING_YEAR && n <= MAX_HOLDING_YEAR
         );
       const unique = [...new Set(nums)];
       return unique.length ? unique : undefined;
@@ -74,25 +78,30 @@ export const getTrendsQuerySchema = z.object({
 
 export const getCompareMonthsSchema = z.object({
   fromMonth: optionalQueryBoundedInt(1, 12, 2),
-  fromYear: optionalQueryBoundedInt(2000, 2100, 4),
+  fromYear: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4),
   toMonth: optionalQueryBoundedInt(1, 12, 2),
-  toYear: optionalQueryBoundedInt(2000, 2100, 4),
+  toYear: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4),
 });
 
 export const getMonthlyQuerySchema = z
   .object({
     startMonth: optionalQueryBoundedInt(1, 12, 2).default(() => getDefaultMonthRange().startMonth),
-    startYear: optionalQueryBoundedInt(2000, 2100, 4).default(() => getDefaultMonthRange().startYear),
+    startYear: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4).default(
+      () => getDefaultMonthRange().startYear
+    ),
     endMonth: optionalQueryBoundedInt(1, 12, 2).default(() => getDefaultMonthRange().endMonth),
-    endYear: optionalQueryBoundedInt(2000, 2100, 4).default(() => getDefaultMonthRange().endYear),
+    endYear: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4).default(
+      () => getDefaultMonthRange().endYear
+    ),
   })
   .refine(
     ({ startMonth, startYear, endMonth, endYear }) => {
       const totalStartMonths = startYear * 12 + startMonth;
       const totalEndMonths = endYear * 12 + endMonth;
-      return totalEndMonths - totalStartMonths <= 36;
+      const diff = Math.abs(totalEndMonths - totalStartMonths);
+      return diff <= MAX_MONTHLY_RANGE_MONTHS;
     },
-    { message: 'Date range cannot exceed 3 years (36 months)' }
+    { message: 'Date range cannot exceed 20 years (240 months)' }
   );
 
 export const getPriceQuerySchema = z.object({
@@ -106,5 +115,7 @@ export const getPriceQuerySchema = z.object({
 /** Query untuk GET /calendar (corporate actions): default bulan & tahun berjalan */
 export const getCalendarQuerySchema = z.object({
   month: optionalQueryBoundedInt(1, 12, 2).default(() => new Date().getMonth() + 1),
-  year: optionalQueryBoundedInt(2000, 2100, 4).default(() => new Date().getFullYear()),
+  year: optionalQueryBoundedInt(MIN_HOLDING_YEAR, MAX_HOLDING_YEAR, 4).default(
+    () => new Date().getFullYear()
+  ),
 });

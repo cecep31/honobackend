@@ -15,7 +15,7 @@ export interface ExchangeRateResponse {
   fetchedAt: string;
 }
 
-const EXCHANGE_RATE_SOURCE = 'Yahoo Finance';
+const EXCHANGE_RATE_SOURCE = 'RapidAPI';
 
 function yahooCurrencySymbol(from: string, to: string): string {
   return `${from}${to}=X`;
@@ -32,15 +32,14 @@ function isValidCurrencyCode(code: string): boolean {
 export class ExchangeRateService {
   constructor(
     private cacheService?: CacheService,
-    private stockPriceService: StockPriceService = new StockPriceService()
+    private stockPriceService: StockPriceService = new StockPriceService(cacheService)
   ) {}
 
   /**
    * Get the exchange rate for a currency pair (e.g. USD -> IDR).
    *
-   * Rates are fetched from Yahoo Finance using the `{FROM}{TO}=X` symbol and
-   * cached for 15 minutes. If the direct pair is unavailable, the inverse
-   * pair (`{TO}{FROM}=X`) is used and the rate inverted.
+   * Rates are fetched using the `{FROM}{TO}=X` symbol and cached for 15 minutes.
+   * If the direct pair is unavailable, the inverse pair (`{TO}{FROM}=X`) is used and inverted.
    */
   async getRate(fromRaw: string, toRaw: string): Promise<ExchangeRateResponse> {
     const from = normalizeCurrencyCode(fromRaw);
@@ -70,16 +69,16 @@ export class ExchangeRateService {
     const directSymbol = yahooCurrencySymbol(from, to);
     const inverseSymbol = yahooCurrencySymbol(to, from);
 
-    const quotes = await this.stockPriceService.getMultiplePrices([directSymbol, inverseSymbol]);
+    const quotes = await this.stockPriceService.getQuotes([directSymbol, inverseSymbol]);
 
-    const direct = quotes.find((q) => q.symbol.toUpperCase() === directSymbol);
-    if (direct && direct.price > 0) {
-      return this.buildResponse(from, to, directSymbol, direct.price);
+    const directPrice = quotes[directSymbol];
+    if (typeof directPrice === 'number' && directPrice > 0) {
+      return this.buildResponse(from, to, directSymbol, directPrice);
     }
 
-    const inverse = quotes.find((q) => q.symbol.toUpperCase() === inverseSymbol);
-    if (inverse && inverse.price > 0) {
-      const rate = Math.round((1 / inverse.price) * 1e8) / 1e8;
+    const inversePrice = quotes[inverseSymbol];
+    if (typeof inversePrice === 'number' && inversePrice > 0) {
+      const rate = Math.round((1 / inversePrice) * 1e8) / 1e8;
       return this.buildResponse(from, to, inverseSymbol, rate);
     }
 

@@ -17,13 +17,29 @@ import {
 import { AuthActivityService } from './authActivityService';
 import { isEmailConfigured, sendPasswordResetEmail } from '../../../email';
 import { parseExpiresIn } from '../../../utils/jwt';
+import type { CacheService } from '../../../services/cacheService';
+
+const OAUTH_EXCHANGE_TTL_SECONDS = 5 * 60; // 5 minutes
+
+interface OAuthExchangeEntry {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    username: string | null;
+  };
+  expiresAt: number;
+}
 
 export class AuthService {
   private activityService: AuthActivityService;
+  private oauthExchangeMemory = new Map<string, OAuthExchangeEntry>();
 
   constructor(
     private userService: UserService,
-    private userImageService?: UserImageService
+    private userImageService?: UserImageService,
+    private cacheService?: CacheService
   ) {
     this.activityService = new AuthActivityService();
   }
@@ -54,7 +70,8 @@ export class AuthService {
   }
 
   private getRefreshTokenExpiry(): string {
-    return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const days = config.jwt.refreshTokenExpiryDays || 7;
+    return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
   }
 
   private async createSession(
@@ -84,6 +101,63 @@ export class AuthService {
       .update(users)
       .set({ last_logged_at: new Date().toISOString() })
       .where(eq(users.id, userId));
+  }
+
+  async createOAuthExchangeCode(
+    accessToken: string,
+    refreshToken: string,
+    user: { id: string; email: string; username: string | null }
+  ): Promise<string> {
+    const code = `oc_${randomUUIDv7().replace(/-/g, '')}`;
+    const expiresAt = Date.now() + OAUTH_EXCHANGE_TTL_SECONDS * 1000;
+    const entry: OAuthExchangeEntry = {
+      accessToken,
+      refreshToken,
+      user,
+      expiresAt,
+    };
+
+    if (this.cacheService) {
+      await this.cacheService.set(`oauth_exchange:${code}`, entry, OAUTH_EXCHANGE_TTL_SECONDS);
+    } else {
+      this.oauthExchangeMemory.set(code, entry);
+    }
+
+    return code;
+  }
+
+  async exchangeOAuthCode(code: string) {
+    const cleanCode = code.trim();
+    if (!cleanCode) {
+      throw Errors.Unauthorized();
+    }
+
+    let entry: OAuthExchangeEntry | null = null;
+
+    if (this.cacheService) {
+      const cacheKey = `oauth_exchange:${cleanCode}`;
+      entry = await this.cacheService.get<OAuthExchangeEntry>(cacheKey);
+      if (entry) {
+        await this.cacheService.del(cacheKey);
+      }
+    }
+
+    if (!entry) {
+      entry = this.oauthExchangeMemory.get(cleanCode) || null;
+      if (entry) {
+        this.oauthExchangeMemory.delete(cleanCode);
+      }
+    }
+
+    if (!entry || Date.now() > entry.expiresAt || !entry.user) {
+      throw Errors.Unauthorized();
+    }
+
+    return {
+      access_token: entry.accessToken,
+      refresh_token: entry.refreshToken,
+      user: entry.user,
+    };
   }
 
   async signIn(username: string, password: string, user_agent: string, ip_address?: string) {
@@ -215,6 +289,11 @@ export class AuthService {
           mirrorAvatar: isNewUser && Boolean(githubUser.avatar_url),
           userId: user.id,
           avatarUrl: githubUser.avatar_url ?? '',
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+          },
         };
       } catch (error) {
         await this.activityService.logActivity(
@@ -239,7 +318,11 @@ export class AuthService {
         .catch(() => undefined);
     }
 
-    return { access_token: result.access_token, refresh_token: result.refresh_token };
+    return {
+      access_token: result.access_token,
+      refresh_token: result.refresh_token,
+      user: result.user,
+    };
   }
 
   async signUp(data: UserSignup, ip_address?: string, user_agent?: string) {
@@ -272,7 +355,15 @@ export class AuthService {
           tx
         );
 
-        return { access_token: token, refresh_token: session.refresh_token };
+        return {
+          access_token: token,
+          refresh_token: session.refresh_token,
+          user: {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+          },
+        };
       } catch (error) {
         await this.activityService.logActivity(
           {
@@ -390,12 +481,6 @@ export class AuthService {
 
   /**
    * Log a user out by revoking their server-side session(s).
-   *
-   * When a specific refresh token is supplied (e.g. from the `refresh_token`
-   * cookie) only that session is revoked. When none is available — as is the
-   * case for clients that keep the access token client-side and send no
-   * cookie — all of the user's sessions are revoked so logout is never a
-   * silent no-op.
    */
   async logout(
     userId: string,
@@ -442,7 +527,6 @@ export class AuthService {
       const result: { token?: string; resetLink?: string } = {};
 
       if (user) {
-        // Check if user has existing token created within last 60 seconds
         const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
         const existingToken = await tx.query.password_reset_tokens.findFirst({
           where: and(

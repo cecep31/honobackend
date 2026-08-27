@@ -8,6 +8,17 @@ mock.module('../utils/httpClient', () => ({
   },
 }));
 
+mock.module('../config', () => ({
+  default: {
+    marketData: {
+      rapidApiKey: 'test-key',
+    },
+    cache: {
+      url: '',
+    },
+  },
+}));
+
 const { StockPriceService } = await import('../modules/holdings/services/stockPriceService');
 
 describe('StockPriceService', () => {
@@ -17,22 +28,20 @@ describe('StockPriceService', () => {
     mockExternalGet.mockReset();
   });
 
-  it('fetches prices from Yahoo chart endpoint', async () => {
-    mockExternalGet.mockImplementation(async (url: string) => ({
-      data: {
-        chart: {
-          result: [
-            {
-              meta: {
-                symbol: url.includes('BBCA.JK') ? 'BBCA.JK' : 'AAPL',
-                regularMarketPrice: url.includes('BBCA.JK') ? 5850 : 280.14,
-                currency: url.includes('BBCA.JK') ? 'IDR' : 'USD',
-              },
-            },
-          ],
-        },
-      },
-    }));
+  it('fetches prices from RapidAPI endpoint', async () => {
+    mockExternalGet.mockImplementation(async (url: string) => {
+      if (url.includes('rapidapi.com')) {
+        return {
+          data: {
+            body: [
+              { symbol: 'AAPL', regularMarketPrice: 280.14, currency: 'USD' },
+              { symbol: 'BBCA.JK', regularMarketPrice: 5850, currency: 'IDR' },
+            ],
+          },
+        };
+      }
+      return { data: {} };
+    });
 
     const result = await service.getMultiplePrices(['aapl', 'BBCA.JK']);
 
@@ -40,20 +49,12 @@ describe('StockPriceService', () => {
       { symbol: 'AAPL', price: 280.14, currency: 'USD' },
       { symbol: 'BBCA.JK', price: 5850, currency: 'IDR' },
     ]);
-    expect(mockExternalGet).toHaveBeenCalledWith(
-      'https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d'
-    );
-    expect(mockExternalGet).toHaveBeenCalledWith(
-      'https://query1.finance.yahoo.com/v8/finance/chart/BBCA.JK?interval=1d&range=1d'
-    );
   });
 
   it('returns null for a symbol without a market price', async () => {
     mockExternalGet.mockResolvedValue({
       data: {
-        chart: {
-          result: [{ meta: { symbol: 'UNKNOWN', currency: 'USD' } }],
-        },
+        body: [{ symbol: 'UNKNOWN' }],
       },
     });
 

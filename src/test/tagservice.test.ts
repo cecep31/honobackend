@@ -32,6 +32,7 @@ mock.module('../database/drizzle', () => {
       },
       insert: mocks.mockInsert,
       update: mocks.mockUpdate,
+      delete: mocks.mockDelete,
     },
   };
 });
@@ -107,12 +108,10 @@ describe('TagService', () => {
       expect(mockFindFirst).toHaveBeenCalled();
     });
 
-    it('returns null if tag id not found', async () => {
+    it('throws if tag id not found', async () => {
       mockFindFirst.mockResolvedValue(null);
 
-      const result = await tagService.getTagById(999);
-
-      expect(result).toBeNull();
+      await expect(tagService.getTagById(999)).rejects.toThrow();
     });
   });
 

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { auth } from '../../../middlewares/auth';
 import { createSuperAdminMiddleware } from '../../../middlewares/superAdmin';
 import { validateRequest } from '../../../middlewares/validateRequest';
@@ -19,8 +20,28 @@ import {
 
 type UserService = AppServices['userService'];
 
+const followUserBodySchema = z
+  .object({
+    user_id: z.string().uuid().optional(),
+    following_id: z.string().uuid().optional(),
+  })
+  .refine((data) => Boolean(data.user_id || data.following_id), {
+    message: 'user_id or following_id is required',
+  });
+
 export const createUserController = (userService: UserService) => {
   const superAdminMiddleware = createSuperAdminMiddleware(userService);
+
+  const checkFollowStatusHandler = async (c: any) => {
+    const authUser = c.get('user');
+    const { id: following_id } = c.req.valid('param');
+    const isFollowing = await userService.isFollowing(authUser.user_id, following_id);
+    return sendSuccess(
+      c,
+      { is_following: isFollowing, isFollowing },
+      'Follow status checked successfully'
+    );
+  };
 
   return new Hono<{ Variables: Variables }>()
     .get(
@@ -125,6 +146,18 @@ export const createUserController = (userService: UserService) => {
         return sendSuccess(c, user, 'User deleted successfully');
       }
     )
+    .post('/follow', auth, validateRequest('json', followUserBodySchema), async (c) => {
+      const authUser = c.get('user');
+      const body = c.req.valid('json');
+      const targetId = (body.user_id || body.following_id)!;
+
+      if (authUser.user_id === targetId) {
+        throw Errors.BusinessRuleViolation('Cannot follow yourself');
+      }
+
+      const follow = await userService.followUser(authUser.user_id, targetId);
+      return sendSuccess(c, follow, 'User followed successfully', 201);
+    })
     .post('/:id/follow', auth, validateRequest('param', userIdSchema), async (c) => {
       const authUser = c.get('user');
       const { id: following_id } = c.req.valid('param');
@@ -189,12 +222,18 @@ export const createUserController = (userService: UserService) => {
       const mutuals = await userService.getMutualFollows(authUser.user_id, id);
       return sendSuccess(c, mutuals, 'Mutual follows fetched successfully');
     })
-    .get('/:id/is-following', auth, validateRequest('param', userIdSchema), async (c) => {
-      const authUser = c.get('user');
-      const { id: following_id } = c.req.valid('param');
-      const isFollowing = await userService.isFollowing(authUser.user_id, following_id);
-      return sendSuccess(c, { isFollowing }, 'Follow status checked successfully');
-    })
+    .get(
+      '/:id/is-following',
+      auth,
+      validateRequest('param', userIdSchema),
+      checkFollowStatusHandler
+    )
+    .get(
+      '/:id/follow-status',
+      auth,
+      validateRequest('param', userIdSchema),
+      checkFollowStatusHandler
+    )
     .post(
       '/:id/restore',
       auth,

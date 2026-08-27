@@ -3,9 +3,14 @@ import { and, asc, desc, eq, inArray, sql, count, isNotNull } from 'drizzle-orm'
 import { holdings, holding_types } from '../../../database/schemas/postgres/schema';
 import type { DuplicateHoldingPayload, HoldingCreate, HoldingUpdate } from '../validation';
 import { Errors } from '../../../utils/error';
-import { stockPriceService } from './stockPriceService';
+import { stockPriceService, type StockPriceService } from './stockPriceService';
+
+const MIN_HOLDING_YEAR = 1990;
+const MAX_MONTHLY_RANGE_MONTHS = 240; // 20 years
 
 export class HoldingService {
+  constructor(private priceService: StockPriceService = stockPriceService) {}
+
   async createHolding(userId: string, data: HoldingCreate) {
     return db
       .insert(holdings)
@@ -38,7 +43,13 @@ export class HoldingService {
       ),
     });
 
-    if (userHoldings.length === 0) return [];
+    if (userHoldings.length === 0) {
+      return {
+        syncedCount: 0,
+        month: currentMonth,
+        year: currentYear,
+      };
+    }
 
     // 2. Extract unique symbols
     const symbols = Array.from(
@@ -46,16 +57,17 @@ export class HoldingService {
     );
 
     // 3. Fetch current prices
-    const latestPrices = await stockPriceService.getMultiplePrices(symbols);
-    const priceMap = new Map(latestPrices.map((p) => [p.symbol.trim().toUpperCase(), p.price]));
+    const quotes = await this.priceService.getQuotes(symbols);
 
     // 4. Update each holding
     const updatePromises = userHoldings.map((h) => {
-      const latestPrice = priceMap.get((h.symbol as string).trim().toUpperCase());
-      if (latestPrice === undefined) return null;
+      if (!h.symbol) return null;
+      const latestPrice = quotes[h.symbol.trim().toUpperCase()];
+      if (latestPrice === undefined || latestPrice <= 0) return null;
 
       const units = Number(h.units || 0);
-      const newValue = units * latestPrice;
+      if (units <= 0) return null;
+      const newValue = Math.round(units * latestPrice * 100) / 100;
 
       return db
         .update(holdings)
@@ -80,7 +92,7 @@ export class HoldingService {
 
   async getPrice(symbol: string) {
     const normalizedSymbol = symbol.trim().toUpperCase();
-    const price = await stockPriceService.getPrice(normalizedSymbol);
+    const price = await this.priceService.getPrice(normalizedSymbol);
 
     if (!price) {
       throw Errors.NotFound('Stock price');
@@ -324,6 +336,8 @@ export class HoldingService {
     endYear?: number
   ) {
     const now = new Date();
+    const maxYear = now.getFullYear() + 1;
+
     // Default: start = current month/year, end = 11 months before start (12-month window)
     const sMonth = startMonth ?? now.getMonth() + 1;
     const sYear = startYear ?? now.getFullYear();
@@ -339,10 +353,19 @@ export class HoldingService {
       eYear = Math.floor((endYmBase - 1) / 12);
     }
 
+    if (sYear < MIN_HOLDING_YEAR || sYear > maxYear || eYear < MIN_HOLDING_YEAR || eYear > maxYear) {
+      throw Errors.InvalidInput('year', `Year must be between ${MIN_HOLDING_YEAR} and ${maxYear}`);
+    }
+
     const startYmRaw = sYear * 12 + sMonth;
     const endYmRaw = eYear * 12 + eMonth;
     const rangeStartYm = Math.min(startYmRaw, endYmRaw);
     const rangeEndYm = Math.max(startYmRaw, endYmRaw);
+
+    const spanMonths = rangeEndYm - rangeStartYm;
+    if (spanMonths > MAX_MONTHLY_RANGE_MONTHS) {
+      throw Errors.InvalidInput('range', 'Range is too large (maximum 20 years)');
+    }
 
     const where = [
       eq(holdings.user_id, userId),

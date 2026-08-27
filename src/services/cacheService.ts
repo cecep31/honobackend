@@ -15,11 +15,12 @@ export class RedisCacheService implements CacheService {
   private connectPromise: Promise<RedisConnection | null> | null = null;
 
   private isEnabled() {
-    return config.cache.url.length > 0;
+    return Boolean(config?.cache?.url && config.cache.url.length > 0);
   }
 
   private buildKey(key: string) {
-    return `${config.cache.keyPrefix}:${key}`;
+    const prefix = config?.cache?.keyPrefix || 'pilput';
+    return `${prefix}:${key}`;
   }
 
   private async getClient(): Promise<RedisConnection | null> {
@@ -38,7 +39,7 @@ export class RedisCacheService implements CacheService {
     const client = createClient({
       url: config.cache.url,
       socket: {
-        connectTimeout: config.cache.connectTimeoutMs,
+        connectTimeout: config.cache.connectTimeoutMs || 2000,
       },
     });
 
