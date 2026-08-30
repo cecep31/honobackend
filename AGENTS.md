@@ -8,7 +8,8 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 bun run typecheck          # tsc --noEmit
 bun run lint               # ESLint (ignores dist/, bin/, drizzle/, node_modules/, *.config.js, *.config.ts)
 bun run lint:fix           # ESLint with auto-fix
-bun run format             # Prettier — ONLY src/**/*.ts (does not format root/config/tests)
+bun run format             # oxfmt — ONLY src/**/*.ts (does not format root/config/tests)
+bun run format:check       # oxfmt --check — verify formatting without writing
 bun test                   # Run all tests
 bun test <file>            # Run single test
 bun test --watch           # Watch mode
@@ -31,7 +32,7 @@ Pre-commit verification order: `bun run typecheck && bun run lint && bun test`. 
 
 ## Code Style
 
-- Prettier: 2-space, single quotes, semicolons, trailingComma `es5`, 100 char max, LF endings
+- oxfmt (Prettier-compatible): 2-space, single quotes, semicolons, trailingComma `es5`, 100 char max, LF endings — config in `.oxfmtrc.json`
 - TypeScript strict mode, Zod v4 for validation, `@hono/zod-validator` for route validation
 - `verbatimModuleSyntax: true` in tsconfig — use `import type` for type-only imports
 - Naming: `camelCase` vars/functions, `PascalCase` types/classes, `UPPER_CASE` constants, `_` prefix for private/unused vars

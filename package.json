@@ -17,7 +17,8 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "clean": "node -e \"['dist','bin'].forEach(d=>{try{require('fs').rmSync(d,{recursive:true,force:true})}catch{}})\"",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "oxfmt --write \"src/**/*.ts\"",
+    "format:check": "oxfmt --check \"src/**/*.ts\""
   },
   "dependencies": {
     "@hono/zod-validator": "^0.9.0",
@@ -36,8 +37,8 @@
     "@types/sanitize-html": "^2.16.1",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.9.1",
-    "eslint-config-prettier": "^10.1.8",
     "globals": "^17.11.0",
+    "oxfmt": "^0.65.0",
     "typescript": "^7.0.2",
     "typescript-eslint": "^8.68.0"
   },

@@ -79,7 +79,7 @@ src/modules/<feature>/
 | `bun test` | Runs the test suite |
 | `bun run typecheck` | Runs TypeScript type checking |
 | `bun run lint` | Lints the codebase |
-| `bun run format` | Formats code using Prettier |
+| `bun run format` | Formats code using oxfmt |
 | `bun run build` | Builds the project for production (dist/) |
 | `bun run build:compile` | Compiles a native binary for production (bin/) |
 | `bun run clean` | Removes build artifacts |
