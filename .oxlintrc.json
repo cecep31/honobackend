@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true,
+    "node": true
+  },
+  "ignorePatterns": ["dist/**", "bin/**", "drizzle/**", "node_modules/**", "*.config.js", "*.config.ts"],
+  "rules": {
+    "typescript/no-explicit-any": "off",
+    "typescript/no-unsafe-function-type": "off",
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-useless-assignment": "warn",
+    "preserve-caught-error": "warn",
+    "no-useless-escape": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["src/test/**"],
+      "rules": {
+        "unicorn/no-thenable": "off"
+      }
+    }
+  ]
+}

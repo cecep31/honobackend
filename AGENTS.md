@@ -6,8 +6,8 @@ Guidelines for agentic coding tools working with this Hono/TypeScript backend.
 
 ```bash
 bun run typecheck          # tsc --noEmit
-bun run lint               # ESLint (ignores dist/, bin/, drizzle/, node_modules/, *.config.js, *.config.ts)
-bun run lint:fix           # ESLint with auto-fix
+bun run lint               # oxlint (ignores dist/, bin/, drizzle/, node_modules/, *.config.js, *.config.ts)
+bun run lint:fix           # oxlint with auto-fix
 bun run format             # oxfmt — ONLY src/**/*.ts (does not format root/config/tests)
 bun run format:check       # oxfmt --check — verify formatting without writing
 bun test                   # Run all tests
@@ -36,7 +36,7 @@ Pre-commit verification order: `bun run typecheck && bun run lint && bun test`. 
 - TypeScript strict mode, Zod v4 for validation, `@hono/zod-validator` for route validation
 - `verbatimModuleSyntax: true` in tsconfig — use `import type` for type-only imports
 - Naming: `camelCase` vars/functions, `PascalCase` types/classes, `UPPER_CASE` constants, `_` prefix for private/unused vars
-- ESLint: `@typescript-eslint/no-explicit-any` is **off**, `@typescript-eslint/no-unsafe-function-type` is **off**, unused vars with `_` prefix are ignored
+- oxlint (config in `.oxlintrc.json`): `typescript/no-explicit-any` is **off**, `typescript/no-unsafe-function-type` is **off**, unused vars with `_` prefix are ignored, `unicorn/no-thenable` is off under `src/test/**` (intentional thenable mocks)
 
 ## Error Handling
 

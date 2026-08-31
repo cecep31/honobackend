@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
     "dev": "bun --hot index.ts",
     "start": "bun run index.ts",
     "build": "tsc --noEmit && bun build index.ts --minify --outdir dist --target bun",
@@ -32,15 +32,12 @@
     "zod": "^4.5.2"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@types/bun": "^1.4.0",
     "@types/sanitize-html": "^2.16.1",
     "drizzle-kit": "^0.31.10",
-    "eslint": "^10.9.1",
-    "globals": "^17.11.0",
     "oxfmt": "^0.65.0",
-    "typescript": "^7.0.2",
-    "typescript-eslint": "^8.68.0"
+    "oxlint": "^1.80.0",
+    "typescript": "^7.0.2"
   },
   "keywords": [
     "hono",

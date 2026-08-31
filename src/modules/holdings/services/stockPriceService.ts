@@ -1,6 +1,5 @@
 import config from '../../../config';
 import type { CacheService } from '../../../services/cacheService';
-import { Errors } from '../../../utils/error';
 import { externalApiClient } from '../../../utils/httpClient';
 
 export const STOCK_QUOTE_CACHE_TTL_SECONDS = 15 * 60; // 15 minutes
@@ -70,7 +69,7 @@ export class StockPriceService {
     }
 
     // 2. Fetch missing symbols
-    let fetchedQuotes: Record<string, number> = {};
+    let fetchedQuotes: Record<string, number>;
 
     const apiKey = config?.marketData?.rapidApiKey || '';
     if (apiKey) {
