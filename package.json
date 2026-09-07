@@ -23,8 +23,8 @@
   "dependencies": {
     "@hono/zod-validator": "^0.9.1",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.5",
-    "hono-rate-limiter": "^0.5.3",
+    "hono": "^4.13.7",
+    "hono-rate-limiter": "^0.5.4",
     "postgres": "^3.4.9",
     "redis": "^6.2.1",
     "resend": "^6.26.0",
@@ -32,7 +32,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.0",
+    "@types/bun": "^1.4.1",
     "@types/sanitize-html": "^2.16.1",
     "drizzle-kit": "^0.31.10",
     "oxfmt": "^0.66.0",
