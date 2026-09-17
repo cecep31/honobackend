@@ -69,7 +69,9 @@ export function createServices(): AppServices {
   const activityService = createLazyService(() => new AuthActivityService());
   const tagService = createLazyService(() => new TagService(cacheService));
   const userService = createLazyService(() => new UserService(notificationService));
-  const authService = createLazyService(() => new AuthService(userService));
+  const authService = createLazyService(
+    () => new AuthService(userService, undefined, cacheService)
+  );
   const postService = createLazyService(() => new PostService(cacheService));
   const postViewService = createLazyService(() => new PostViewService());
   const openrouterService = createLazyService(() => new OpenRouterService());

@@ -39,11 +39,11 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 export default {
   port: process.env['PORT'] || 3001,
   fetch: app.fetch,
-  // Increase timeout values
-  requestTimeout: 30, // seconds
-  idleTimeout: 60, // seconds
-  // Enable keep-alive
-  keepAliveTimeout: 120, // seconds
+  // Timeout values optimized for low-memory environments
+  requestTimeout: 15, // seconds
+  idleTimeout: 10, // seconds
+  // Keep-alive timeout reduced to free idle socket buffers quickly
+  keepAliveTimeout: 10, // seconds
   // Maximum number of requests per socket
   maxRequestsPerSocket: 100,
 };

@@ -103,6 +103,22 @@ export class AuthService {
       .where(eq(users.id, userId));
   }
 
+  private pruneOAuthMemory() {
+    const now = Date.now();
+    for (const [code, entry] of this.oauthExchangeMemory) {
+      if (entry.expiresAt <= now) {
+        this.oauthExchangeMemory.delete(code);
+      }
+    }
+    // Hard cap on memory map size (evict oldest FIFO entries if still full)
+    const MAX_OAUTH_ENTRIES = 500;
+    while (this.oauthExchangeMemory.size >= MAX_OAUTH_ENTRIES) {
+      const oldestKey = this.oauthExchangeMemory.keys().next().value;
+      if (!oldestKey) break;
+      this.oauthExchangeMemory.delete(oldestKey);
+    }
+  }
+
   async createOAuthExchangeCode(
     accessToken: string,
     refreshToken: string,
@@ -120,6 +136,7 @@ export class AuthService {
     if (this.cacheService) {
       await this.cacheService.set(`oauth_exchange:${code}`, entry, OAUTH_EXCHANGE_TTL_SECONDS);
     } else {
+      this.pruneOAuthMemory();
       this.oauthExchangeMemory.set(code, entry);
     }
 
@@ -143,6 +160,7 @@ export class AuthService {
     }
 
     if (!entry) {
+      this.pruneOAuthMemory();
       entry = this.oauthExchangeMemory.get(cleanCode) || null;
       if (entry) {
         this.oauthExchangeMemory.delete(cleanCode);
@@ -482,12 +500,7 @@ export class AuthService {
   /**
    * Log a user out by revoking their server-side session(s).
    */
-  async logout(
-    userId: string,
-    refreshToken?: string,
-    ip_address?: string,
-    user_agent?: string
-  ) {
+  async logout(userId: string, refreshToken?: string, ip_address?: string, user_agent?: string) {
     return await db.transaction(async (tx) => {
       if (refreshToken) {
         const hashedRefreshToken = this.hashRefreshToken(refreshToken);

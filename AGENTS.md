@@ -79,7 +79,7 @@ Error shape: `{ success: false, message, timestamp }` with optional flat fields:
 
 ### Entry point
 - `index.ts` — exports default server config for `bun.serve()` (port from `PORT` env, default 3001). Runs `runStartupChecks()` before serving. Handles graceful shutdown: `shutdownMiddlewares() → shutdownServices() → shutdownDatabase()`.
-- `src/server/app.ts` — creates Hono app, applies timeout (30s), compression, error handler, middlewares, routes. Exposes `/health` and `/ready` endpoints (both probe the database).
+- `src/server/app.ts` — creates Hono app, applies timeout (30s), error handler, middlewares, routes. Exposes `/health` and `/ready` endpoints (both probe the database).
 
 ### Routing
 - All API routes under `/api`, wired in `src/router/index.ts` via `setupRouter(app)`.
@@ -190,9 +190,9 @@ Copy `.env.example` to `.env`. Required: `DATABASE_URL`, `JWT_SECRET` (min 32 ch
 
 Key optional integrations: GitHub OAuth (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`), S3 storage, OpenRouter AI (`OPENROUTER_API_KEY`, code default model `google/gemma-2-9b-it:free`), Resend email for password resets, Valkey/Redis cache (`VALKEY_URL`; falls back to `REDIS_URL`).
 
-DB pool defaults (code): `DB_MAX_CONNECTIONS=10`, `DB_IDLE_TIMEOUT=30`, `DB_CONNECT_TIMEOUT=10`, `DB_MAX_LIFETIME=1800`.
+DB pool defaults (code): `DB_MAX_CONNECTIONS=5`, `DB_IDLE_TIMEOUT=10`, `DB_CONNECT_TIMEOUT=10`, `DB_MAX_LIFETIME=900`.
 
-Note: `.env.example` shows `PORT=3000` but code default is 3001. Similarly `.env.example` shows `DB_MAX_CONNECTIONS=50` but code default is 10. The code defaults win when env vars are unset.
+Note: `.env.example` shows `PORT=3000` but code default is 3001. The code defaults win when env vars are unset.
 
 ## Deploy
 

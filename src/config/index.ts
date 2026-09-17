@@ -135,8 +135,8 @@ interface AppConfig {
 function buildDatabaseConfig(): DatabaseConfig {
   return {
     url: requireString('DATABASE_URL'),
-    maxConnections: getNumber('DB_MAX_CONNECTIONS', getNumber('DB_POOL_MAX_OPEN', 25)),
-    idleTimeout: getNumber('DB_IDLE_TIMEOUT', getNumber('DB_POOL_MAX_IDLE', 25)),
+    maxConnections: getNumber('DB_MAX_CONNECTIONS', getNumber('DB_POOL_MAX_OPEN', 5)),
+    idleTimeout: getNumber('DB_IDLE_TIMEOUT', getNumber('DB_POOL_MAX_IDLE', 10)),
     connectTimeout: getNumber('DB_CONNECT_TIMEOUT', 10),
     maxLifetime: getNumber('DB_MAX_LIFETIME', getNumber('DB_POOL_CONN_LIFETIME', 900)),
   };
@@ -191,7 +191,10 @@ function buildEmailConfig(): EmailConfig {
 function buildFrontendConfig(): FrontendConfig {
   return {
     url: getString('FRONTEND_URL', 'https://pilput.net'),
-    resetPasswordUrl: getString('FRONTEND_RESET_PASSWORD_URL', 'http://localhost:3000/reset-password'),
+    resetPasswordUrl: getString(
+      'FRONTEND_RESET_PASSWORD_URL',
+      'http://localhost:3000/reset-password'
+    ),
     mainDomain: getString('MAIN_DOMAIN', 'pilput.net'),
   };
 }
