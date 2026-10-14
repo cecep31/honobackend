@@ -353,8 +353,8 @@ export class AuthService {
         const signupPayload = {
           ...data,
           password: hashedPassword,
-          first_name: data.username,
-          last_name: null,
+          first_name: data.first_name,
+          last_name: data.last_name,
         };
         const user = await this.userService.createUser(signupPayload, tx);
         const payload = this.createJwtPayload(user);

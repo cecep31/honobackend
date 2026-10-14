@@ -35,6 +35,8 @@ export const registerSchema = z.object({
       });
     }
   }),
+  first_name: z.string().min(1, 'First name is required').max(100, 'First name must not exceed 100 characters'),
+  last_name: z.string().min(1, 'Last name is required').max(100, 'Last name must not exceed 100 characters'),
 });
 
 export type UserSignup = z.infer<typeof registerSchema>;
