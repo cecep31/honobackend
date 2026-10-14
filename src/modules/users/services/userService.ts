@@ -1,6 +1,6 @@
 import { randomUUIDv7 } from 'bun';
 import { db } from '../../../database/drizzle';
-import { and, count, desc, eq, isNull, ne, or } from 'drizzle-orm';
+import { and, asc, count, eq, isNull, ne, or, sql } from 'drizzle-orm';
 import {
   profiles,
   users as usersModel,
@@ -75,10 +75,23 @@ export class UserService {
   async getUsers(params: GetPaginationParams = { offset: 0, limit: 10 }) {
     try {
       const { limit, offset } = params;
+      const orderDir = params.orderDirection === 'asc' ? 'asc' : 'desc';
+      const orderColumns = {
+        created_at: usersModel.created_at,
+        last_logged_at: usersModel.last_logged_at,
+        username: usersModel.username,
+        email: usersModel.email,
+      } as const;
+      const orderColumn =
+        orderColumns[params.orderBy as keyof typeof orderColumns] ?? usersModel.created_at;
+      // NULLS LAST so users who never logged in stay at the bottom
+      // (Postgres defaults to NULLS FIRST on DESC).
+      const orderExpr =
+        orderDir === 'asc' ? asc(orderColumn) : sql`${orderColumn} DESC NULLS LAST`;
       const [data, totalRows] = await Promise.all([
         db.query.users.findMany({
           columns: { password: false, github_id: false },
-          orderBy: [desc(usersModel.created_at)],
+          orderBy: [orderExpr],
           where: isNull(usersModel.deleted_at),
           limit,
           offset,
